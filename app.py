@@ -248,7 +248,7 @@ if st.session_state.usuario_logado is None:
                 <div class="feature-badge">📷 <b>Leitura QR Code:</b> Agilidade com a câmera nos corredores.</div>
                 <div class="feature-badge">🛡️ <b>Auditoria Completa:</b> Controle total de acesso e operações.</div>
             </div>
-        """,
+            """,
             unsafe_allow_html=True,
         )
 
@@ -264,7 +264,7 @@ if st.session_state.usuario_logado is None:
                 <h2 style="color: #7A1C2E; font-size: 1.3rem; font-weight: 700; margin-bottom: 0;">Wine Map Pro</h2>
                 <p style="color: #6C757D; font-size: 0.8rem;">Acesse sua conta para continuar</p>
             </div>
-        """,
+            """,
             unsafe_allow_html=True,
         )
 
@@ -424,7 +424,7 @@ if st.session_state.menu_atual == "🏠 Home":
             <h1 style="color: #7A1C2E; font-size: 1.8rem; font-weight: 800;">{st.session_state.usuario_logado['nome']}! 👋</h1>
             <p style="color: #495057; font-size: 0.9rem;">Escolha abaixo a opção desejada para gerenciar o galpão:</p>
         </div>
-    """,
+        """,
         unsafe_allow_html=True,
     )
 
@@ -549,7 +549,7 @@ elif st.session_state.menu_atual == "🔍 Buscar / Filtros Múltiplos":
                 <p><span class="badge-pallet">📍 {v.get('pallet')}</span></p>
                 <p class="wine-text"><b>Tipo:</b> {v.get('tipo')} | <b>Caixa:</b> {v.get('caixa')} | <b>Lado:</b> {v.get('lado')}</p>
             </div>
-        """,
+            """,
             unsafe_allow_html=True,
         )
 
@@ -578,7 +578,7 @@ elif st.session_state.menu_atual == "📷 Escanear QR Code / Câmera":
                     <div class="wine-title">🍷 {v.get('nome')} ({v.get('safra')})</div>
                     <p class="wine-text"><b>Tipo:</b> {v.get('tipo')} | <b>Embalagem:</b> {v.get('caixa')}</p>
                 </div>
-            """,
+                """,
                 unsafe_allow_html=True,
             )
 
@@ -736,7 +736,7 @@ elif st.session_state.menu_atual == "📋 Histórico de Auditoria":
                     <p style="margin: 0; font-size: 0.8rem; color: #6C757D;"><b>{l.get('data_hora')}</b> — Usuário: <b>{l.get('usuario')}</b></p>
                     <p style="margin: 4px 0 0 0; font-size: 0.9rem; color: #1A1A1A;"><b>Ação:</b> {l.get('acao')} | <b>Detalhes:</b> {l.get('detalhes')}</p>
                 </div>
-            """,
+                """,
                 unsafe_allow_html=True,
             )
 
