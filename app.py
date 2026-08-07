@@ -8,7 +8,7 @@ import urllib.parse
 # Configuração da página Streamlit
 st.set_page_config(
     page_title="Premium Wines - Wine Map Pro",
-    page_icon="logo_app_icon.png",
+    page_icon="imagem premium.jpeg",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -327,8 +327,8 @@ if st.session_state.usuario_logado is None:
 
 # --- BARRA LATERAL ---
 with st.sidebar:
-    if os.path.exists("logo_app_icon.png"):
-        st.image("logo_app_icon.png", width=140)
+    if os.path.exists("imagem premium.jpeg"):
+        st.image("imagem premium.jpeg", width=140)
     
     st.markdown(
         f"<h3 style='color:#7A1C2E; margin-top:5px;'>Premium Wines</h3>",
@@ -406,10 +406,10 @@ if st.session_state.menu_atual == "⚙️ Gerenciar Usuários (Dev)" and not e_d
 
 # --- TELAS DO APLICATIVO ---
 if st.session_state.menu_atual == "🏠 Home":
-    if os.path.exists("image_1.png"):
+    if os.path.exists("imagem premium.jpeg"):
         col_img1, col_img2, col_img3 = st.columns([1, 2, 1])
         with col_img2:
-            st.image("image_1.png", use_container_width=True)
+            st.image("imagem premium.jpeg", use_container_width=True)
 
     st.markdown(
         f"""
@@ -628,9 +628,6 @@ elif st.session_state.menu_atual == "✏️ Editar vinho":
             novo_nome = st.text_input("Nome do Vinho:", value=vinho_sel.get("nome", "")).strip()
             novo_tipo = st.text_input("Tipo:", value=vinho_sel.get("tipo", "")).strip()
             nova_safra = st.text_input("Safra:", value=vinho_sel.get("safra", "")).strip()
-            
-            # Tenta preencheer selects baseados no pallet salvo
-            pallet_atual = vinho_sel.get("pallet", "Corredor 01 - Pallet 01")
             
             novo_corredor = st.selectbox("Corredor:", LISTA_CORREDORES)
             novo_pallet_num = st.selectbox("Pallet:", LISTA_PALLETS)
