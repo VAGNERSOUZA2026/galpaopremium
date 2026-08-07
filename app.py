@@ -13,7 +13,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Estilização CSS Profissional (Banner lateral imersivo, cards e fontes)
+# Estilização CSS (Tema Branco, Bordô e Dourado)
 st.markdown(
     """
     <style>
@@ -21,50 +21,14 @@ st.markdown(
         overscroll-behavior-y: contain;
     }
     .stApp {
-        background-color: #F8F9FA;
+        background-color: #FFFFFF;
         color: #1A1A1A;
         font-family: 'Poppins', sans-serif;
     }
-    /* Estilo do painel de boas-vindas esquerdo */
-    .hero-container {
-        background: linear-gradient(135deg, #4A0E19 0%, #7A1C2E 100%);
-        padding: 40px 30px;
-        border-radius: 20px;
-        color: #FFFFFF;
-        box-shadow: 0px 10px 30px rgba(122, 28, 41, 0.2);
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-    }
-    .hero-title {
-        font-size: 1.8rem;
-        font-weight: 800;
-        margin-bottom: 10px;
-        color: #FFFFFF;
-    }
-    .hero-subtitle {
-        font-size: 0.95rem;
-        color: #E0D0D3;
-        line-height: 1.5;
-        margin-bottom: 20px;
-    }
-    .feature-badge {
-        background-color: rgba(255, 255, 255, 0.12);
-        padding: 8px 14px;
-        border-radius: 10px;
-        margin-bottom: 10px;
-        font-size: 0.85rem;
-        font-weight: 500;
-        border-left: 3px solid #C9A227;
-    }
-    /* Cartão da direita (formulário) */
-    .form-card {
-        background-color: #FFFFFF;
-        padding: 25px 30px;
-        border-radius: 20px;
-        box-shadow: 0px 6px 20px rgba(0, 0, 0, 0.04);
-        border: 1px solid #E9ECEF;
+    .login-wrapper {
+        max-width: 480px;
+        margin: 0 auto;
+        padding: 10px 20px;
     }
     .wine-card {
         background-color: #FFFFFF;
@@ -235,134 +199,122 @@ if "menu_atual" not in st.session_state:
 if "modo_dev" not in st.session_state:
     st.session_state.modo_dev = False
 
-# --- TELA DE LOGIN / CADASTRO DE USUÁRIO (ESTILO SPLIT-SCREEN PROFISSIONAL) ---
+# --- TELA DE LOGIN / CADASTRO DE USUÁRIO ---
 if st.session_state.usuario_logado is None:
-    st.write("")  # Pequeno respiro superior
-    
-    col_l, col_r = st.columns([1.1, 1], gap="large")
+    st.markdown("<div class='login-wrapper'>", unsafe_allow_html=True)
 
-    with col_l:
-        # Bloco esquerdo com identidade visual forte e destaques do app
-        st.markdown(
-            """
-            <div class="hero-container">
-                <h1 class="hero-title">🍷 Premium Wines</h1>
-                <p class="hero-subtitle">Sistema inteligente de mapeamento, localização e gestão de estoque para o seu galpão de vinhos finos.</p>
-                
-                <div class="feature-badge">⚡ <b>Busca Avançada:</b> Encontre qualquer rótulo em segundos.</div>
-                <div class="feature-badge">📷 <b>Leitura QR Code:</b> Agilidade com a câmera nos corredores.</div>
-                <div class="feature-badge">🛡️ <b>Auditoria Completa:</b> Controle total de acesso e operações.</div>
-            </div>
-        """,
-            unsafe_allow_html=True,
-        )
+    if os.path.exists("imagem premium.jpeg"):
+        col_img1, col_img2, col_img3 = st.columns([1, 1.4, 1])
+        with col_img2:
+            st.image("imagem premium.jpeg", width=200)
 
-    with col_r:
-        if os.path.exists("imagem premium.jpeg"):
-            col_img1, col_img2, col_img3 = st.columns([1, 1.3, 1])
-            with col_img2:
-                st.image("imagem premium.jpeg", width=140)
+    st.markdown(
+        """
+        <div style="text-align: center; margin-top: 5px; margin-bottom: 12px;">
+            <h1 style="color: #7A1C2E; font-size: 1.4rem; font-weight: 800;">🍷 Premium Wines - Wine Map Pro</h1>
+            <p style="color: #6C757D; font-size: 0.8rem;">Entre com sua conta ou cadastre-se para acessar o sistema</p>
+        </div>
+    """,
+        unsafe_allow_html=True,
+    )
 
-        st.markdown(
-            """
-            <div style="text-align: center; margin-bottom: 10px;">
-                <h2 style="color: #7A1C2E; font-size: 1.3rem; font-weight: 700; margin-bottom: 0;">Wine Map Pro</h2>
-                <p style="color: #6C757D; font-size: 0.8rem;">Acesse sua conta para continuar</p>
-            </div>
-        """,
-            unsafe_allow_html=True,
-        )
+    tab_login, tab_cadastro, tab_dev = st.tabs(
+        ["🔑 Entrar", "👤 Criar Conta", "⚙️ Painel Dev (1980)"]
+    )
 
-        tab_login, tab_cadastro, tab_dev = st.tabs(
-            ["🔑 Entrar", "👤 Criar Conta", "⚙️ Dev"]
-        )
+    with tab_login:
+        with st.form("form_login_usuario"):
+            nome_login = st.text_input("Nome de Usuário:").strip()
+            senha_login = st.text_input("Senha:", type="password").strip()
 
-        with tab_login:
-            with st.form("form_login_usuario"):
-                nome_login = st.text_input("Nome de Usuário:").strip()
-                senha_login = st.text_input("Senha:", type="password").strip()
+            if st.form_submit_button("ENTRAR NO SISTEMA", use_container_width=True):
+                usuario_encontrado = None
+                for u in st.session_state.usuarios:
+                    if (
+                        u.get("nome", "").lower() == nome_login.lower()
+                        and u.get("senha") == senha_login
+                    ):
+                        usuario_encontrado = u
+                        break
 
-                if st.form_submit_button("ENTRAR NO SISTEMA", use_container_width=True):
-                    usuario_encontrado = None
-                    for u in st.session_state.usuarios:
-                        if (
-                            u.get("nome", "").lower() == nome_login.lower()
-                            and u.get("senha") == senha_login
-                        ):
-                            usuario_encontrado = u
-                            break
+                if usuario_encontrado:
+                    st.session_state.usuario_logado = usuario_encontrado
+                    st.session_state.modo_dev = False
+                    st.success(
+                        f"Bem-vindo, {usuario_encontrado['nome']}! Cargo: {usuario_encontrado['cargo']}"
+                    )
+                    st.rerun()
+                else:
+                    st.error("Usuário ou senha incorretos.")
 
-                    if usuario_encontrado:
-                        st.session_state.usuario_logado = usuario_encontrado
-                        st.session_state.modo_dev = False
-                        st.success(f"Bem-vindo, {usuario_encontrado['nome']}!")
-                        st.rerun()
+    with tab_cadastro:
+        with st.form("form_novo_cadastro"):
+            novo_nome = st.text_input("Nome Completo:").strip()
+            novo_cargo = st.selectbox(
+                "Cargo:",
+                ["Operador de Galpão", "Conferente", "Administrador"],
+            )
+            nova_senha = st.text_input(
+                "Crie sua Senha:", type="password"
+            ).strip()
+
+            if st.form_submit_button("CADASTRAR", use_container_width=True):
+                if novo_nome and nova_senha:
+                    existe = any(
+                        u.get("nome", "").lower() == novo_nome.lower()
+                        for u in st.session_state.usuarios
+                    )
+                    if existe:
+                        st.error("Este nome de usuário já está cadastrado.")
                     else:
-                        st.error("Usuário ou senha incorretos.")
-
-        with tab_cadastro:
-            with st.form("form_novo_cadastro"):
-                novo_nome = st.text_input("Nome Completo:").strip()
-                novo_cargo = st.selectbox(
-                    "Cargo:",
-                    ["Operador de Galpão", "Conferente", "Administrador"],
-                )
-                nova_senha = st.text_input(
-                    "Crie sua Senha:", type="password"
-                ).strip()
-
-                if st.form_submit_button("CADASTRAR", use_container_width=True):
-                    if novo_nome and nova_senha:
-                        existe = any(
-                            u.get("nome", "").lower() == novo_nome.lower()
-                            for u in st.session_state.usuarios
-                        )
-                        if existe:
-                            st.error("Este nome de usuário já está cadastrado.")
-                        else:
-                            novo_user = {
-                                "nome": novo_nome,
-                                "cargo": novo_cargo,
-                                "senha": nova_senha,
-                            }
-                            st.session_state.usuarios.append(novo_user)
-                            salvar_usuarios(st.session_state.usuarios)
-                            registrar_log(
-                                novo_nome,
-                                "Criação de Conta",
-                                f"Cargo: {novo_cargo}",
-                            )
-                            st.session_state.usuario_logado = novo_user
-                            st.session_state.modo_dev = False
-                            st.success("Conta criada com sucesso!")
-                            st.rerun()
-                    else:
-                        st.error("Preencha o Nome e a Senha.")
-
-        with tab_dev:
-            with st.form("form_login_dev"):
-                st.markdown(
-                    "<p style='color: #7A1C2E; font-weight: bold; font-size: 0.85rem;'>Acesso do Desenvolvedor</p>",
-                    unsafe_allow_html=True,
-                )
-                senha_dev_input = st.text_input(
-                    "Senha Mestra:", type="password"
-                ).strip()
-                if st.form_submit_button(
-                    "ACESSAR PAINEL DEV", use_container_width=True
-                ):
-                    if senha_dev_input == SENHA_DEV:
-                        st.session_state.modo_dev = True
-                        st.session_state.usuario_logado = {
-                            "nome": NOME_DEV,
-                            "cargo": "Desenvolvedor",
-                            "senha": SENHA_DEV,
+                        novo_user = {
+                            "nome": novo_nome,
+                            "cargo": novo_cargo,
+                            "senha": nova_senha,
                         }
-                        st.success("Painel liberado!")
+                        st.session_state.usuarios.append(novo_user)
+                        salvar_usuarios(st.session_state.usuarios)
+                        registrar_log(
+                            novo_nome,
+                            "Criação de Conta",
+                            f"Cargo: {novo_cargo}",
+                        )
+                        st.session_state.usuario_logado = novo_user
+                        st.session_state.modo_dev = False
+                        st.success(
+                            f"Conta criada com sucesso! Você é **{novo_cargo}**."
+                        )
                         st.rerun()
-                    else:
-                        st.error("Senha mestra incorreta (Padrão: 1980).")
+                else:
+                    st.error("Preencha o Nome e a Senha.")
 
+    with tab_dev:
+        with st.form("form_login_dev"):
+            st.markdown(
+                "<p style='color: #7A1C2E; font-weight: bold; font-size: 0.9rem;'>Acesso Exclusivo do Desenvolvedor</p>",
+                unsafe_allow_html=True,
+            )
+            senha_dev_input = st.text_input(
+                "Senha Mestra do Desenvolvedor:", type="password"
+            ).strip()
+            if st.form_submit_button(
+                "ACESSAR PAINEL DEV", use_container_width=True
+            ):
+                if senha_dev_input == SENHA_DEV:
+                    st.session_state.modo_dev = True
+                    st.session_state.usuario_logado = {
+                        "nome": NOME_DEV,
+                        "cargo": "Desenvolvedor",
+                        "senha": SENHA_DEV,
+                    }
+                    st.success("Painel do Desenvolvedor liberado!")
+                    st.rerun()
+                else:
+                    st.error(
+                        "Senha mestra incorreta! A senha padrão do desenvolvedor é 1980."
+                    )
+
+    st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
 # --- BARRA LATERAL ---
