@@ -46,26 +46,8 @@ st.markdown(
         margin-bottom: 15px;
         border: 1px solid #E9ECEF;
         text-align: center;
-        cursor: pointer;
-        transition: all 0.2s ease-in-out;
         box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.02);
     }
-    .nav-card:hover {
-        border-color: #7A1C2E;
-        background-color: #FFF5F6;
-    }
-    .nav-card-title {
-        color: #7A1C2E;
-        font-size: 1.05rem;
-        font-weight: 700;
-        margin-top: 8px;
-    }
-    .nav-card-desc {
-        color: #6C757D;
-        font-size: 0.78rem;
-        margin-top: 4px;
-    }
-    /* Cards de Vinho e Tabelas */
     .wine-card {
         background-color: #FFFFFF;
         color: #1A1A1A;
@@ -113,6 +95,8 @@ st.markdown(
 
 NOME_ARQUIVO = "estoque_galpao_pro.json"
 ARQUIVO_USUARIOS = "usuarios_galpao.json"
+SENHA_DEV = "1980"
+
 NOME_DEV = "Vagner Souza"
 TITULO_DEV = "Ciência da Computação"
 FONE_DEV = "(31) 98968-4010"
@@ -182,10 +166,13 @@ if "form_key" not in st.session_state:
     st.session_state.form_key = 0
 
 if "usuario_logado" not in st.session_state:
-    st.session_state.usuario_logado = None  # None, ou dicionário do usuário
+    st.session_state.usuario_logado = None
 
 if "menu_atual" not in st.session_state:
     st.session_state.menu_atual = "🏠 Home"
+
+if "modo_dev" not in st.session_state:
+    st.session_state.modo_dev = False
 
 # --- TELA DE LOGIN / CADASTRO DE USUÁRIO ---
 if st.session_state.usuario_logado is None:
@@ -196,16 +183,16 @@ if st.session_state.usuario_logado is None:
         </div>
     """, unsafe_allow_html=True)
 
-    tab_login, tab_cadastro = st.tabs(["🔑 Entrar no Sistema", "👤 Criar Nova Conta"])
+    tab_login, tab_cadastro, tab_dev = st.tabs(["🔑 Entrar", "👤 Criar Conta", "⚙️ Painel Dev (1980)"])
 
     with tab_login:
         col_l1, col_l2, col_l3 = st.columns([1, 2, 1])
         with col_l2:
             with st.form("form_login_usuario"):
-                nome_login = st.text_input("Nome de Usuário ou E-mail:").strip()
+                nome_login = st.text_input("Nome de Usuário:").strip()
                 senha_login = st.text_input("Senha:", type="password").strip()
                 
-                if st.form_submit_button("ENTRAR", use_container_width=True):
+                if st.form_submit_button("ENTRAR NO SISTEMA", use_container_width=True):
                     usuario_encontrado = None
                     for u in st.session_state.usuarios:
                         if u.get("nome", "").lower() == nome_login.lower() and u.get("senha") == senha_login:
@@ -214,6 +201,7 @@ if st.session_state.usuario_logado is None:
                     
                     if usuario_encontrado:
                         st.session_state.usuario_logado = usuario_encontrado
+                        st.session_state.modo_dev = False
                         st.success(f"Bem-vindo, {usuario_encontrado['nome']}! Cargo: {usuario_encontrado['cargo']}")
                         st.rerun()
                     else:
@@ -224,12 +212,11 @@ if st.session_state.usuario_logado is None:
         with col_c2:
             with st.form("form_novo_cadastro"):
                 novo_nome = st.text_input("Nome Completo:").strip()
-                novo_cargo = st.selectbox("Nível de Acesso pretendido:", ["Operador de Galpão", "Conferente", "Administrador"])
+                novo_cargo = st.selectbox("Cargo:", ["Operador de Galpão", "Conferente", "Administrador"])
                 nova_senha = st.text_input("Crie sua Senha:", type="password").strip()
                 
-                if st.form_submit_button("CADASTRAR E ENTRAR", use_container_width=True):
+                if st.form_submit_button("CADASTRAR", use_container_width=True):
                     if novo_nome and nova_senha:
-                        # Verificar se já existe
                         existe = any(u.get("nome", "").lower() == novo_nome.lower() for u in st.session_state.usuarios)
                         if existe:
                             st.error("Este nome de usuário já está cadastrado.")
@@ -238,13 +225,29 @@ if st.session_state.usuario_logado is None:
                             st.session_state.usuarios.append(novo_user)
                             salvar_usuarios(st.session_state.usuarios)
                             st.session_state.usuario_logado = novo_user
+                            st.session_state.modo_dev = False
                             st.success(f"Conta criada com sucesso! Você é **{novo_cargo}**.")
                             st.rerun()
                     else:
                         st.error("Preencha o Nome e a Senha.")
+
+    with tab_dev:
+        col_d1, col_d2, col_d3 = st.columns([1, 2, 1])
+        with col_d2:
+            with st.form("form_login_dev"):
+                st.markdown("<p style='color: #7A1C2E; font-weight: bold;'>Acesso Exclusivo do Desenvolvedor</p>", unsafe_allow_html=True)
+                senha_dev_input = st.text_input("Senha Mestra do Desenvolvedor:", type="password").strip()
+                if st.form_submit_button("ACESSAR PAINEL DEV", use_container_width=True):
+                    if senha_dev_input == SENHA_DEV:
+                        st.session_state.modo_dev = True
+                        st.session_state.usuario_logado = {"nome": NOME_DEV, "cargo": "Desenvolvedor", "senha": SENHA_DEV}
+                        st.success("Painel do Desenvolvedor liberado!")
+                        st.rerun()
+                    else:
+                        st.error("Senha mestra incorreta! A senha padrão do desenvolvedor é 1980.")
     st.stop()
 
-# --- BARRA LATERAL SIMPLIFICADA PARA TROCA RÁPIDA OU LOGOUT ---
+# --- BARRA LATERAL ---
 with st.sidebar:
     st.markdown(f"<h3 style='color:#7A1C2E;'>🍷 Wine Map Pro</h3>", unsafe_allow_html=True)
     st.markdown(f"**Usuário:** {st.session_state.usuario_logado['nome']}")
@@ -260,8 +263,10 @@ with st.sidebar:
         "➕ Cadastrar novo vinho",
         "✏️ Editar vinho",
         "🗑️ Excluir vinho",
-        "👤 Cadastrar usuário",
     ]
+
+    if st.session_state.modo_dev:
+        opcoes_menu.append("⚙️ Gerenciar Usuários (Dev)")
 
     if st.session_state.menu_atual not in opcoes_menu:
         st.session_state.menu_atual = opcoes_menu[0]
@@ -274,15 +279,26 @@ with st.sidebar:
     st.markdown("---")
     if st.button("🚪 Sair da Conta", use_container_width=True):
         st.session_state.usuario_logado = None
+        st.session_state.modo_dev = False
         st.session_state.menu_atual = "🏠 Home"
         st.rerun()
 
-# --- VERIFICAÇÃO DE PERMISSÃO PARA TELAS ADMINISTRATIVAS ---
-e_admin = (st.session_state.usuario_logado.get("cargo") == "Administrador")
-telas_admin = ["➕ Cadastrar novo vinho", "✏️ Editar vinho", "🗑️ Excluir vinho", "👤 Cadastrar usuário"]
+# --- RESTRIÇÕES DE ACESSO ---
+cargo_atual = st.session_state.usuario_logado.get("cargo")
+e_admin = (cargo_atual in ["Administrador", "Desenvolvedor"]) or st.session_state.modo_dev
+e_dev = st.session_state.modo_dev or (st.session_state.usuario_logado.get("nome") == NOME_DEV)
+
+telas_admin = ["➕ Cadastrar novo vinho", "✏️ Editar vinho", "🗑️ Excluir vinho"]
 
 if st.session_state.menu_atual in telas_admin and not e_admin:
-    st.warning("⚠️ Você não tem permissão de Administrador para acessar esta tela. Entre com uma conta de Administrador para realizar alterações.")
+    st.warning("⚠️ Acesso restrito! Apenas usuários com o cargo de **Administrador** podem cadastrar, editar ou excluir vinhos.")
+    if st.button("Voltar para Home"):
+        st.session_state.menu_atual = "🏠 Home"
+        st.rerun()
+    st.stop()
+
+if st.session_state.menu_atual == "⚙️ Gerenciar Usuários (Dev)" and not e_dev:
+    st.warning("⚠️ Esta opção é exclusiva para o Desenvolvedor (Senha Mestra: 1980).")
     if st.button("Voltar para Home"):
         st.session_state.menu_atual = "🏠 Home"
         st.rerun()
@@ -300,7 +316,6 @@ if st.session_state.menu_atual == "🏠 Home":
 
     st.markdown("<p style='color: #6C757D; font-size: 0.85rem; font-weight: 600; margin: 10px 0 15px 0;'>O que você deseja fazer?</p>", unsafe_allow_html=True)
 
-    # Grid de Cards interativos na Home (Substituindo o menu lateral)
     c1, c2, c3 = st.columns(3)
     with c1:
         if st.button("🔍 Buscar Vinho\n\nLocalizar por nome ou tipo", use_container_width=True):
@@ -317,11 +332,11 @@ if st.session_state.menu_atual == "🏠 Home":
 
     c4, c5, c6 = st.columns(3)
     with c4:
-        if st.button("➕ Cadastrar Vinho\n\nAdicionar novo item", use_container_width=True):
+        if st.button("➕ Cadastrar Vinho\n\n(Apenas Admin)", use_container_width=True):
             st.session_state.menu_atual = "➕ Cadastrar novo vinho"
             st.rerun()
     with c5:
-        if st.button("✏️ Editar Vinho\n\nAtualizar informações", use_container_width=True):
+        if st.button("✏️ Editar Vinho\n\n(Apenas Admin)", use_container_width=True):
             st.session_state.menu_atual = "✏️ Editar vinho"
             st.rerun()
     with c6:
@@ -330,7 +345,7 @@ if st.session_state.menu_atual == "🏠 Home":
             st.rerun()
 
 elif st.session_state.menu_atual == "🔍 Buscar vinho":
-    st.subheader("🔍 Buscar Vinho")
+    st.subheader("🔍 Buscar Vinho (Acesso Livre)")
     termo = st.text_input("Pesquisar por nome, tipo ou localização...").strip().lower()
     if termo:
         resultados = [v for v in st.session_state.estoque if termo in str(v.get("nome", "")).lower() or termo in str(v.get("tipo", "")).lower() or termo in str(v.get("pallet", "")).lower()]
@@ -346,7 +361,7 @@ elif st.session_state.menu_atual == "🔍 Buscar vinho":
             """, unsafe_allow_html=True)
 
 elif st.session_state.menu_atual == "📷 Escanear QR Code / Câmera":
-    st.subheader("📷 Escanear QR Code do Pallet")
+    st.subheader("📷 Escanear QR Code do Pallet (Acesso Livre)")
     st.info("Aponte a câmera para o QR Code fixado no pallet para conferir os itens sem abrir as caixas.")
     foto_camera = st.camera_input("Capturar Imagem")
     if foto_camera is not None:
@@ -363,7 +378,7 @@ elif st.session_state.menu_atual == "📷 Escanear QR Code / Câmera":
             """, unsafe_allow_html=True)
 
 elif st.session_state.menu_atual == "📱 Gerar QR Code de Pallets":
-    st.subheader("📱 Gerar QR Code de Pallets")
+    st.subheader("📱 Gerar QR Code de Pallets (Acesso Livre)")
     c_corr = st.selectbox("Corredor:", LISTA_CORREDORES)
     c_pall = st.selectbox("Pallet:", LISTA_PALLETS)
     pallet_selecionado = f"{c_corr} - {c_pall}"
@@ -372,7 +387,7 @@ elif st.session_state.menu_atual == "📱 Gerar QR Code de Pallets":
         st.image(url_qr, caption=f"QR Code para {pallet_selecionado}", width=220)
 
 elif st.session_state.menu_atual == "🍷 Ver estoque completo":
-    st.subheader("🍷 Estoque Completo")
+    st.subheader("🍷 Estoque Completo (Acesso Livre)")
     if st.session_state.estoque:
         df = pd.DataFrame(st.session_state.estoque)
         if "foto" in df.columns:
@@ -382,7 +397,7 @@ elif st.session_state.menu_atual == "🍷 Ver estoque completo":
         st.info("Estoque vazio.")
 
 elif st.session_state.menu_atual == "➕ Cadastrar novo vinho":
-    st.subheader("➕ Novo Cadastro de Vinho")
+    st.subheader("➕ Novo Cadastro de Vinho (Exclusivo Administrador)")
     with st.form(f"form_cad_{st.session_state.form_key}"):
         nome = st.text_input("Nome do Vinho:").strip()
         tipo = st.text_input("Tipo (ex: Tinto, Branco):").strip()
@@ -404,7 +419,7 @@ elif st.session_state.menu_atual == "➕ Cadastrar novo vinho":
                 st.error("Preencha o Nome e o Tipo.")
 
 elif st.session_state.menu_atual == "✏️ Editar vinho":
-    st.subheader("✏️ Editar Vinho")
+    st.subheader("✏️ Editar Vinho (Exclusivo Administrador)")
     if st.session_state.estoque:
         opcoes = [f"{v.get('nome')} - {v.get('pallet')}" for v in st.session_state.estoque]
         idx = st.selectbox("Selecione o Vinho:", range(len(opcoes)), format_func=lambda x: opcoes[x])
@@ -441,7 +456,7 @@ elif st.session_state.menu_atual == "✏️ Editar vinho":
                     st.rerun()
 
 elif st.session_state.menu_atual == "🗑️ Excluir vinho":
-    st.subheader("🗑️ Excluir Vinho")
+    st.subheader("🗑️ Excluir Vinho (Exclusivo Administrador)")
     if st.session_state.estoque:
         opcoes = [f"{v.get('nome')} - {v.get('pallet')}" for v in st.session_state.estoque]
         idx = st.selectbox("Selecione para remover:", range(len(opcoes)), format_func=lambda x: opcoes[x])
@@ -451,18 +466,32 @@ elif st.session_state.menu_atual == "🗑️ Excluir vinho":
             st.success("Removido com sucesso!")
             st.rerun()
 
-elif st.session_state.menu_atual == "👤 Cadastrar usuário":
-    st.subheader("👤 Cadastrar Novo Usuário (Painel Administrativo)")
-    with st.form("form_novo_usuario_admin"):
-        nome_usuario = st.text_input("Nome Completo do Operador:").strip()
-        cargo_usuario = st.selectbox("Nível de Acesso:", ["Operador de Galpão", "Conferente", "Administrador"])
-        senha_usuario = st.text_input("Senha de Acesso:", type="password").strip()
-        
-        if st.form_submit_button("CADASTRAR NOVO USUÁRIO", use_container_width=True):
-            if nome_usuario and senha_usuario:
-                novo_user = {"nome": nome_usuario, "cargo": cargo_usuario, "senha": senha_usuario}
-                st.session_state.usuarios.append(novo_user)
-                salvar_usuarios(st.session_state.usuarios)
-                st.success(f"Usuário **{nome_usuario}** cadastrado com sucesso como **{cargo_usuario}**!")
-            else:
-                st.error("Preencha o nome e a senha.")
+elif st.session_state.menu_atual == "⚙️ Gerenciar Usuários (Dev)":
+    st.subheader("⚙️ Painel de Gerenciamento de Usuários (Exclusivo Desenvolvedor)")
+    st.markdown("<p style='color: #6C757D;'>Aqui você pode gerenciar todos os usuários cadastrados e alterar as credenciais ou cargos deles.</p>", unsafe_allow_html=True)
+    
+    if st.session_state.usuarios:
+        for i, u in enumerate(st.session_state.usuarios):
+            with st.expander(f"👤 {u.get('nome')} — Cargo: {u.get('cargo')}"):
+                with st.form(f"form_edit_user_{i}"):
+                    edit_nome = st.text_input("Nome:", value=u.get("nome", ""))
+                    edit_cargo = st.selectbox("Cargo:", ["Operador de Galpão", "Conferente", "Administrador"], index=["Operador de Galpão", "Conferente", "Administrador"].index(u.get("cargo")) if u.get("cargo") in ["Operador de Galpão", "Conferente", "Administrador"] else 0)
+                    edit_senha = st.text_input("Senha:", value=u.get("senha", ""))
+                    
+                    c_salvar, c_excluir = st.columns(2)
+                    with c_salvar:
+                        if st.form_submit_button("Salvar Alterações", use_container_width=True):
+                            u["nome"] = edit_nome
+                            u["cargo"] = edit_cargo
+                            u["senha"] = edit_senha
+                            salvar_usuarios(st.session_state.usuarios)
+                            st.success("Usuário atualizado com sucesso!")
+                            st.rerun()
+                    with c_excluir:
+                        if st.form_submit_button("Excluir Usuário", use_container_width=True):
+                            st.session_state.usuarios.pop(i)
+                            salvar_usuarios(st.session_state.usuarios)
+                            st.success("Usuário removido!")
+                            st.rerun()
+    else:
+        st.info("Nenhum usuário cadastrado.")
