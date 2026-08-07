@@ -26,10 +26,10 @@ st.markdown(
         font-family: 'Poppins', sans-serif;
     }
     .header-container {
-        padding: 10px 0 15px 0;
+        padding: 5px 0 10px 0;
     }
     .main-title {
-        font-size: 1.6rem;
+        font-size: 1.5rem;
         font-weight: 700;
         color: #1A1A1A;
         margin: 0;
@@ -211,15 +211,16 @@ if "modo_dev" not in st.session_state:
 # --- TELA DE LOGIN / CADASTRO DE USUÁRIO ---
 if st.session_state.usuario_logado is None:
     if os.path.exists("imagem premium.jpeg"):
-        col_img1, col_img2, col_img3 = st.columns([1, 1.5, 1])
+        col_img1, col_img2, col_img3 = st.columns([1, 1.2, 1])
         with col_img2:
-            st.image("imagem premium.jpeg", use_container_width=True)
+            # Imagem com tamanho controlado (width=260) para não ocupar a tela inteira
+            st.image("imagem premium.jpeg", width=260)
 
     st.markdown(
         """
-        <div style="text-align: center; margin-top: 15px; margin-bottom: 20px;">
-            <h1 style="color: #7A1C2E; font-size: 1.8rem; font-weight: 800;">🍷 Premium Wines - Wine Map Pro</h1>
-            <p style="color: #6C757D; font-size: 0.9rem;">Entre com sua conta ou cadastre-se para acessar o sistema</p>
+        <div style="text-align: center; margin-top: 10px; margin-bottom: 15px;">
+            <h1 style="color: #7A1C2E; font-size: 1.5rem; font-weight: 800;">🍷 Premium Wines - Wine Map Pro</h1>
+            <p style="color: #6C757D; font-size: 0.85rem;">Entre com sua conta ou cadastre-se para acessar o sistema</p>
         </div>
     """,
         unsafe_allow_html=True,
@@ -412,9 +413,9 @@ if st.session_state.menu_atual == "⚙️ Gerenciar Usuários (Dev)" and not e_d
 # --- TELAS DO APLICATIVO ---
 if st.session_state.menu_atual == "🏠 Home":
     if os.path.exists("imagem premium.jpeg"):
-        col_img1, col_img2, col_img3 = st.columns([1, 2, 1])
+        col_img1, col_img2, col_img3 = st.columns([1, 1.8, 1])
         with col_img2:
-            st.image("imagem premium.jpeg", use_container_width=True)
+            st.image("imagem premium.jpeg", width=320)
 
     st.markdown(
         f"""
