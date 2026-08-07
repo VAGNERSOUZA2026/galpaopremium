@@ -4,7 +4,7 @@ import pandas as pd
 import streamlit as st
 import urllib.parse
 
-# Configuração da página Streamlit (Tema Claro e Layout Otimizado)
+# Configuração da página Streamlit
 st.set_page_config(
     page_title="Wine Map Pro - Galpão Premium",
     page_icon="🍷",
@@ -12,7 +12,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Estilização CSS Baseada no Design Moderno (Fundo Branco, Bordô e Dourado)
+# Estilização CSS (Tema Branco, Bordô e Dourado)
 st.markdown(
     """
     <style>
@@ -38,44 +38,34 @@ st.markdown(
         color: #6C757D;
         margin-top: 2px;
     }
-    /* Estilo dos Cards de Métricas idênticos ao mockup */
-    .metric-grid {
-        display: flex;
-        gap: 12px;
-        margin-bottom: 15px;
-    }
-    .metric-card {
+    /* Estilo dos Cards de Navegação da Home */
+    .nav-card {
         background-color: #F8F9FA;
         border-radius: 16px;
-        padding: 18px;
+        padding: 20px;
+        margin-bottom: 15px;
         border: 1px solid #E9ECEF;
-        flex: 1;
-        box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.02);
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.02);
     }
-    .metric-title {
+    .nav-card:hover {
+        border-color: #7A1C2E;
+        background-color: #FFF5F6;
+    }
+    .nav-card-title {
+        color: #7A1C2E;
+        font-size: 1.05rem;
+        font-weight: 700;
+        margin-top: 8px;
+    }
+    .nav-card-desc {
         color: #6C757D;
         font-size: 0.78rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 6px;
+        margin-top: 4px;
     }
-    .metric-value-gold {
-        color: #C9A227;
-        font-size: 1.8rem;
-        font-weight: 800;
-    }
-    .metric-value {
-        color: #1A1A1A;
-        font-size: 1.8rem;
-        font-weight: 800;
-    }
-    .metric-value-alert {
-        color: #DC3545;
-        font-size: 1.8rem;
-        font-weight: 800;
-    }
-    /* Cards de Vinho */
+    /* Cards de Vinho e Tabelas */
     .wine-card {
         background-color: #FFFFFF;
         color: #1A1A1A;
@@ -104,7 +94,6 @@ st.markdown(
         font-size: 0.75rem;
         display: inline-block;
     }
-    /* Botões Padrão Bordo */
     .stButton button {
         background-color: #7A1C2E !important;
         color: #FFFFFF !important;
@@ -122,7 +111,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-SENHA_PADRAO = "1980"
 NOME_ARQUIVO = "estoque_galpao_pro.json"
 ARQUIVO_USUARIOS = "usuarios_galpao.json"
 NOME_DEV = "Vagner Souza"
@@ -181,8 +169,7 @@ def salvar_usuarios(usuarios):
 
 def gerar_qr_code_api(texto):
     texto_encoded = urllib.parse.quote(texto)
-    url = f"https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={texto_encoded}"
-    return url
+    return f"https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={texto_encoded}"
 
 # --- ESTADO DE SESSÃO ---
 if "estoque" not in st.session_state:
@@ -194,19 +181,74 @@ if "usuarios" not in st.session_state:
 if "form_key" not in st.session_state:
     st.session_state.form_key = 0
 
-if "operador_atual" not in st.session_state:
-    st.session_state.operador_atual = "Vagner"
-
-if "autenticado_admin" not in st.session_state:
-    st.session_state.autenticado_admin = False
+if "usuario_logado" not in st.session_state:
+    st.session_state.usuario_logado = None  # None, ou dicionário do usuário
 
 if "menu_atual" not in st.session_state:
     st.session_state.menu_atual = "🏠 Home"
 
-# --- BARRA LATERAL (MENU COMPLETO) ---
+# --- TELA DE LOGIN / CADASTRO DE USUÁRIO ---
+if st.session_state.usuario_logado is None:
+    st.markdown("""
+        <div style="text-align: center; margin-top: 30px; margin-bottom: 20px;">
+            <h1 style="color: #7A1C2E; font-size: 2rem; font-weight: 800;">🍷 Wine Map Pro</h1>
+            <p style="color: #6C757D;">Entre com sua conta ou cadastre-se para acessar o sistema</p>
+        </div>
+    """, unsafe_allow_html=True)
+
+    tab_login, tab_cadastro = st.tabs(["🔑 Entrar no Sistema", "👤 Criar Nova Conta"])
+
+    with tab_login:
+        col_l1, col_l2, col_l3 = st.columns([1, 2, 1])
+        with col_l2:
+            with st.form("form_login_usuario"):
+                nome_login = st.text_input("Nome de Usuário ou E-mail:").strip()
+                senha_login = st.text_input("Senha:", type="password").strip()
+                
+                if st.form_submit_button("ENTRAR", use_container_width=True):
+                    usuario_encontrado = None
+                    for u in st.session_state.usuarios:
+                        if u.get("nome", "").lower() == nome_login.lower() and u.get("senha") == senha_login:
+                            usuario_encontrado = u
+                            break
+                    
+                    if usuario_encontrado:
+                        st.session_state.usuario_logado = usuario_encontrado
+                        st.success(f"Bem-vindo, {usuario_encontrado['nome']}! Cargo: {usuario_encontrado['cargo']}")
+                        st.rerun()
+                    else:
+                        st.error("Usuário ou senha incorretos.")
+
+    with tab_cadastro:
+        col_c1, col_c2, col_c3 = st.columns([1, 2, 1])
+        with col_c2:
+            with st.form("form_novo_cadastro"):
+                novo_nome = st.text_input("Nome Completo:").strip()
+                novo_cargo = st.selectbox("Nível de Acesso pretendido:", ["Operador de Galpão", "Conferente", "Administrador"])
+                nova_senha = st.text_input("Crie sua Senha:", type="password").strip()
+                
+                if st.form_submit_button("CADASTRAR E ENTRAR", use_container_width=True):
+                    if novo_nome and nova_senha:
+                        # Verificar se já existe
+                        existe = any(u.get("nome", "").lower() == novo_nome.lower() for u in st.session_state.usuarios)
+                        if existe:
+                            st.error("Este nome de usuário já está cadastrado.")
+                        else:
+                            novo_user = {"nome": novo_nome, "cargo": novo_cargo, "senha": nova_senha}
+                            st.session_state.usuarios.append(novo_user)
+                            salvar_usuarios(st.session_state.usuarios)
+                            st.session_state.usuario_logado = novo_user
+                            st.success(f"Conta criada com sucesso! Você é **{novo_cargo}**.")
+                            st.rerun()
+                    else:
+                        st.error("Preencha o Nome e a Senha.")
+    st.stop()
+
+# --- BARRA LATERAL SIMPLIFICADA PARA TROCA RÁPIDA OU LOGOUT ---
 with st.sidebar:
-    st.markdown("<h2 style='color:#7A1C2E;'>🍷 Wine Map Pro</h2>", unsafe_allow_html=True)
-    st.markdown("<p style='font-size: 0.8rem; color: #6C757D;'>Encontre qualquer vinho em segundos.</p>", unsafe_allow_html=True)
+    st.markdown(f"<h3 style='color:#7A1C2E;'>🍷 Wine Map Pro</h3>", unsafe_allow_html=True)
+    st.markdown(f"**Usuário:** {st.session_state.usuario_logado['nome']}")
+    st.markdown(f"**Cargo:** <span style='color: #C9A227; font-weight: bold;'>{st.session_state.usuario_logado['cargo']}</span>", unsafe_allow_html=True)
     st.markdown("---")
 
     opcoes_menu = [
@@ -224,96 +266,66 @@ with st.sidebar:
     if st.session_state.menu_atual not in opcoes_menu:
         st.session_state.menu_atual = opcoes_menu[0]
 
-    menu = st.radio("Navegação Principal:", opcoes_menu, index=opcoes_menu.index(st.session_state.menu_atual))
-    
+    menu = st.radio("Menu de Navegação:", opcoes_menu, index=opcoes_menu.index(st.session_state.menu_atual))
     if menu != st.session_state.menu_atual:
         st.session_state.menu_atual = menu
         st.rerun()
 
     st.markdown("---")
-    st.markdown(f"""
-        <div style="background: #F8F9FA; padding: 12px; border-radius: 10px; color: #1A1A1A; text-align: center; border: 1px solid #E9ECEF;">
-            <p style="margin: 0; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; color: #7A1C2E; font-weight: bold;">Desenvolvimento</p>
-            <h4 style="margin: 3px 0 2px 0; color: #1A1A1A; font-size: 0.95rem;">{NOME_DEV}</h4>
-            <p style="margin: 0 0 6px 0; font-size: 0.75rem; color: #6C757D;">🎓 {TITULO_DEV}</p>
-            <p style="margin: 0; font-size: 0.75rem; color: #C9A227; font-weight: bold;">📞 {FONE_DEV}</p>
-        </div>
-    """, unsafe_allow_html=True)
+    if st.button("🚪 Sair da Conta", use_container_width=True):
+        st.session_state.usuario_logado = None
+        st.session_state.menu_atual = "🏠 Home"
+        st.rerun()
 
-# --- CONTROLE DE SENHA APENAS PARA EDIÇÃO/CADASTRO ---
-telas_protegidas = ["➕ Cadastrar novo vinho", "✏️ Editar vinho", "🗑️ Excluir vinho", "👤 Cadastrar usuário"]
+# --- VERIFICAÇÃO DE PERMISSÃO PARA TELAS ADMINISTRATIVAS ---
+e_admin = (st.session_state.usuario_logado.get("cargo") == "Administrador")
+telas_admin = ["➕ Cadastrar novo vinho", "✏️ Editar vinho", "🗑️ Excluir vinho", "👤 Cadastrar usuário"]
 
-if st.session_state.menu_atual in telas_protegidas and not st.session_state.autenticado_admin:
-    st.markdown("""
-        <div class="header-container" style="text-align: center; margin-top: 40px;">
-            <h1 class="main-title" style="color: #7A1C2E;">🔒 Área Restrita</h1>
-            <p class="sub-title">Esta função exige a senha de autorização do sistema (Padrão: 1980)</p>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    col_l1, col_l2, col_l3 = st.columns([1, 2, 1])
-    with col_l2:
-        with st.form("form_senha_restrita"):
-            senha_tentativa = st.text_input("🔑 Digite a Senha:", type="password")
-            if st.form_submit_button("AUTORIZAR", use_container_width=True):
-                if senha_tentativa == SENHA_PADRAO:
-                    st.session_state.autenticado_admin = True
-                    st.success("Acesso liberado com sucesso!")
-                    st.rerun()
-                else:
-                    st.error("Senha incorreta!")
+if st.session_state.menu_atual in telas_admin and not e_admin:
+    st.warning("⚠️ Você não tem permissão de Administrador para acessar esta tela. Entre com uma conta de Administrador para realizar alterações.")
+    if st.button("Voltar para Home"):
+        st.session_state.menu_atual = "🏠 Home"
+        st.rerun()
     st.stop()
 
-# --- TELAS DO APLICATIVO (ESTILO MOCKUP BRANCO) ---
+# --- TELAS DO APLICATIVO ---
 if st.session_state.menu_atual == "🏠 Home":
     st.markdown(f"""
         <div class="header-container">
             <p class="sub-title">Bom dia,</p>
-            <h1 class="main-title">{st.session_state.operador_atual}! 👋</h1>
-            <p class="sub-title">Bem-vindo ao WineMap Pro</p>
+            <h1 class="main-title">{st.session_state.usuario_logado['nome']}! 👋</h1>
+            <p class="sub-title">Seu nível de acesso: <b>{st.session_state.usuario_logado['cargo']}</b></p>
         </div>
     """, unsafe_allow_html=True)
 
-    total_vinhos = len(st.session_state.estoque)
-    total_pallets = len(set(v.get("pallet") for v in st.session_state.estoque))
+    st.markdown("<p style='color: #6C757D; font-size: 0.85rem; font-weight: 600; margin: 10px 0 15px 0;'>O que você deseja fazer?</p>", unsafe_allow_html=True)
 
-    # Grid de Métricas idêntico ao modelo (Dashboard Card Layout)
-    col1, col2 = st.columns(2)
-    with col1:
-        st.markdown(f'<div class="metric-card"><div class="metric-title">Vinhos cadastrados</div><div class="metric-value-gold">{total_vinhos}</div></div>', unsafe_allow_html=True)
-    with col2:
-        st.markdown(f'<div class="metric-card"><div class="metric-title">Pallets ocupados</div><div class="metric-value">{total_pallets}</div></div>', unsafe_allow_html=True)
-
-    col3, col4 = st.columns(2)
-    with col3:
-        st.markdown('<div class="metric-card"><div class="metric-title">Baixo estoque</div><div class="metric-value-alert">3</div></div>', unsafe_allow_html=True)
-    with col4:
-        st.markdown('<div class="metric-card"><div class="metric-title">Último QR Code</div><div style="color: #1A1A1A; font-size: 0.9rem; font-weight: 600; margin-top: 4px;">Corredor 08<br>Pallet 15</div></div>', unsafe_allow_html=True)
-
-    st.markdown("---")
-    
-    # Botão de destaque centralizado para escanear
-    if st.button("📷  ESCANEAR QR CODE DO PALLET", use_container_width=True):
-        st.session_state.menu_atual = "📷 Escanear QR Code / Câmera"
-        st.rerun()
-
-    st.markdown("<p style='color: #6C757D; font-size: 0.85rem; font-weight: 600; margin: 15px 0 8px 0;'>Ações rápidas</p>", unsafe_allow_html=True)
-    
-    q1, q2, q3, q4 = st.columns(4)
-    with q1:
-        if st.button("➕ Novo", use_container_width=True):
-            st.session_state.menu_atual = "➕ Cadastrar novo vinho"
-            st.rerun()
-    with q2:
-        if st.button("🔍 Buscar", use_container_width=True):
+    # Grid de Cards interativos na Home (Substituindo o menu lateral)
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        if st.button("🔍 Buscar Vinho\n\nLocalizar por nome ou tipo", use_container_width=True):
             st.session_state.menu_atual = "🔍 Buscar vinho"
             st.rerun()
-    with q3:
-        if st.button("🍷 Estoque", use_container_width=True):
+    with c2:
+        if st.button("📷 Escanear QR Code\n\nLer pallet com a câmera", use_container_width=True):
+            st.session_state.menu_atual = "📷 Escanear QR Code / Câmera"
+            st.rerun()
+    with c3:
+        if st.button("🍷 Estoque Completo\n\nVer todos os vinhos", use_container_width=True):
             st.session_state.menu_atual = "🍷 Ver estoque completo"
             st.rerun()
-    with q4:
-        if st.button("📱 QR Pallets", use_container_width=True):
+
+    c4, c5, c6 = st.columns(3)
+    with c4:
+        if st.button("➕ Cadastrar Vinho\n\nAdicionar novo item", use_container_width=True):
+            st.session_state.menu_atual = "➕ Cadastrar novo vinho"
+            st.rerun()
+    with c5:
+        if st.button("✏️ Editar Vinho\n\nAtualizar informações", use_container_width=True):
+            st.session_state.menu_atual = "✏️ Editar vinho"
+            st.rerun()
+    with c6:
+        if st.button("📱 Gerar QR Pallet\n\nImprimir etiquetas", use_container_width=True):
             st.session_state.menu_atual = "📱 Gerar QR Code de Pallets"
             st.rerun()
 
@@ -370,7 +382,7 @@ elif st.session_state.menu_atual == "🍷 Ver estoque completo":
         st.info("Estoque vazio.")
 
 elif st.session_state.menu_atual == "➕ Cadastrar novo vinho":
-    st.subheader("➕ Novo Cadastro")
+    st.subheader("➕ Novo Cadastro de Vinho")
     with st.form(f"form_cad_{st.session_state.form_key}"):
         nome = st.text_input("Nome do Vinho:").strip()
         tipo = st.text_input("Tipo (ex: Tinto, Branco):").strip()
@@ -440,18 +452,17 @@ elif st.session_state.menu_atual == "🗑️ Excluir vinho":
             st.rerun()
 
 elif st.session_state.menu_atual == "👤 Cadastrar usuário":
-    st.subheader("👤 Cadastrar Usuário")
-    with st.form("form_novo_usuario"):
+    st.subheader("👤 Cadastrar Novo Usuário (Painel Administrativo)")
+    with st.form("form_novo_usuario_admin"):
         nome_usuario = st.text_input("Nome Completo do Operador:").strip()
         cargo_usuario = st.selectbox("Nível de Acesso:", ["Operador de Galpão", "Conferente", "Administrador"])
         senha_usuario = st.text_input("Senha de Acesso:", type="password").strip()
         
-        if st.form_submit_button("CADASTRAR", use_container_width=True):
+        if st.form_submit_button("CADASTRAR NOVO USUÁRIO", use_container_width=True):
             if nome_usuario and senha_usuario:
                 novo_user = {"nome": nome_usuario, "cargo": cargo_usuario, "senha": senha_usuario}
                 st.session_state.usuarios.append(novo_user)
                 salvar_usuarios(st.session_state.usuarios)
-                st.session_state.operador_atual = nome_usuario
-                st.success(f"🎉 Bem-vindo(a), **{nome_usuario}**! Usuário cadastrado com sucesso.")
+                st.success(f"Usuário **{nome_usuario}** cadastrado com sucesso como **{cargo_usuario}**!")
             else:
                 st.error("Preencha o nome e a senha.")
