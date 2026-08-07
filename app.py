@@ -25,7 +25,7 @@ st.markdown(
         color: #1A1A1A;
         font-family: 'Poppins', sans-serif;
     }
-    /* Esconde completamente a barra lateral quando logado para focar 100% no painel de cards */
+    /* Esconde completamente a barra lateral quando logado */
     [data-testid="stSidebar"] {
         display: none;
     }
@@ -198,140 +198,133 @@ if "menu_atual" not in st.session_state:
 if "modo_dev" not in st.session_state:
     st.session_state.modo_dev = False
 
-# --- TELA DE LOGIN / CADASTRO (EXIBIDA AO ABRIR O APP) ---
+# --- TELA DE LOGIN / CADASTRO CENTRALIZADA ---
 if st.session_state.usuario_logado is None:
     st.write("")
 
-    col_l, col_r = st.columns([1.1, 1], gap="large")
+    # Centraliza o layout usando colunas nas pontas
+    col_esq, col_centro, col_dir = st.columns([1, 1.3, 1])
 
-    with col_l:
-        # Usando container nativo estilizado do Streamlit para evitar problemas com tags HTML cruas
+    with col_centro:
         with st.container(border=True):
+            if os.path.exists("imagem premium.jpeg"):
+                col_img1, col_img2, col_img3 = st.columns([1, 1.2, 1])
+                with col_img2:
+                    st.image("imagem premium.jpeg", width=110)
+
             st.markdown(
-                "<h2 style='color: #7A1C2E; font-weight: 800;'>🍷 Premium Wines</h2>",
+                """
+                <div style="text-align: center; margin-bottom: 15px;">
+                    <h2 style="color: #7A1C2E; font-size: 1.5rem; font-weight: 800; margin-bottom: 0;">🍷 Wine Map Pro</h2>
+                    <p style="color: #6C757D; font-size: 0.85rem;">Sistema Inteligente de Gestão de Vinhos</p>
+                </div>
+                """,
                 unsafe_allow_html=True,
             )
-            st.markdown(
-                "Sistema inteligente de mapeamento, localização e gestão de estoque para o seu galpão de vinhos finos."
-            )
-            st.markdown("---")
-            st.markdown(
-                "⚡ **Busca Avançada:** Encontre qualquer rótulo em segundos."
-            )
-            st.markdown(
-                "📷 **Leitura QR Code:** Agilidade com a câmera nos corredores."
-            )
-            st.markdown(
-                "🛡️ **Auditoria Completa:** Controle total de acesso e operações."
+
+            tab_login, tab_cadastro, tab_dev = st.tabs(
+                ["🔑 Entrar", "👤 Criar Conta", "⚙️ Dev"]
             )
 
-    with col_r:
-        if os.path.exists("imagem premium.jpeg"):
-            col_img1, col_img2, col_img3 = st.columns([1, 1.3, 1])
-            with col_img2:
-                st.image("imagem premium.jpeg", width=140)
+            with tab_login:
+                with st.form("form_login_usuario"):
+                    nome_login = st.text_input("Nome de Usuário:").strip()
+                    senha_login = st.text_input("Senha:", type="password").strip()
 
-        st.markdown(
-            """
-            <div style="text-align: center; margin-bottom: 10px;">
-                <h2 style="color: #7A1C2E; font-size: 1.3rem; font-weight: 700; margin-bottom: 0;">Wine Map Pro</h2>
-                <p style="color: #6C757D; font-size: 0.8rem;">Acesse sua conta para continuar</p>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+                    if st.form_submit_button(
+                        "ENTRAR NO SISTEMA", use_container_width=True
+                    ):
+                        usuario_encontrado = None
+                        for u in st.session_state.usuarios:
+                            if (
+                                u.get("nome", "").lower() == nome_login.lower()
+                                and u.get("senha") == senha_login
+                            ):
+                                usuario_encontrado = u
+                                break
 
-        tab_login, tab_cadastro, tab_dev = st.tabs(
-            ["🔑 Entrar", "👤 Criar Conta", "⚙️ Dev"]
-        )
-
-        with tab_login:
-            with st.form("form_login_usuario"):
-                nome_login = st.text_input("Nome de Usuário:").strip()
-                senha_login = st.text_input("Senha:", type="password").strip()
-
-                if st.form_submit_button(
-                    "ENTRAR NO SISTEMA", use_container_width=True
-                ):
-                    usuario_encontrado = None
-                    for u in st.session_state.usuarios:
-                        if (
-                            u.get("nome", "").lower() == nome_login.lower()
-                            and u.get("senha") == senha_login
-                        ):
-                            usuario_encontrado = u
-                            break
-
-                    if usuario_encontrado:
-                        st.session_state.usuario_logado = usuario_encontrado
-                        st.session_state.modo_dev = False
-                        st.success(f"Bem-vindo, {usuario_encontrado['nome']}!")
-                        st.rerun()
-                    else:
-                        st.error("Usuário ou senha incorretos.")
-
-        with tab_cadastro:
-            with st.form("form_novo_cadastro"):
-                novo_nome = st.text_input("Nome Completo:").strip()
-                novo_cargo = st.selectbox(
-                    "Cargo:",
-                    ["Operador de Galpão", "Conferente", "Administrador"],
-                )
-                nova_senha = st.text_input(
-                    "Crie sua Senha:", type="password"
-                ).strip()
-
-                if st.form_submit_button("CADASTRAR", use_container_width=True):
-                    if novo_nome and nova_senha:
-                        existe = any(
-                            u.get("nome", "").lower() == novo_nome.lower()
-                            for u in st.session_state.usuarios
-                        )
-                        if existe:
-                            st.error("Este nome de usuário já está cadastrado.")
-                        else:
-                            novo_user = {
-                                "nome": novo_nome,
-                                "cargo": novo_cargo,
-                                "senha": nova_senha,
-                            }
-                            st.session_state.usuarios.append(novo_user)
-                            salvar_usuarios(st.session_state.usuarios)
-                            registrar_log(
-                                novo_nome,
-                                "Criação de Conta",
-                                f"Cargo: {novo_cargo}",
-                            )
-                            st.session_state.usuario_logado = novo_user
+                        if usuario_encontrado:
+                            st.session_state.usuario_logado = usuario_encontrado
                             st.session_state.modo_dev = False
-                            st.success("Conta criada com sucesso!")
+                            st.success(
+                                f"Bem-vindo, {usuario_encontrado['nome']}!"
+                            )
                             st.rerun()
-                    else:
-                        st.error("Preencha o Nome e a Senha.")
+                        else:
+                            st.error("Usuário ou senha incorretos.")
 
-        with tab_dev:
-            with st.form("form_login_dev"):
-                st.markdown(
-                    "<p style='color: #7A1C2E; font-weight: bold; font-size: 0.85rem;'>Acesso do Desenvolvedor</p>",
-                    unsafe_allow_html=True,
-                )
-                senha_dev_input = st.text_input(
-                    "Senha Mestra:", type="password"
-                ).strip()
-                if st.form_submit_button(
-                    "ACESSAR PAINEL DEV", use_container_width=True
-                ):
-                    if senha_dev_input == SENHA_DEV:
-                        st.session_state.modo_dev = True
-                        st.session_state.usuario_logado = {
-                            "nome": NOME_DEV,
-                            "cargo": "Desenvolvedor",
-                            "senha": SENHA_DEV,
-                        }
-                        st.success("Painel liberado!")
-                        st.rerun()
-                    else:
-                        st.error("Senha mestra incorreta (Padrão: 1980).")
+            with tab_cadastro:
+                with st.form("form_novo_cadastro"):
+                    novo_nome = st.text_input("Nome Completo:").strip()
+                    novo_cargo = st.selectbox(
+                        "Cargo:",
+                        [
+                            "Operador de Galpão",
+                            "Conferente",
+                            "Administrador",
+                        ],
+                    )
+                    nova_senha = st.text_input(
+                        "Crie sua Senha:", type="password"
+                    ).strip()
+
+                    if st.form_submit_button(
+                        "CADASTRAR", use_container_width=True
+                    ):
+                        if novo_nome and nova_senha:
+                            existe = any(
+                                u.get("nome", "").lower() == novo_nome.lower()
+                                for u in st.session_state.usuarios
+                            )
+                            if existe:
+                                st.error(
+                                    "Este nome de usuário já está cadastrado."
+                                )
+                            else:
+                                novo_user = {
+                                    "nome": novo_nome,
+                                    "cargo": novo_cargo,
+                                    "senha": nova_senha,
+                                }
+                                st.session_state.usuarios.append(novo_user)
+                                salvar_usuarios(st.session_state.usuarios)
+                                registrar_log(
+                                    novo_nome,
+                                    "Criação de Conta",
+                                    f"Cargo: {novo_cargo}",
+                                )
+                                st.session_state.usuario_logado = novo_user
+                                st.session_state.modo_dev = False
+                                st.success("Conta criada com sucesso!")
+                                st.rerun()
+                        else:
+                            st.error("Preencha o Nome e a Senha.")
+
+            with tab_dev:
+                with st.form("form_login_dev"):
+                    st.markdown(
+                        "<p style='color: #7A1C2E; font-weight: bold; font-size: 0.85rem;'>Acesso do Desenvolvedor</p>",
+                        unsafe_allow_html=True,
+                    )
+                    senha_dev_input = st.text_input(
+                        "Senha Mestra:", type="password"
+                    ).strip()
+                    if st.form_submit_button(
+                        "ACESSAR PAINEL DEV", use_container_width=True
+                    ):
+                        if senha_dev_input == SENHA_DEV:
+                            st.session_state.modo_dev = True
+                            st.session_state.usuario_logado = {
+                                "nome": NOME_DEV,
+                                "cargo": "Desenvolvedor",
+                                "senha": SENHA_DEV,
+                            }
+                            st.success("Painel liberado!")
+                            st.rerun()
+                        else:
+                            st.error(
+                                "Senha mestra incorreta (Padrão: 1980)."
+                            )
 
     st.stop()
 
@@ -364,7 +357,7 @@ if st.session_state.menu_atual == "⚙️ Gerenciar Usuários (Dev)" and not e_d
         st.rerun()
     st.stop()
 
-# --- TOPO FIXO PARA O USUÁRIO LOGADO (SUBSTITUI A BARRA LATERAL) ---
+# --- TOPO FIXO PARA O USUÁRIO LOGADO ---
 col_topo1, col_topo2, col_topo3 = st.columns([3, 2, 1])
 with col_topo1:
     st.markdown(
