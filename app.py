@@ -210,11 +210,16 @@ if "modo_dev" not in st.session_state:
 
 # --- TELA DE LOGIN / CADASTRO DE USUÁRIO ---
 if st.session_state.usuario_logado is None:
+    if os.path.exists("imagem premium.jpeg"):
+        col_img1, col_img2, col_img3 = st.columns([1, 1.5, 1])
+        with col_img2:
+            st.image("imagem premium.jpeg", use_container_width=True)
+
     st.markdown(
         """
-        <div style="text-align: center; margin-top: 30px; margin-bottom: 20px;">
-            <h1 style="color: #7A1C2E; font-size: 2rem; font-weight: 800;">🍷 Premium Wines - Wine Map Pro</h1>
-            <p style="color: #6C757D;">Entre com sua conta ou cadastre-se para acessar o sistema</p>
+        <div style="text-align: center; margin-top: 15px; margin-bottom: 20px;">
+            <h1 style="color: #7A1C2E; font-size: 1.8rem; font-weight: 800;">🍷 Premium Wines - Wine Map Pro</h1>
+            <p style="color: #6C757D; font-size: 0.9rem;">Entre com sua conta ou cadastre-se para acessar o sistema</p>
         </div>
     """,
         unsafe_allow_html=True,
