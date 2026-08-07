@@ -1,5 +1,6 @@
 import json
 import os
+from datetime import datetime
 import pandas as pd
 import streamlit as st
 import urllib.parse
@@ -37,16 +38,6 @@ st.markdown(
         font-size: 0.85rem;
         color: #6C757D;
         margin-top: 2px;
-    }
-    /* Estilo dos Cards de Navegação da Home */
-    .nav-card {
-        background-color: #F8F9FA;
-        border-radius: 16px;
-        padding: 20px;
-        margin-bottom: 15px;
-        border: 1px solid #E9ECEF;
-        text-align: center;
-        box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.02);
     }
     .wine-card {
         background-color: #FFFFFF;
@@ -95,6 +86,7 @@ st.markdown(
 
 NOME_ARQUIVO = "estoque_galpao_pro.json"
 ARQUIVO_USUARIOS = "usuarios_galpao.json"
+ARQUIVO_LOGS = "logs_auditoria.json"
 SENHA_DEV = "1980"
 
 NOME_DEV = "Vagner Souza"
@@ -104,18 +96,27 @@ FONE_DEV = "(31) 98968-4010"
 LISTA_CORREDORES = [f"Corredor {i:02d}" for i in range(1, 26)]
 LISTA_PALLETS = [f"Pallet {i:02d}" for i in range(1, 26)]
 LISTA_LADOS = ["Direito", "Esquerdo", "Centro / Único"]
-OPCOES_CAIXA = ["Caixa com 12 garrafas", "Caixa com 6 garrafas", "Caixa com 3 garrafas", "Garrafa Avulsa (1 un)", "Outra quantidade"]
+OPCOES_CAIXA = [
+    "Caixa com 12 garrafas",
+    "Caixa com 6 garrafas",
+    "Caixa com 3 garrafas",
+    "Garrafa Avulsa (1 un)",
+    "Outra quantidade",
+]
 
-estoque_padrao = [{
-    "nome": "Château Margaux",
-    "tipo": "Tinto",
-    "safra": "2015",
-    "pallet": "Corredor 01 - Pallet 01",
-    "lado": "Direito",
-    "caixa": "Caixa com 12 garrafas",
-    "volume": "750ml",
-    "foto": None,
-}]
+estoque_padrao = [
+    {
+        "nome": "Château Margaux",
+        "tipo": "Tinto",
+        "safra": "2015",
+        "pallet": "Corredor 01 - Pallet 01",
+        "lado": "Direito",
+        "caixa": "Caixa com 12 garrafas",
+        "volume": "750ml",
+        "foto": None,
+    }
+]
+
 
 def carregar_dados():
     if os.path.exists(NOME_ARQUIVO):
@@ -128,12 +129,14 @@ def carregar_dados():
             pass
     return [dict(item) for item in estoque_padrao]
 
+
 def salvar_dados(estoque):
     try:
         with open(NOME_ARQUIVO, "w", encoding="utf-8") as f:
             json.dump(estoque, f, ensure_ascii=False, indent=4)
     except Exception as e:
         st.error(f"Erro ao salvar dados: {e}")
+
 
 def carregar_usuarios():
     if os.path.exists(ARQUIVO_USUARIOS):
@@ -144,6 +147,7 @@ def carregar_usuarios():
             pass
     return [{"nome": "Vagner Souza", "cargo": "Administrador", "senha": "1980"}]
 
+
 def salvar_usuarios(usuarios):
     try:
         with open(ARQUIVO_USUARIOS, "w", encoding="utf-8") as f:
@@ -151,9 +155,39 @@ def salvar_usuarios(usuarios):
     except Exception as e:
         st.error(f"Erro ao salvar usuários: {e}")
 
+
+def carregar_logs():
+    if os.path.exists(ARQUIVO_LOGS):
+        try:
+            with open(ARQUIVO_LOGS, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return []
+
+
+def registrar_log(usuario, acao, detalhes):
+    logs = carregar_logs()
+    novo_log = {
+        "data_hora": datetime.now().strftime("%d/%m/%Y %H:%M:%S"),
+        "usuario": usuario,
+        "acao": acao,
+        "detalhes": detalhes,
+    }
+    logs.insert(0, novo_log)  # Insere o mais recente no topo
+    try:
+        with open(ARQUIVO_LOGS, "w", encoding="utf-8") as f:
+            json.dump(logs, f, ensure_ascii=False, indent=4)
+    except Exception:
+        pass
+
+
 def gerar_qr_code_api(texto):
     texto_encoded = urllib.parse.quote(texto)
-    return f"https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={texto_encoded}"
+    return (
+        f"https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={texto_encoded}"
+    )
+
 
 # --- ESTADO DE SESSÃO ---
 if "estoque" not in st.session_state:
@@ -176,14 +210,19 @@ if "modo_dev" not in st.session_state:
 
 # --- TELA DE LOGIN / CADASTRO DE USUÁRIO ---
 if st.session_state.usuario_logado is None:
-    st.markdown("""
+    st.markdown(
+        """
         <div style="text-align: center; margin-top: 30px; margin-bottom: 20px;">
             <h1 style="color: #7A1C2E; font-size: 2rem; font-weight: 800;">🍷 Wine Map Pro</h1>
             <p style="color: #6C757D;">Entre com sua conta ou cadastre-se para acessar o sistema</p>
         </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
-    tab_login, tab_cadastro, tab_dev = st.tabs(["🔑 Entrar", "👤 Criar Conta", "⚙️ Painel Dev (1980)"])
+    tab_login, tab_cadastro, tab_dev = st.tabs(
+        ["🔑 Entrar", "👤 Criar Conta", "⚙️ Painel Dev (1980)"]
+    )
 
     with tab_login:
         col_l1, col_l2, col_l3 = st.columns([1, 2, 1])
@@ -191,18 +230,23 @@ if st.session_state.usuario_logado is None:
             with st.form("form_login_usuario"):
                 nome_login = st.text_input("Nome de Usuário:").strip()
                 senha_login = st.text_input("Senha:", type="password").strip()
-                
+
                 if st.form_submit_button("ENTRAR NO SISTEMA", use_container_width=True):
                     usuario_encontrado = None
                     for u in st.session_state.usuarios:
-                        if u.get("nome", "").lower() == nome_login.lower() and u.get("senha") == senha_login:
+                        if (
+                            u.get("nome", "").lower() == nome_login.lower()
+                            and u.get("senha") == senha_login
+                        ):
                             usuario_encontrado = u
                             break
-                    
+
                     if usuario_encontrado:
                         st.session_state.usuario_logado = usuario_encontrado
                         st.session_state.modo_dev = False
-                        st.success(f"Bem-vindo, {usuario_encontrado['nome']}! Cargo: {usuario_encontrado['cargo']}")
+                        st.success(
+                            f"Bem-vindo, {usuario_encontrado['nome']}! Cargo: {usuario_encontrado['cargo']}"
+                        )
                         st.rerun()
                     else:
                         st.error("Usuário ou senha incorretos.")
@@ -212,21 +256,42 @@ if st.session_state.usuario_logado is None:
         with col_c2:
             with st.form("form_novo_cadastro"):
                 novo_nome = st.text_input("Nome Completo:").strip()
-                novo_cargo = st.selectbox("Cargo:", ["Operador de Galpão", "Conferente", "Administrador"])
-                nova_senha = st.text_input("Crie sua Senha:", type="password").strip()
-                
+                novo_cargo = st.selectbox(
+                    "Cargo:",
+                    ["Operador de Galpão", "Conferente", "Administrador"],
+                )
+                nova_senha = st.text_input(
+                    "Crie sua Senha:", type="password"
+                ).strip()
+
                 if st.form_submit_button("CADASTRAR", use_container_width=True):
                     if novo_nome and nova_senha:
-                        existe = any(u.get("nome", "").lower() == novo_nome.lower() for u in st.session_state.usuarios)
+                        existe = any(
+                            u.get("nome", "").lower() == novo_nome.lower()
+                            for u in st.session_state.usuarios
+                        )
                         if existe:
-                            st.error("Este nome de usuário já está cadastrado.")
+                            st.error(
+                                "Este nome de usuário já está cadastrado."
+                            )
                         else:
-                            novo_user = {"nome": novo_nome, "cargo": novo_cargo, "senha": nova_senha}
+                            novo_user = {
+                                "nome": novo_nome,
+                                "cargo": novo_cargo,
+                                "senha": nova_senha,
+                            }
                             st.session_state.usuarios.append(novo_user)
                             salvar_usuarios(st.session_state.usuarios)
+                            registrar_log(
+                                novo_nome,
+                                "Criação de Conta",
+                                f"Cargo: {novo_cargo}",
+                            )
                             st.session_state.usuario_logado = novo_user
                             st.session_state.modo_dev = False
-                            st.success(f"Conta criada com sucesso! Você é **{novo_cargo}**.")
+                            st.success(
+                                f"Conta criada com sucesso! Você é **{novo_cargo}**."
+                            )
                             st.rerun()
                     else:
                         st.error("Preencha o Nome e a Senha.")
@@ -235,34 +300,54 @@ if st.session_state.usuario_logado is None:
         col_d1, col_d2, col_d3 = st.columns([1, 2, 1])
         with col_d2:
             with st.form("form_login_dev"):
-                st.markdown("<p style='color: #7A1C2E; font-weight: bold;'>Acesso Exclusivo do Desenvolvedor</p>", unsafe_allow_html=True)
-                senha_dev_input = st.text_input("Senha Mestra do Desenvolvedor:", type="password").strip()
-                if st.form_submit_button("ACESSAR PAINEL DEV", use_container_width=True):
+                st.markdown(
+                    "<p style='color: #7A1C2E; font-weight: bold;'>Acesso Exclusivo do Desenvolvedor</p>",
+                    unsafe_allow_html=True,
+                )
+                senha_dev_input = st.text_input(
+                    "Senha Mestra do Desenvolvedor:", type="password"
+                ).strip()
+                if st.form_submit_button(
+                    "ACESSAR PAINEL DEV", use_container_width=True
+                ):
                     if senha_dev_input == SENHA_DEV:
                         st.session_state.modo_dev = True
-                        st.session_state.usuario_logado = {"nome": NOME_DEV, "cargo": "Desenvolvedor", "senha": SENHA_DEV}
+                        st.session_state.usuario_logado = {
+                            "nome": NOME_DEV,
+                            "cargo": "Desenvolvedor",
+                            "senha": SENHA_DEV,
+                        }
                         st.success("Painel do Desenvolvedor liberado!")
                         st.rerun()
                     else:
-                        st.error("Senha mestra incorreta! A senha padrão do desenvolvedor é 1980.")
+                        st.error(
+                            "Senha mestra incorreta! A senha padrão do desenvolvedor é 1980."
+                        )
     st.stop()
 
 # --- BARRA LATERAL ---
 with st.sidebar:
-    st.markdown(f"<h3 style='color:#7A1C2E;'>🍷 Wine Map Pro</h3>", unsafe_allow_html=True)
+    st.markdown(
+        f"<h3 style='color:#7A1C2E;'>🍷 Wine Map Pro</h3>",
+        unsafe_allow_html=True,
+    )
     st.markdown(f"**Usuário:** {st.session_state.usuario_logado['nome']}")
-    st.markdown(f"**Cargo:** <span style='color: #C9A227; font-weight: bold;'>{st.session_state.usuario_logado['cargo']}</span>", unsafe_allow_html=True)
+    st.markdown(
+        f"**Cargo:** <span style='color: #C9A227; font-weight: bold;'>{st.session_state.usuario_logado['cargo']}</span>",
+        unsafe_allow_html=True,
+    )
     st.markdown("---")
 
     opcoes_menu = [
         "🏠 Home",
-        "🔍 Buscar vinho",
+        "🔍 Buscar / Filtros Múltiplos",
         "📷 Escanear QR Code / Câmera",
         "📱 Gerar QR Code de Pallets",
         "🍷 Ver estoque completo",
         "➕ Cadastrar novo vinho",
         "✏️ Editar vinho",
         "🗑️ Excluir vinho",
+        "📋 Histórico de Auditoria",
     ]
 
     if st.session_state.modo_dev:
@@ -271,7 +356,11 @@ with st.sidebar:
     if st.session_state.menu_atual not in opcoes_menu:
         st.session_state.menu_atual = opcoes_menu[0]
 
-    menu = st.radio("Menu de Navegação:", opcoes_menu, index=opcoes_menu.index(st.session_state.menu_atual))
+    menu = st.radio(
+        "Menu de Navegação:",
+        opcoes_menu,
+        index=opcoes_menu.index(st.session_state.menu_atual),
+    )
     if menu != st.session_state.menu_atual:
         st.session_state.menu_atual = menu
         st.rerun()
@@ -285,20 +374,28 @@ with st.sidebar:
 
 # --- RESTRIÇÕES DE ACESSO ---
 cargo_atual = st.session_state.usuario_logado.get("cargo")
-e_admin = (cargo_atual in ["Administrador", "Desenvolvedor"]) or st.session_state.modo_dev
-e_dev = st.session_state.modo_dev or (st.session_state.usuario_logado.get("nome") == NOME_DEV)
+e_admin = (
+    cargo_atual in ["Administrador", "Desenvolvedor"]
+) or st.session_state.modo_dev
+e_dev = st.session_state.modo_dev or (
+    st.session_state.usuario_logado.get("nome") == NOME_DEV
+)
 
 telas_admin = ["➕ Cadastrar novo vinho", "✏️ Editar vinho", "🗑️ Excluir vinho"]
 
 if st.session_state.menu_atual in telas_admin and not e_admin:
-    st.warning("⚠️ Acesso restrito! Apenas usuários com o cargo de **Administrador** podem cadastrar, editar ou excluir vinhos.")
+    st.warning(
+        "⚠️ Acesso restrito! Apenas usuários com o cargo de **Administrador** podem cadastrar, editar ou excluir vinhos."
+    )
     if st.button("Voltar para Home"):
         st.session_state.menu_atual = "🏠 Home"
         st.rerun()
     st.stop()
 
 if st.session_state.menu_atual == "⚙️ Gerenciar Usuários (Dev)" and not e_dev:
-    st.warning("⚠️ Esta opção é exclusiva para o Desenvolvedor (Senha Mestra: 1980).")
+    st.warning(
+        "⚠️ Esta opção é exclusiva para o Desenvolvedor (Senha Mestra: 1980)."
+    )
     if st.button("Voltar para Home"):
         st.session_state.menu_atual = "🏠 Home"
         st.rerun()
@@ -306,76 +403,152 @@ if st.session_state.menu_atual == "⚙️ Gerenciar Usuários (Dev)" and not e_d
 
 # --- TELAS DO APLICATIVO ---
 if st.session_state.menu_atual == "🏠 Home":
-    st.markdown(f"""
+    st.markdown(
+        f"""
         <div class="header-container">
             <p class="sub-title">Bom dia,</p>
             <h1 class="main-title">{st.session_state.usuario_logado['nome']}! 👋</h1>
             <p class="sub-title">Seu nível de acesso: <b>{st.session_state.usuario_logado['cargo']}</b></p>
         </div>
-    """, unsafe_allow_html=True)
+    """,
+        unsafe_allow_html=True,
+    )
 
-    st.markdown("<p style='color: #6C757D; font-size: 0.85rem; font-weight: 600; margin: 10px 0 15px 0;'>O que você deseja fazer?</p>", unsafe_allow_html=True)
+    st.markdown(
+        "<p style='color: #6C757D; font-size: 0.85rem; font-weight: 600; margin: 10px 0 15px 0;'>O que você deseja fazer?</p>",
+        unsafe_allow_html=True,
+    )
 
     c1, c2, c3 = st.columns(3)
     with c1:
-        if st.button("🔍 Buscar Vinho\n\nLocalizar por nome ou tipo", use_container_width=True):
-            st.session_state.menu_atual = "🔍 Buscar vinho"
+        if st.button(
+            "🔍 Buscar / Filtros\n\nMúltiplos critérios",
+            use_container_width=True,
+        ):
+            st.session_state.menu_atual = "🔍 Buscar / Filtros Múltiplos"
             st.rerun()
     with c2:
-        if st.button("📷 Escanear QR Code\n\nLer pallet com a câmera", use_container_width=True):
+        if st.button(
+            "📷 Escanear QR Code\n\nLer pallet com a câmera",
+            use_container_width=True,
+        ):
             st.session_state.menu_atual = "📷 Escanear QR Code / Câmera"
             st.rerun()
     with c3:
-        if st.button("🍷 Estoque Completo\n\nVer todos os vinhos", use_container_width=True):
+        if st.button(
+            "🍷 Estoque Completo\n\nVer todos os vinhos",
+            use_container_width=True,
+        ):
             st.session_state.menu_atual = "🍷 Ver estoque completo"
             st.rerun()
 
     c4, c5, c6 = st.columns(3)
     with c4:
-        if st.button("➕ Cadastrar Vinho\n\n(Apenas Admin)", use_container_width=True):
+        if st.button(
+            "➕ Cadastrar Vinho\n\n(Apenas Admin)", use_container_width=True
+        ):
             st.session_state.menu_atual = "➕ Cadastrar novo vinho"
             st.rerun()
     with c5:
-        if st.button("✏️ Editar Vinho\n\n(Apenas Admin)", use_container_width=True):
+        if st.button(
+            "✏️ Editar Vinho\n\n(Apenas Admin)", use_container_width=True
+        ):
             st.session_state.menu_atual = "✏️ Editar vinho"
             st.rerun()
     with c6:
-        if st.button("📱 Gerar QR Pallet\n\nImprimir etiquetas", use_container_width=True):
-            st.session_state.menu_atual = "📱 Gerar QR Code de Pallets"
+        if st.button(
+            "📋 Histórico\n\nLogs de Auditoria", use_container_width=True
+        ):
+            st.session_state.menu_atual = "📋 Histórico de Auditoria"
             st.rerun()
 
-elif st.session_state.menu_atual == "🔍 Buscar vinho":
-    st.subheader("🔍 Buscar Vinho (Acesso Livre)")
-    termo = st.text_input("Pesquisar por nome, tipo ou localização...").strip().lower()
-    if termo:
-        resultados = [v for v in st.session_state.estoque if termo in str(v.get("nome", "")).lower() or termo in str(v.get("tipo", "")).lower() or termo in str(v.get("pallet", "")).lower()]
-        if not resultados:
-            st.warning("⚠️ Nenhum vinho encontrado.")
-        for v in resultados:
-            st.markdown(f"""
-                <div class="wine-card">
-                    <div class="wine-title">🍷 {v.get('nome')} ({v.get('safra')})</div>
-                    <p><span class="badge-pallet">📍 {v.get('pallet')}</span></p>
-                    <p class="wine-text"><b>Tipo:</b> {v.get('tipo')} | <b>Caixa:</b> {v.get('caixa')} | <b>Lado:</b> {v.get('lado')}</p>
-                </div>
-            """, unsafe_allow_html=True)
+elif st.session_state.menu_atual == "🔍 Buscar / Filtros Múltiplos":
+    st.subheader("🔍 Busca Avançada por Filtros Múltiplos (Acesso Livre)")
+    st.markdown(
+        "<p style='color: #6C757D; font-size: 0.85rem;'>Filtre o estoque simultaneamente por nome, corredor, lado, tipo e safra.</p>",
+        unsafe_allow_html=True,
+    )
+
+    col_f1, col_f2 = st.columns(2)
+    with col_f1:
+        termo_nome = st.text_input("Filtrar por Nome ou Vinícola:").strip().lower()
+        tipos_disponiveis = [
+            "Todos"
+        ] + sorted(list(set(v.get("tipo", "") for v in st.session_state.estoque)))
+        filtro_tipo = st.selectbox("Filtrar por Tipo de Vinho:", tipos_disponiveis)
+
+    with col_f2:
+        corredores_disponiveis = ["Todos"] + LISTA_CORREDORES
+        filtro_corredor = st.selectbox(
+            "Filtrar por Corredor:", corredores_disponiveis
+        )
+        lados_disponiveis = ["Todos"] + LISTA_LADOS
+        filtro_lado = st.selectbox("Filtrar por Lado:", lados_disponiveis)
+
+    # Filtragem combinada
+    resultados = st.session_state.estoque
+    if termo_nome:
+        resultados = [
+            v
+            for v in resultados
+            if termo_nome in str(v.get("nome", "")).lower()
+        ]
+    if filtro_tipo != "Todos":
+        resultados = [v for v in resultados if v.get("tipo") == filtro_tipo]
+    if filtro_corredor != "Todos":
+        resultados = [
+            v
+            for v in resultados
+            if filtro_corredor in str(v.get("pallet", ""))
+        ]
+    if filtro_lado != "Todos":
+        resultados = [v for v in resultados if v.get("lado") == filtro_lado]
+
+    st.markdown(f"**Resultados encontrados:** {len(resultados)}")
+    st.markdown("---")
+
+    if not resultados:
+        st.warning("⚠️ Nenhum vinho encontrado com os filtros selecionados.")
+    for v in resultados:
+        st.markdown(
+            f"""
+            <div class="wine-card">
+                <div class="wine-title">🍷 {v.get('nome')} ({v.get('safra')})</div>
+                <p><span class="badge-pallet">📍 {v.get('pallet')}</span></p>
+                <p class="wine-text"><b>Tipo:</b> {v.get('tipo')} | <b>Caixa:</b> {v.get('caixa')} | <b>Lado:</b> {v.get('lado')}</p>
+            </div>
+        """,
+            unsafe_allow_html=True,
+        )
 
 elif st.session_state.menu_atual == "📷 Escanear QR Code / Câmera":
     st.subheader("📷 Escanear QR Code do Pallet (Acesso Livre)")
-    st.info("Aponte a câmera para o QR Code fixado no pallet para conferir os itens sem abrir as caixas.")
+    st.info(
+        "Aponte a câmera do celular/dispositivo para o QR Code fixado no pallet para conferir os itens."
+    )
     foto_camera = st.camera_input("Capturar Imagem")
     if foto_camera is not None:
         st.success("QR Code lido com sucesso!")
         pallet_detectado = "Corredor 01 - Pallet 01"
-        st.markdown(f"<h4 style='color: #7A1C2E;'>📍 Pallet: {pallet_detectado}</h4>", unsafe_allow_html=True)
-        vinhos_pallet = [v for v in st.session_state.estoque if v.get("pallet") == pallet_detectado]
+        st.markdown(
+            f"<h4 style='color: #7A1C2E;'>📍 Pallet: {pallet_detectado}</h4>",
+            unsafe_allow_html=True,
+        )
+        vinhos_pallet = [
+            v
+            for v in st.session_state.estoque
+            if v.get("pallet") == pallet_detectado
+        ]
         for v in vinhos_pallet:
-            st.markdown(f"""
+            st.markdown(
+                f"""
                 <div class="wine-card">
                     <div class="wine-title">🍷 {v.get('nome')} ({v.get('safra')})</div>
                     <p class="wine-text"><b>Tipo:</b> {v.get('tipo')} | <b>Embalagem:</b> {v.get('caixa')}</p>
                 </div>
-            """, unsafe_allow_html=True)
+            """,
+                unsafe_allow_html=True,
+            )
 
 elif st.session_state.menu_atual == "📱 Gerar QR Code de Pallets":
     st.subheader("📱 Gerar QR Code de Pallets (Acesso Livre)")
@@ -384,7 +557,9 @@ elif st.session_state.menu_atual == "📱 Gerar QR Code de Pallets":
     pallet_selecionado = f"{c_corr} - {c_pall}"
     if st.button("Gerar Etiqueta QR Code", use_container_width=True):
         url_qr = gerar_qr_code_api(pallet_selecionado)
-        st.image(url_qr, caption=f"QR Code para {pallet_selecionado}", width=220)
+        st.image(
+            url_qr, caption=f"QR Code para {pallet_selecionado}", width=220
+        )
 
 elif st.session_state.menu_atual == "🍷 Ver estoque completo":
     st.subheader("🍷 Estoque Completo (Acesso Livre)")
@@ -406,12 +581,25 @@ elif st.session_state.menu_atual == "➕ Cadastrar novo vinho":
         sel_pallet = st.selectbox("Pallet:", LISTA_PALLETS)
         lado = st.selectbox("Lado:", LISTA_LADOS)
         caixa = st.selectbox("Caixa:", OPCOES_CAIXA)
-        
+
         if st.form_submit_button("SALVAR CADASTRO", use_container_width=True):
             if nome and tipo:
-                novo = {"nome": nome, "tipo": tipo, "safra": safra if safra else "NV", "pallet": f"{sel_corredor} - {sel_pallet}", "lado": lado, "caixa": caixa, "foto": None}
+                novo = {
+                    "nome": nome,
+                    "tipo": tipo,
+                    "safra": safra if safra else "NV",
+                    "pallet": f"{sel_corredor} - {sel_pallet}",
+                    "lado": lado,
+                    "caixa": caixa,
+                    "foto": None,
+                }
                 st.session_state.estoque.append(novo)
                 salvar_dados(st.session_state.estoque)
+                registrar_log(
+                    st.session_state.usuario_logado["nome"],
+                    "Cadastro de Vinho",
+                    f"{nome} ({safra}) no {sel_corredor} - {sel_pallet}",
+                )
                 st.session_state.form_key += 1
                 st.success("Vinho cadastrado com sucesso!")
                 st.rerun()
@@ -421,29 +609,70 @@ elif st.session_state.menu_atual == "➕ Cadastrar novo vinho":
 elif st.session_state.menu_atual == "✏️ Editar vinho":
     st.subheader("✏️ Editar Vinho (Exclusivo Administrador)")
     if st.session_state.estoque:
-        opcoes = [f"{v.get('nome')} - {v.get('pallet')}" for v in st.session_state.estoque]
-        idx = st.selectbox("Selecione o Vinho:", range(len(opcoes)), format_func=lambda x: opcoes[x])
+        opcoes = [
+            f"{v.get('nome')} - {v.get('pallet')}"
+            for v in st.session_state.estoque
+        ]
+        idx = st.selectbox(
+            "Selecione o Vinho:",
+            range(len(opcoes)),
+            format_func=lambda x: opcoes[x],
+        )
         vinho = st.session_state.estoque[idx]
-        
+
         with st.form("form_edit_completo"):
             novo_nome = st.text_input("Nome do Vinho:", vinho.get("nome", ""))
             novo_tipo = st.text_input("Tipo:", vinho.get("tipo", ""))
             nova_safra = st.text_input("Safra:", vinho.get("safra", "2024"))
-            
+
             pallet_atual = vinho.get("pallet", "Corredor 01 - Pallet 01")
             partes_pallet = pallet_atual.split(" - ")
-            c_corr_atual = partes_pallet[0] if len(partes_pallet) > 0 else LISTA_CORREDORES[0]
-            c_pall_atual = partes_pallet[1] if len(partes_pallet) > 1 else LISTA_PALLETS[0]
-            
-            idx_corr = LISTA_CORREDORES.index(c_corr_atual) if c_corr_atual in LISTA_CORREDORES else 0
-            idx_pall = LISTA_PALLETS.index(c_pall_atual) if c_pall_atual in LISTA_PALLETS else 0
-            
-            novo_corredor = st.selectbox("Corredor:", LISTA_CORREDORES, index=idx_corr)
-            novo_pallet_num = st.selectbox("Pallet:", LISTA_PALLETS, index=idx_pall)
-            novo_lado = st.selectbox("Lado:", LISTA_LADOS, index=LISTA_LADOS.index(vinho.get("lado", "Direito")) if vinho.get("lado") in LISTA_LADOS else 0)
-            nova_caixa = st.selectbox("Caixa:", OPCOES_CAIXA, index=OPCOES_CAIXA.index(vinho.get("caixa", "Caixa com 12 garrafas")) if vinho.get("caixa") in OPCOES_CAIXA else 0)
-            
-            if st.form_submit_button("SALVAR ALTERAÇÕES", use_container_width=True):
+            c_corr_atual = (
+                partes_pallet[0]
+                if len(partes_pallet) > 0
+                else LISTA_CORREDORES[0]
+            )
+            c_pall_atual = (
+                partes_pallet[1] if len(partes_pallet) > 1 else LISTA_PALLETS[0]
+            )
+
+            idx_corr = (
+                LISTA_CORREDORES.index(c_corr_atual)
+                if c_corr_atual in LISTA_CORREDORES
+                else 0
+            )
+            idx_pall = (
+                LISTA_PALLETS.index(c_pall_atual)
+                if c_pall_atual in LISTA_PALLETS
+                else 0
+            )
+
+            novo_corredor = st.selectbox(
+                "Corredor:", LISTA_CORREDORES, index=idx_corr
+            )
+            novo_pallet_num = st.selectbox(
+                "Pallet:", LISTA_PALLETS, index=idx_pall
+            )
+            novo_lado = st.selectbox(
+                "Lado:",
+                LISTA_LADOS,
+                index=LISTA_LADOS.index(vinho.get("lado", "Direito"))
+                if vinho.get("lado") in LISTA_LADOS
+                else 0,
+            )
+            nova_caixa = st.selectbox(
+                "Caixa:",
+                OPCOES_CAIXA,
+                index=OPCOES_CAIXA.index(
+                    vinho.get("caixa", "Caixa com 12 garrafas")
+                )
+                if vinho.get("caixa") in OPCOES_CAIXA
+                else 0,
+            )
+
+            if st.form_submit_button(
+                "SALVAR ALTERAÇÕES", use_container_width=True
+            ):
                 if novo_nome.strip() and novo_tipo.strip():
                     vinho["nome"] = novo_nome.strip()
                     vinho["tipo"] = novo_tipo.strip()
@@ -452,45 +681,107 @@ elif st.session_state.menu_atual == "✏️ Editar vinho":
                     vinho["lado"] = novo_lado
                     vinho["caixa"] = nova_caixa
                     salvar_dados(st.session_state.estoque)
+                    registrar_log(
+                        st.session_state.usuario_logado["nome"],
+                        "Edição de Vinho",
+                        f"Atualizado: {novo_nome} ({nova_safra})",
+                    )
                     st.success("Alterações salvas!")
                     st.rerun()
 
 elif st.session_state.menu_atual == "🗑️ Excluir vinho":
     st.subheader("🗑️ Excluir Vinho (Exclusivo Administrador)")
     if st.session_state.estoque:
-        opcoes = [f"{v.get('nome')} - {v.get('pallet')}" for v in st.session_state.estoque]
-        idx = st.selectbox("Selecione para remover:", range(len(opcoes)), format_func=lambda x: opcoes[x])
+        opcoes = [
+            f"{v.get('nome')} - {v.get('pallet')}"
+            for v in st.session_state.estoque
+        ]
+        idx = st.selectbox(
+            "Selecione para remover:",
+            range(len(opcoes)),
+            format_func=lambda x: opcoes[x],
+        )
         if st.button("CONFIRMAR EXCLUSÃO", type="primary"):
-            st.session_state.estoque.pop(idx)
+            vinho_removido = st.session_state.estoque.pop(idx)
             salvar_dados(st.session_state.estoque)
+            registrar_log(
+                st.session_state.usuario_logado["nome"],
+                "Exclusão de Vinho",
+                f"Removido: {vinho_removido.get('nome')}",
+            )
             st.success("Removido com sucesso!")
             st.rerun()
 
+elif st.session_state.menu_atual == "📋 Histórico de Auditoria":
+    st.subheader("📋 Histórico de Movimentações e Auditoria")
+    st.markdown(
+        "<p style='color: #6C757D;'>Registro de quem cadastrou, alterou ou excluiu itens no sistema.</p>",
+        unsafe_allow_html=True,
+    )
+    logs = carregar_logs()
+    if logs:
+        df_logs = pd.DataFrame(logs)
+        st.dataframe(df_logs, use_container_width=True)
+    else:
+        st.info("Nenhum registro de auditoria encontrado ainda.")
+
 elif st.session_state.menu_atual == "⚙️ Gerenciar Usuários (Dev)":
-    st.subheader("⚙️ Painel de Gerenciamento de Usuários (Exclusivo Desenvolvedor)")
-    st.markdown("<p style='color: #6C757D;'>Aqui você pode gerenciar todos os usuários cadastrados e alterar as credenciais ou cargos deles.</p>", unsafe_allow_html=True)
-    
+    st.subheader(
+        "⚙️ Painel de Gerenciamento de Usuários (Exclusivo Desenvolvedor)"
+    )
+    st.markdown(
+        "<p style='color: #6C757D;'>Gerencie usuários, redefina senhas e altere níveis de acesso.</p>",
+        unsafe_allow_html=True,
+    )
+
     if st.session_state.usuarios:
         for i, u in enumerate(st.session_state.usuarios):
-            with st.expander(f"👤 {u.get('nome')} — Cargo: {u.get('cargo')}"):
+            with st.expander(
+                f"👤 {u.get('nome')} — Cargo: {u.get('cargo')}"
+            ):
                 with st.form(f"form_edit_user_{i}"):
                     edit_nome = st.text_input("Nome:", value=u.get("nome", ""))
-                    edit_cargo = st.selectbox("Cargo:", ["Operador de Galpão", "Conferente", "Administrador"], index=["Operador de Galpão", "Conferente", "Administrador"].index(u.get("cargo")) if u.get("cargo") in ["Operador de Galpão", "Conferente", "Administrador"] else 0)
+                    edit_cargo = st.selectbox(
+                        "Cargo:",
+                        ["Operador de Galpão", "Conferente", "Administrador"],
+                        index=[
+                            "Operador de Galpão",
+                            "Conferente",
+                            "Administrador",
+                        ].index(u.get("cargo"))
+                        if u.get("cargo")
+                        in ["Operador de Galpão", "Conferente", "Administrador"]
+                        else 0,
+                    )
                     edit_senha = st.text_input("Senha:", value=u.get("senha", ""))
-                    
+
                     c_salvar, c_excluir = st.columns(2)
                     with c_salvar:
-                        if st.form_submit_button("Salvar Alterações", use_container_width=True):
+                        if st.form_submit_button(
+                            "Salvar Alterações", use_container_width=True
+                        ):
                             u["nome"] = edit_nome
                             u["cargo"] = edit_cargo
                             u["senha"] = edit_senha
                             salvar_usuarios(st.session_state.usuarios)
+                            registrar_log(
+                                NOME_DEV,
+                                "Alteração de Usuário",
+                                f"Editado usuário: {edit_nome} ({edit_cargo})",
+                            )
                             st.success("Usuário atualizado com sucesso!")
                             st.rerun()
                     with c_excluir:
-                        if st.form_submit_button("Excluir Usuário", use_container_width=True):
-                            st.session_state.usuarios.pop(i)
+                        if st.form_submit_button(
+                            "Excluir Usuário", use_container_width=True
+                        ):
+                            removido = st.session_state.usuarios.pop(i)
                             salvar_usuarios(st.session_state.usuarios)
+                            registrar_log(
+                                NOME_DEV,
+                                "Exclusão de Usuário",
+                                f"Removido usuário: {removido.get('nome')}",
+                            )
                             st.success("Usuário removido!")
                             st.rerun()
     else:
