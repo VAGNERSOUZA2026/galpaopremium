@@ -29,39 +29,6 @@ st.markdown(
     [data-testid="stSidebar"] {
         display: none;
     }
-    /* Estilo do painel de boas-vindas esquerdo */
-    .hero-container {
-        background: linear-gradient(135deg, #4A0E19 0%, #7A1C2E 100%);
-        padding: 40px 30px;
-        border-radius: 20px;
-        color: #FFFFFF;
-        box-shadow: 0px 10px 30px rgba(122, 28, 41, 0.2);
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-    }
-    .hero-title {
-        font-size: 1.8rem;
-        font-weight: 800;
-        margin-bottom: 10px;
-        color: #FFFFFF;
-    }
-    .hero-subtitle {
-        font-size: 0.95rem;
-        color: #E0D0D3;
-        line-height: 1.5;
-        margin-bottom: 20px;
-    }
-    .feature-badge {
-        background-color: rgba(255, 255, 255, 0.12);
-        padding: 8px 14px;
-        border-radius: 10px;
-        margin-bottom: 10px;
-        font-size: 0.85rem;
-        font-weight: 500;
-        border-left: 3px solid #C9A227;
-    }
     .wine-card {
         background-color: #FFFFFF;
         color: #1A1A1A;
@@ -234,23 +201,29 @@ if "modo_dev" not in st.session_state:
 # --- TELA DE LOGIN / CADASTRO (EXIBIDA AO ABRIR O APP) ---
 if st.session_state.usuario_logado is None:
     st.write("")
-    
+
     col_l, col_r = st.columns([1.1, 1], gap="large")
 
     with col_l:
-        st.markdown(
-            """
-            <div class="hero-container">
-                <h1 class="hero-title">🍷 Premium Wines</h1>
-                <p class="hero-subtitle">Sistema inteligente de mapeamento, localização e gestão de estoque para o seu galpão de vinhos finos.</p>
-                
-                <div class="feature-badge">⚡ <b>Busca Avançada:</b> Encontre qualquer rótulo em segundos.</div>
-                <div class="feature-badge">📷 <b>Leitura QR Code:</b> Agilidade com a câmera nos corredores.</div>
-                <div class="feature-badge">🛡️ <b>Auditoria Completa:</b> Controle total de acesso e operações.</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        # Usando container nativo estilizado do Streamlit para evitar problemas com tags HTML cruas
+        with st.container(border=True):
+            st.markdown(
+                "<h2 style='color: #7A1C2E; font-weight: 800;'>🍷 Premium Wines</h2>",
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                "Sistema inteligente de mapeamento, localização e gestão de estoque para o seu galpão de vinhos finos."
+            )
+            st.markdown("---")
+            st.markdown(
+                "⚡ **Busca Avançada:** Encontre qualquer rótulo em segundos."
+            )
+            st.markdown(
+                "📷 **Leitura QR Code:** Agilidade com a câmera nos corredores."
+            )
+            st.markdown(
+                "🛡️ **Auditoria Completa:** Controle total de acesso e operações."
+            )
 
     with col_r:
         if os.path.exists("imagem premium.jpeg"):
@@ -277,7 +250,9 @@ if st.session_state.usuario_logado is None:
                 nome_login = st.text_input("Nome de Usuário:").strip()
                 senha_login = st.text_input("Senha:", type="password").strip()
 
-                if st.form_submit_button("ENTRAR NO SISTEMA", use_container_width=True):
+                if st.form_submit_button(
+                    "ENTRAR NO SISTEMA", use_container_width=True
+                ):
                     usuario_encontrado = None
                     for u in st.session_state.usuarios:
                         if (
