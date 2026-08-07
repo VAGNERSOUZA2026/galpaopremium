@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Estilização CSS Personalizada (Tema Dark & Gold - Correção definitiva dos cards brancos)
+# Estilização CSS Personalizada (Tema Dark & Gold - Tabelas e Cards Otimizados)
 st.markdown(
     """
     <style>
@@ -74,7 +74,6 @@ st.markdown(
         font-size: 2rem;
         font-weight: 800;
     }
-    /* CORREÇÃO DOS CARDS DE VINHO (Fundo escuro forçado) */
     .wine-card {
         background-color: #1E1E1E !important;
         color: #FFFFFF !important;
@@ -102,6 +101,35 @@ st.markdown(
         font-weight: 600;
         font-size: 0.8rem;
         display: inline-block;
+    }
+    /* TABELA PERSONALIZADA DARK */
+    .custom-table {
+        width: 100%;
+        border-collapse: collapse;
+        background-color: #1E1E1E;
+        color: #FFFFFF;
+        border-radius: 12px;
+        overflow: hidden;
+        margin-top: 10px;
+        box-shadow: 0px 4px 12px rgba(0,0,0,0.4);
+    }
+    .custom-table th {
+        background-color: #581825;
+        color: #FFD700;
+        text-align: left;
+        padding: 12px 15px;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .custom-table td {
+        padding: 12px 15px;
+        border-bottom: 1px solid #2D2D2D;
+        color: #F5F5F5;
+        font-size: 0.9rem;
+    }
+    .custom-table tr:hover {
+        background-color: #252525;
     }
     .stTextInput input, .stSelectbox select {
         background-color: #1E1E1E !important;
@@ -323,12 +351,10 @@ elif st.session_state.menu_atual == "📷 Escanear QR Code / Câmera":
     st.subheader("📷 Câmera / Escanear QR Code do Pallet")
     st.info("Utilize a câmera traseira do seu celular para capturar o QR Code do pallet e visualizar os vinhos armazenados sem abrir as caixas.")
     
-    # Permite tirar foto ou enviar arquivo utilizando a câmera traseira nativa do smartphone
     foto_camera = st.camera_input("Aponte para o QR Code do Pallet (Permita o uso da câmera)")
     
     if foto_camera is not None:
         st.success("QR Code capturado com sucesso! Processando leitura do pallet...")
-        # Simulação inteligente de leitura baseada no pallet padrão do galpão
         pallet_detectado = "Corredor 01 - Pallet 01"
         st.markdown(f"<h3 style='color: #C9A227;'>📍 Pallet Identificado: {pallet_detectado}</h3>", unsafe_allow_html=True)
         
@@ -376,7 +402,23 @@ elif st.session_state.menu_atual == "🍷 Ver estoque completo":
         df = pd.DataFrame(st.session_state.estoque)
         if "foto" in df.columns:
             df = df.drop(columns=["foto"])
-        st.dataframe(df, use_container_width=True)
+        
+        # Constrói a tabela personalizada em HTML para garantir o visual escuro e legível
+        html_tabela = '<table class="custom-table"><thead><tr>'
+        for col in df.columns:
+            html_tabela += f'<th>{col}</th>'
+        html_tabela += '</tr></thead><tbody>'
+        
+        for _, row in df.iterrows():
+            html_tabela += '<tr>'
+            for col in df.columns:
+                html_tabela += f'<td>{row[col]}</td>'
+            html_tabela += '</tr>'
+        html_tabela += '</tbody></table>'
+        
+        st.markdown(html_tabela, unsafe_allow_html=True)
+    else:
+        st.info("O estoque está vazio.")
 
 elif st.session_state.menu_atual == "➕ Cadastrar novo vinho":
     st.subheader("➕ Novo Cadastro de Vinho")
