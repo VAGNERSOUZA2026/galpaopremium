@@ -437,15 +437,54 @@ elif st.session_state.menu_atual == "✏️ Editar vinho":
     st.subheader("✏️ Alterar Cadastro")
     if st.session_state.estoque:
         opcoes = [f"{v.get('nome')} - {v.get('pallet')}" for v in st.session_state.estoque]
-        idx = st.selectbox("Selecione:", range(len(opcoes)), format_func=lambda x: opcoes[x])
+        idx = st.selectbox("Selecione o Vinho para Editar:", range(len(opcoes)), format_func=lambda x: opcoes[x])
         vinho = st.session_state.estoque[idx]
-        with st.form("form_edit"):
-            novo_nome = st.text_input("Nome:", vinho.get("nome"))
-            if st.form_submit_button("Salvar Alterações"):
-                vinho["nome"] = novo_nome
-                salvar_dados(st.session_state.estoque)
-                st.success("Atualizado!")
-                st.rerun()
+        
+        with st.form("form_edit_completo"):
+            novo_nome = st.text_input("Nome do Vinho:", vinho.get("nome", ""))
+            novo_tipo = st.text_input("Tipo (ex: Tinto, Branco):", vinho.get("tipo", ""))
+            
+            # Ajusta índice padrão da Safra se existir na lista
+            safra_atual = vinho.get("safra", "Sem Safra (NV)")
+            idx_safra = OPCOES_SAFRA.index(safra_atual) if safra_atual in OPCOES_SAFRA else 0
+            nova_safra = st.selectbox("Safra:", OPCOES_SAFRA, index=idx_safra)
+            
+            # Localização atual dividida (se possível)
+            pallet_atual = vinho.get("pallet", "Corredor 01 - Pallet 01")
+            partes_pallet = pallet_atual.split(" - ")
+            c_corr_atual = partes_pallet[0] if len(partes_pallet) > 0 else LISTA_CORREDORES[0]
+            c_pall_atual = partes_pallet[1] if len(partes_pallet) > 1 else LISTA_PALLETS[0]
+            
+            idx_corr = LISTA_CORREDORES.index(c_corr_atual) if c_corr_atual in LISTA_CORREDORES else 0
+            idx_pall = LISTA_PALLETS.index(c_pall_atual) if c_pall_atual in LISTA_PALLETS else 0
+            
+            novo_corredor = st.selectbox("Corredor:", LISTA_CORREDORES, index=idx_corr)
+            novo_pallet_num = st.selectbox("Pallet:", LISTA_PALLETS, index=idx_pall)
+            
+            lado_atual = vinho.get("lado", "Direito")
+            idx_lado = LISTA_LADOS.index(lado_atual) if lado_atual in LISTA_LADOS else 0
+            novo_lado = st.selectbox("Lado:", LISTA_LADOS, index=idx_lado)
+            
+            caixa_atual = vinho.get("caixa", "Caixa com 12 garrafas")
+            idx_caixa = OPCOES_CAIXA.index(caixa_atual) if caixa_atual in OPCOES_CAIXA else 0
+            nova_caixa = st.selectbox("Caixa:", OPCOES_CAIXA, index=idx_caixa)
+            
+            if st.form_submit_button("SALVAR ALTERAÇÕES", use_container_width=True):
+                if novo_nome.strip() and novo_tipo.strip():
+                    vinho["nome"] = novo_nome.strip()
+                    vinho["tipo"] = novo_tipo.strip()
+                    vinho["safra"] = nova_safra
+                    vinho["pallet"] = f"{novo_corredor} - {novo_pallet_num}"
+                    vinho["lado"] = novo_lado
+                    vinho["caixa"] = nova_caixa
+                    
+                    salvar_dados(st.session_state.estoque)
+                    st.success("Alterações salvas com sucesso!")
+                    st.rerun()
+                else:
+                    st.error("O Nome e o Tipo não podem ficar vazios.")
+    else:
+        st.info("Nenhum vinho cadastrado para editar.")
 
 elif st.session_state.menu_atual == "🗑️ Excluir vinho":
     st.subheader("🗑️ Remover do Estoque")
