@@ -13,7 +13,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Estilização CSS Profissional
+# Estilização CSS Profissional e Elegante
 st.markdown(
     """
     <style>
@@ -68,6 +68,10 @@ st.markdown(
     .stButton button:hover {
         background-color: #922338 !important;
         color: #FFD700 !important;
+    }
+    /* Padronização e alinhamento do container central de login */
+    .element-container:has(> .stMarkdown) {
+        text-align: center;
     }
     </style>
 """,
@@ -198,25 +202,26 @@ if "menu_atual" not in st.session_state:
 if "modo_dev" not in st.session_state:
     st.session_state.modo_dev = False
 
-# --- TELA DE LOGIN / CADASTRO CENTRALIZADA ---
+# --- TELA DE LOGIN / CADASTRO CENTRALIZADA EM CARD ÚNICO E ALINHADO ---
 if st.session_state.usuario_logado is None:
     st.write("")
 
-    # Centraliza o layout usando colunas nas pontas
-    col_esq, col_centro, col_dir = st.columns([1, 1.3, 1])
+    # Proporções simétricas para centralizar perfeitamente o card na tela
+    col_esq, col_centro, col_dir = st.columns([1, 1.2, 1])
 
     with col_centro:
         with st.container(border=True):
             if os.path.exists("imagem premium.jpeg"):
-                col_img1, col_img2, col_img3 = st.columns([1, 1.2, 1])
-                with col_img2:
+                # Centralização perfeita da imagem usando colunas internas simétricas
+                _, col_img_centro, _ = st.columns([1, 1.2, 1])
+                with col_img_centro:
                     st.image("imagem premium.jpeg", width=110)
 
             st.markdown(
                 """
                 <div style="text-align: center; margin-bottom: 15px;">
-                    <h2 style="color: #7A1C2E; font-size: 1.5rem; font-weight: 800; margin-bottom: 0;">🍷 Wine Map Pro</h2>
-                    <p style="color: #6C757D; font-size: 0.85rem;">Sistema Inteligente de Gestão de Vinhos</p>
+                    <h2 style="color: #7A1C2E; font-size: 1.4rem; font-weight: 800; margin-bottom: 0;">🍷 Wine Map Pro</h2>
+                    <p style="color: #6C757D; font-size: 0.8rem; margin-top: 4px;">Sistema Inteligente de Gestão de Vinhos</p>
                 </div>
                 """,
                 unsafe_allow_html=True,
