@@ -154,7 +154,7 @@ st.markdown(
 SENHA_ACESSO = "1980"
 NOME_ARQUIVO = "estoque_galpao_pro.json"
 NOME_DEV = "Vagner Souza"
-TITULO_DEV = "Cientista da Computação"
+TITULO_DEV = "Ciência da Computação"
 FONE_DEV = "(31) 98968-4010"
 
 LISTA_CORREDORES = [f"Corredor {i:02d}" for i in range(1, 26)]
@@ -204,6 +204,9 @@ if "estoque" not in st.session_state:
 if "form_key" not in st.session_state:
     st.session_state.form_key = 0
 
+if "usuarios" not in st.session_state:
+    st.session_state.usuarios = []
+
 if "menu_atual" not in st.session_state:
     st.session_state.menu_atual = "🏠 Home / Dashboard"
 
@@ -247,6 +250,7 @@ with st.sidebar:
         "➕ Cadastrar novo vinho",
         "✏️ Editar vinho",
         "🗑️ Excluir vinho",
+        "👤 Cadastrar usuário",
     ]
 
     if st.session_state.menu_atual not in opcoes_menu:
@@ -444,12 +448,10 @@ elif st.session_state.menu_atual == "✏️ Editar vinho":
             novo_nome = st.text_input("Nome do Vinho:", vinho.get("nome", ""))
             novo_tipo = st.text_input("Tipo (ex: Tinto, Branco):", vinho.get("tipo", ""))
             
-            # Ajusta índice padrão da Safra se existir na lista
             safra_atual = vinho.get("safra", "Sem Safra (NV)")
             idx_safra = OPCOES_SAFRA.index(safra_atual) if safra_atual in OPCOES_SAFRA else 0
             nova_safra = st.selectbox("Safra:", OPCOES_SAFRA, index=idx_safra)
             
-            # Localização atual dividida (se possível)
             pallet_atual = vinho.get("pallet", "Corredor 01 - Pallet 01")
             partes_pallet = pallet_atual.split(" - ")
             c_corr_atual = partes_pallet[0] if len(partes_pallet) > 0 else LISTA_CORREDORES[0]
@@ -496,3 +498,17 @@ elif st.session_state.menu_atual == "🗑️ Excluir vinho":
             salvar_dados(st.session_state.estoque)
             st.success("Removido!")
             st.rerun()
+
+elif st.session_state.menu_atual == "👤 Cadastrar usuário":
+    st.subheader("👤 Cadastro de Novo Usuário / Operador")
+    with st.form("form_novo_usuario"):
+        nome_usuario = st.text_input("Nome Completo do Operador:").strip()
+        email_usuario = st.text_input("E-mail ou Matrícula:").strip()
+        cargo_usuario = st.selectbox("Nível de Acesso:", ["Operador de Galpão", "Conferente", "Administrador"])
+        
+        if st.form_submit_button("CADASTRAR USUÁRIO", use_container_width=True):
+            if nome_usuario:
+                st.session_state.usuarios.append({"nome": nome_usuario, "cargo": cargo_usuario})
+                st.success(f"🎉 Seja muito bem-vindo(a) ao Wine Map Pro, **{nome_usuario}**! Seu cadastro como **{cargo_usuario}** foi realizado com sucesso.")
+            else:
+                st.error("Por favor, preencha o nome do operador.")
