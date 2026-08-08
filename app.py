@@ -119,18 +119,17 @@ if st.session_state.usuario_logado is None:
             
             with tab_cadastro:
                 with st.form("cadastro_form"):
-                    n = st.text_input("Nome Completo").strip()
-                    c = st.selectbox("Cargo", ["Operador", "Conferente", "Administrador"])
+                    n = st.text_input("Nome Completo / Usuário").strip()
                     s = st.text_input("Senha", type="password").strip()
                     if st.form_submit_button("CADASTRAR", use_container_width=True):
                         if n and s:
                             if any(x['nome'].lower() == n.lower() for x in st.session_state.usuarios):
                                 st.error("Este usuário já existe.")
                             else:
-                                novo = {"nome": n, "cargo": c, "senha": s}
+                                novo = {"nome": n, "cargo": "Operador", "senha": s}
                                 st.session_state.usuarios.append(novo)
                                 salvar_usuarios(st.session_state.usuarios)
-                                registrar_log(n, "Criação de Conta", f"Cargo: {c}")
+                                registrar_log(n, "Criação de Conta", "Novo cadastro de usuário")
                                 st.session_state.usuario_logado = novo
                                 st.rerun()
                         else: st.error("Preencha todos os campos.")
@@ -186,7 +185,7 @@ if st.session_state.menu_atual == "🏠 Home":
     st.write("")
     c4, c5, c6 = st.columns(3)
     with c4:
-        if st.button("➕ Cadastrar Vinho\n\n(Apenas Admin)", use_container_width=True): st.session_state.menu_atual = "Cadastrar"; st.rerun()
+        if st.button("➕ Cadastrar Vinho\n\nAdicionar ao sistema", use_container_width=True): st.session_state.menu_atual = "Cadastrar"; st.rerun()
     with c5:
         if st.button("📱 Gerar QR Code\n\nEtiquetas de pallets", use_container_width=True): st.session_state.menu_atual = "GerarQR"; st.rerun()
     with c6:
@@ -195,13 +194,14 @@ if st.session_state.menu_atual == "🏠 Home":
     st.write("")
     c7, c8 = st.columns(2)
     with c7:
-        if st.button("✏️ Editar Vinho\n\n(Apenas Admin)", use_container_width=True): st.session_state.menu_atual = "Editar"; st.rerun()
+        if st.button("✏️ Editar Vinho\n\nModificar item", use_container_width=True): st.session_state.menu_atual = "Editar"; st.rerun()
     with c8:
-        if st.button("🗑️ Excluir Vinho\n\n(Apenas Admin)", use_container_width=True): st.session_state.menu_atual = "Excluir"; st.rerun()
+        if st.button("🗑️ Excluir Vinho\n\nRemover item", use_container_width=True): st.session_state.menu_atual = "Excluir"; st.rerun()
 
+    # Botão de Gerenciar Contas visível apenas para o Desenvolvedor / Admin
     if st.session_state.usuario_logado['cargo'] in ["Administrador", "Desenvolvedor"] or st.session_state.usuario_logado['nome'] == "Dev":
         st.write("")
-        if st.button("⚙️ Gerenciar Contas de Usuários (Editar/Excluir)", use_container_width=True):
+        if st.button("⚙️ Gerenciar Contas Cadastradas (Ver Logins e Senhas)", use_container_width=True):
             st.session_state.menu_atual = "GerenciarUsuarios"
             st.rerun()
 
@@ -284,39 +284,43 @@ elif st.session_state.menu_atual == "Excluir":
             st.rerun()
 
 elif st.session_state.menu_atual == "GerenciarUsuarios":
-    st.subheader("⚙️ Gerenciamento de Contas e Usuários")
+    st.subheader("⚙️ Gerenciamento de Contas (Credenciais de Acesso)")
     
     if not st.session_state.usuarios:
         st.info("Nenhum usuário cadastrado.")
     else:
-        df_usuarios = pd.DataFrame(st.session_state.usuarios)[["nome", "cargo"]]
+        # Exibe a tabela completa com Nomes e Senhas visíveis para o Dev
+        df_usuarios = pd.DataFrame(st.session_state.usuarios)[["nome", "senha"]]
+        df_usuarios.columns = ["Usuário / Nome", "Senha Cadastrada"]
+        st.markdown("##### Relação de Contas e Senhas Cadastradas:")
         st.dataframe(df_usuarios, use_container_width=True)
         
         st.markdown("---")
         
         nomes_usuarios = [u["nome"] for u in st.session_state.usuarios]
-        usuario_selecionado = st.selectbox("Selecione o usuário para gerenciar:", nomes_usuarios)
+        usuario_selecionado = st.selectbox("Selecione a conta para editar ou excluir:", nomes_usuarios)
         
         idx_u = next(i for i, u in enumerate(st.session_state.usuarios) if u["nome"] == usuario_selecionado)
         user_obj = st.session_state.usuarios[idx_u]
         
         with st.form("form_gerenciar_usuario"):
-            antecessor_cargo = user_obj.get("cargo", "Operador")
-            novo_cargo = st.selectbox("Alterar Cargo", ["Operador", "Conferente", "Administrador"], index=["Operador", "Conferente", "Administrador"].index(antecessor_cargo) if antecessor_cargo in ["Operador", "Conferente", "Administrador"] else 0)
-            nova_senha = st.text_input("Nova Senha (deixe em branco para manter a atual)", type="password").strip()
+            novo_nome = st.text_input("Nome / Usuário", user_obj.get("nome", ""))
+            nova_senha = st.text_input("Senha", user_obj.get("senha", ""))
             
             col_btn1, col_btn2 = st.columns(2)
             atualizar_usuario = col_btn1.form_submit_button("💾 Salvar Alterações", use_container_width=True)
             excluir_usuario = col_btn2.form_submit_button("🗑️ Excluir Conta", use_container_width=True)
             
             if atualizar_usuario:
-                st.session_state.usuarios[idx_u]["cargo"] = novo_cargo
-                if nova_senha:
-                    st.session_state.usuarios[idx_u]["senha"] = nova_senha
-                salvar_usuarios(st.session_state.usuarios)
-                registrar_log(st.session_state.usuario_logado['nome'], "Gerenciamento de Conta", f"Atualizou o usuário: {usuario_selecionado}")
-                st.success(f"Usuário {usuario_selecionado} atualizado com sucesso!")
-                st.rerun()
+                if novo_nome.strip():
+                    st.session_state.usuarios[idx_u]["nome"] = novo_nome.strip()
+                    st.session_state.usuarios[idx_u]["senha"] = nova_senha.strip()
+                    salvar_usuarios(st.session_state.usuarios)
+                    registrar_log(st.session_state.usuario_logado['nome'], "Gerenciamento de Conta", f"Atualizou credenciais de: {usuario_selecionado}")
+                    st.success(f"Credenciais atualizadas com sucesso!")
+                    st.rerun()
+                else:
+                    st.error("O nome de usuário não pode ficar em branco.")
                 
             if excluir_usuario:
                 if len(st.session_state.usuarios) <= 1:
