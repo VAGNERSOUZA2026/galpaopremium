@@ -57,7 +57,7 @@ def carregar_dados():
         try:
             with open(NOME_ARQUIVO, "r", encoding="utf-8") as f: return json.load(f)
         except: pass
-    return [{"nome": "Château Margaux", "tipo": "Tinto", "safra": "2015", "pallet": "Corredor 01 - Pallet 01", "lado": "Direito", "caixa": "Caixa com 12 garrafas"}]
+    return [{"nome": "Château Margaux", "tipo": "Tinto", "safra": "2015", "pallet": "Corredor 01 - Pallet 01", "lado": "Direito", "caixa": "Caixa com 12 garrafas", "foto": ""}]
 
 def salvar_dados(estoque):
     with open(NOME_ARQUIVO, "w", encoding="utf-8") as f: json.dump(estoque, f, ensure_ascii=False, indent=4)
@@ -67,7 +67,7 @@ def carregar_usuarios():
         try:
             with open(ARQUIVO_USUARIOS, "r", encoding="utf-8") as f: return json.load(f)
         except: pass
-    return [{"nome": "Vagner Souza", "cargo": "Administrador", "senha": "1980"}]
+    return [{"nome": "Vagner Souza", "cargo": "Administrador", "senha": "1980", "celular": ""}]
 
 def salvar_usuarios(usuarios):
     with open(ARQUIVO_USUARIOS, "w", encoding="utf-8") as f: json.dump(usuarios, f, ensure_ascii=False, indent=4)
@@ -92,6 +92,9 @@ if "estoque" not in st.session_state: st.session_state.estoque = carregar_dados(
 if "usuarios" not in st.session_state: st.session_state.usuarios = carregar_usuarios()
 if "usuario_logado" not in st.session_state: st.session_state.usuario_logado = None
 if "menu_atual" not in st.session_state: st.session_state.menu_atual = "🏠 Home"
+if "etapa_cadastro" not in st.session_state: st.session_state.etapa_cadastro = "dados"
+if "temp_cadastro" not in st.session_state: st.session_state.temp_cadastro = {}
+if "codigo_sms_gerado" not in st.session_state: st.session_state.codigo_sms_gerado = ""
 
 # --- TELA DE LOGIN / CADASTRO / DEV ---
 if st.session_state.usuario_logado is None:
@@ -118,21 +121,50 @@ if st.session_state.usuario_logado is None:
                         else: st.error("Usuário ou senha incorretos.")
             
             with tab_cadastro:
-                with st.form("cadastro_form"):
-                    n = st.text_input("Nome Completo / Usuário").strip()
-                    s = st.text_input("Senha", type="password").strip()
-                    if st.form_submit_button("CADASTRAR", use_container_width=True):
-                        if n and s:
-                            if any(x['nome'].lower() == n.lower() for x in st.session_state.usuarios):
-                                st.error("Este usuário já existe.")
-                            else:
-                                novo = {"nome": n, "cargo": "Operador", "senha": s}
+                if st.session_state.etapa_cadastro == "dados":
+                    with st.form("cadastro_form"):
+                        n = st.text_input("Nome Completo / Usuário").strip()
+                        cel = st.text_input("Celular (WhatsApp/SMS)").strip()
+                        s = st.text_input("Senha Desejada", type="password").strip()
+                        if st.form_submit_button("AVANÇAR E ENVIAR CÓDIGO", use_container_width=True):
+                            if n and cel and s:
+                                if any(x['nome'].lower() == n.lower() for x in st.session_state.usuarios):
+                                    st.error("Este usuário já existe.")
+                                else:
+                                    import random
+                                    code = str(random.randint(1000, 9999))
+                                    st.session_state.codigo_sms_gerado = code
+                                    st.session_state.temp_cadastro = {"nome": n, "cargo": "Operador", "senha": s, "celular": cel}
+                                    st.session_state.etapa_cadastro = "verificacao"
+                                    st.rerun()
+                            else: st.error("Preencha todos os campos.")
+                
+                elif st.session_state.etapa_cadastro == "verificacao":
+                    st.info(f"📱 Código de verificação enviado para o celular: **{st.session_state.temp_cadastro.get('celular')}**")
+                    # Para facilitar o teste prático sem custo de SMS real, exibimos o código gerado:
+                    st.warning(f"🔒 [Simulação de SMS]: Seu código de acesso é **{st.session_state.codigo_sms_gerado}**")
+                    
+                    with st.form("verif_form"):
+                        codigo_digitado = st.text_input("Digite o Código recebido no Celular").strip()
+                        col_v1, col_v2 = st.columns(2)
+                        validar = col_v1.form_submit_button("CONFIRMAR CÓDIGO", use_container_width=True)
+                        voltar = col_v2.form_submit_button("VOLTAR", use_container_width=True)
+                        
+                        if voltar:
+                            st.session_state.etapa_cadastro = "dados"
+                            st.rerun()
+                            
+                        if validar:
+                            if codigo_digitado == st.session_state.codigo_sms_gerado:
+                                novo = st.session_state.temp_cadastro
                                 st.session_state.usuarios.append(novo)
                                 salvar_usuarios(st.session_state.usuarios)
-                                registrar_log(n, "Criação de Conta", "Novo cadastro de usuário")
+                                registrar_log(novo['nome'], "Criação de Conta", f"Cadastro validado via celular {novo['celular']}")
                                 st.session_state.usuario_logado = novo
+                                st.session_state.etapa_cadastro = "dados"
                                 st.rerun()
-                        else: st.error("Preencha todos os campos.")
+                            else:
+                                st.error("Código incorreto. Tente novamente.")
             
             with tab_dev:
                 with st.form("dev_form"):
@@ -198,7 +230,6 @@ if st.session_state.menu_atual == "🏠 Home":
     with c8:
         if st.button("🗑️ Excluir Vinho\n\nRemover item", use_container_width=True): st.session_state.menu_atual = "Excluir"; st.rerun()
 
-    # Botão de Gerenciar Contas visível apenas para o Desenvolvedor / Admin
     if st.session_state.usuario_logado['cargo'] in ["Administrador", "Desenvolvedor"] or st.session_state.usuario_logado['nome'] == "Dev":
         st.write("")
         if st.button("⚙️ Gerenciar Contas Cadastradas (Ver Logins e Senhas)", use_container_width=True):
@@ -226,10 +257,18 @@ elif st.session_state.menu_atual == "Scanner":
 
 elif st.session_state.menu_atual == "Estoque":
     st.subheader("🍷 Estoque Completo")
-    st.dataframe(pd.DataFrame(st.session_state.estoque), use_container_width=True)
+    for v in st.session_state.estoque:
+        col_f1, col_f2 = st.columns([1, 4])
+        with col_f1:
+            if v.get("foto"):
+                st.image(v.get("foto"), width=100)
+            else:
+                st.write("Sem foto")
+        with col_f2:
+            st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra', '')})</div><p>Tipo: {v.get('tipo')} | <span class='badge-pallet'>📍 {v.get('pallet')}</span></p></div>", unsafe_allow_html=True)
 
 elif st.session_state.menu_atual == "Cadastrar":
-    st.subheader("➕ Cadastrar Novo Vinho")
+    st.subheader("➕ Cadastrar Novo Vinho com Foto")
     with st.form("cad"):
         nome = st.text_input("Nome").strip()
         tipo = st.text_input("Tipo").strip()
@@ -238,11 +277,28 @@ elif st.session_state.menu_atual == "Cadastrar":
         pal = st.selectbox("Pallet", LISTA_PALLETS)
         lado = st.selectbox("Lado", LISTA_LADOS)
         caixa = st.selectbox("Caixa", OPCOES_CAIXA)
-        if st.form_submit_button("Salvar"):
-            st.session_state.estoque.append({"nome": nome, "tipo": tipo, "safra": safra, "pallet": f"{cor} - {pal}", "lado": lado, "caixa": caixa})
+        foto_vinho = st.file_uploader("Enviar Foto do Vinho", type=["jpg", "png", "jpeg"])
+        
+        if st.form_submit_button("Salvar Vinho"):
+            caminho_foto = ""
+            if foto_vinho is not None:
+                os.makedirs("fotos_vinhos", exist_ok=True)
+                caminho_foto = os.path.join("fotos_vinhos", foto_vinho.name)
+                with open(caminho_foto, "wb") as f:
+                    f.write(foto_vinho.getbuffer())
+            
+            st.session_state.estoque.append({
+                "nome": nome, 
+                "tipo": tipo, 
+                "safra": safra, 
+                "pallet": f"{cor} - {pal}", 
+                "lado": lado, 
+                "caixa": caixa,
+                "foto": caminho_foto
+            })
             salvar_dados(st.session_state.estoque)
-            registrar_log(st.session_state.usuario_logado['nome'], "Cadastro", nome)
-            st.success("Cadastrado com sucesso!")
+            registrar_log(st.session_state.usuario_logado['nome'], "Cadastro de Vinho", nome)
+            st.success("Vinho cadastrado com sucesso!")
             st.rerun()
 
 elif st.session_state.menu_atual == "GerarQR":
@@ -289,10 +345,9 @@ elif st.session_state.menu_atual == "GerenciarUsuarios":
     if not st.session_state.usuarios:
         st.info("Nenhum usuário cadastrado.")
     else:
-        # Exibe a tabela completa com Nomes e Senhas visíveis para o Dev
-        df_usuarios = pd.DataFrame(st.session_state.usuarios)[["nome", "senha"]]
-        df_usuarios.columns = ["Usuário / Nome", "Senha Cadastrada"]
-        st.markdown("##### Relação de Contas e Senhas Cadastradas:")
+        df_usuarios = pd.DataFrame(st.session_state.usuarios)[["nome", "celular", "senha"]]
+        df_usuarios.columns = ["Usuário", "Celular", "Senha"]
+        st.markdown("##### Relação de Contas, Celulares e Senhas:")
         st.dataframe(df_usuarios, use_container_width=True)
         
         st.markdown("---")
@@ -305,6 +360,7 @@ elif st.session_state.menu_atual == "GerenciarUsuarios":
         
         with st.form("form_gerenciar_usuario"):
             novo_nome = st.text_input("Nome / Usuário", user_obj.get("nome", ""))
+            novo_celular = st.text_input("Celular", user_obj.get("celular", ""))
             nova_senha = st.text_input("Senha", user_obj.get("senha", ""))
             
             col_btn1, col_btn2 = st.columns(2)
@@ -314,6 +370,7 @@ elif st.session_state.menu_atual == "GerenciarUsuarios":
             if atualizar_usuario:
                 if novo_nome.strip():
                     st.session_state.usuarios[idx_u]["nome"] = novo_nome.strip()
+                    st.session_state.usuarios[idx_u]["celular"] = novo_celular.strip()
                     st.session_state.usuarios[idx_u]["senha"] = nova_senha.strip()
                     salvar_usuarios(st.session_state.usuarios)
                     registrar_log(st.session_state.usuario_logado['nome'], "Gerenciamento de Conta", f"Atualizou credenciais de: {usuario_selecionado}")
