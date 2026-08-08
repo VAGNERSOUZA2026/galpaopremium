@@ -177,7 +177,7 @@ if st.session_state.menu_atual == "🏠 Home":
         unsafe_allow_html=True,
     )
     
-    # Organização exata dos botões em grades de 3 colunas
+    # Organização dos botões em grades de 3 colunas
     c1, c2, c3 = st.columns(3)
     with c1:
         if st.button("🔍 Buscar / Filtros\n\nMúltiplos critérios", use_container_width=True): st.session_state.menu_atual = "Filtros"; st.rerun()
@@ -201,6 +201,13 @@ if st.session_state.menu_atual == "🏠 Home":
         if st.button("✏️ Editar Vinho\n\n(Apenas Admin)", use_container_width=True): st.session_state.menu_atual = "Editar"; st.rerun()
     with c8:
         if st.button("🗑️ Excluir Vinho\n\n(Apenas Admin)", use_container_width=True): st.session_state.menu_atual = "Excluir"; st.rerun()
+
+    # Opção de Gerenciar Contas / Usuários na Home para Administradores e Dev
+    if st.session_state.usuario_logado['cargo'] in ["Administrador", "Desenvolvedor"] or st.session_state.usuario_logado['nome'] == "Dev":
+        st.write("")
+        if st.button("⚙️ Gerenciar Contas de Usuários (Editar/Excluir)", use_container_width=True):
+            st.session_state.menu_atual = "GerenciarUsuarios"
+            st.rerun()
 
 elif st.session_state.menu_atual == "Filtros":
     st.subheader("🔍 Busca Avançada por Filtros")
@@ -279,3 +286,50 @@ elif st.session_state.menu_atual == "Excluir":
             salvar_dados(st.session_state.estoque)
             st.success("Excluído!")
             st.rerun()
+
+elif st.session_state.menu_atual == "GerenciarUsuarios":
+    st.subheader("⚙️ Gerenciamento de Contas e Usuários")
+    
+    if not st.session_state.usuarios:
+        st.info("Nenhum usuário cadastrado.")
+    else:
+        # Exibe tabela com os usuários cadastrados
+        df_usuarios = pd.DataFrame(st.session_state.usuarios)[["nome", "cargo"]]
+        st.dataframe(df_usuarios, use_container_width=True)
+        
+        st.markdown("---")
+        
+        # Selecionar usuário para gerenciar (Editar senha/cargo ou Excluir)
+        nomes_usuarios = [u["nome"] for u in st.session_state.usuarios]
+        usuario_selecionado = st.selectbox("Selecione o usuário para gerenciar:", nomes_usuarios)
+        
+        idx_u = next(i for i, u in enumerate(st.session_state.usuarios) if u["nome"] == usuario_selecionado)
+        user_obj = st.session_state.usuarios[idx_u]
+        
+        with st.form("form_gerenciar_usuario"):
+        antecessor_cargo = user_obj.get("cargo", "Operador")
+        novo_cargo = st.selectbox("Alterar Cargo", ["Operador", "Conferente", "Administrador"], index=["Operador", "Conferente", "Administrador"].index(antecessor_cargo) if antecessor_cargo in ["Operador", "Conferente", "Administrador"] else 0)
+        nova_senha = st.text_input("Nova Senha (deixe em branco para manter a atual)", type="password").strip()
+        
+        col_btn1, col_btn2 = st.columns(2)
+        atualizar_usuario = col_btn1.form_submit_button("💾 Salvar Alterações", use_container_width=True)
+        excluir_usuario = col_btn2.form_submit_button("🗑️ Excluir Conta", use_container_width=True)
+        
+        if atualizar_usuario:
+            st.session_state.usuarios[idx_u]["cargo"] = novo_cargo
+            if nova_senha:
+                st.session_state.usuarios[idx_u]["senha"] = nova_senha
+            salvar_usuarios(st.session_state.usuarios)
+            registrar_log(st.session_state.usuario_logado['nome'], "Gerenciamento de Conta", f"Atualizou o usuário: {usuario_selecionado}")
+            st.success(f"Usuário {usuario_selecionado} atualizado com sucesso!")
+            st.rerun()
+            
+        if excluir_usuario:
+            if len(st.session_state.usuarios) <= 1:
+                st.error("Não é possível excluir o último usuário restante do sistema.")
+            else:
+                removido = st.session_state.usuarios.pop(idx_u)
+                salvar_usuarios(st.session_state.usuarios)
+                registrar_log(st.session_state.usuario_logado['nome'], "Exclusão de Conta", f"Removeu o usuário: {removido['nome']}")
+                st.success(f"Conta de {usuario_selecionado} excluída com sucesso!")
+                st.rerun()
