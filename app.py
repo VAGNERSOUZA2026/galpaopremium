@@ -13,39 +13,21 @@ try:
 except ImportError:
     OPENCV_DISPONIVEL = False
 
-# Configuração da página
-st.set_page_config(
-    page_title="Premium Wines - Wine Map Pro",
-    page_icon="imagem premium.jpeg",
-    layout="wide",
-    initial_sidebar_state="collapsed",
-)
+st.set_page_config(page_title="Premium Wines - Wine Map Pro", layout="wide", initial_sidebar_state="collapsed")
 
-# Estilização CSS
-st.markdown(
-    """
+# CSS para garantir centralização total
+st.markdown("""
     <style>
-    .stApp { background-color: #F8F9FA; color: #1A1A1A; font-family: 'Poppins', sans-serif; }
-    [data-testid="stSidebar"] { display: none; }
-    .wine-card { background-color: #FFFFFF; color: #1A1A1A; border-radius: 14px; padding: 16px; margin-bottom: 12px; border: 1px solid #E9ECEF; box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03); }
-    .wine-title { color: #7A1C2E; font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
-    .wine-text { color: #495057; font-size: 0.85rem; }
-    .badge-pallet { background-color: #7A1C2E; color: #FFFFFF; padding: 3px 8px; border-radius: 6px; font-weight: 600; font-size: 0.75rem; display: inline-block; }
-    .stButton button { background-color: #7A1C2E !important; color: #FFFFFF !important; border-radius: 12px !important; font-weight: 600 !important; border: none !important; padding: 10px 16px !important; }
-    .stButton button:hover { background-color: #922338 !important; color: #FFD700 !important; }
+    .stApp { background-color: #F8F9FA; }
+    .logo-container { display: flex; justify-content: center; margin-bottom: 20px; }
+    .center-text { text-align: center; }
+    .stButton button { background-color: #7A1C2E !important; color: white !important; width: 100%; border-radius: 8px; }
     </style>
-""", unsafe_allow_html=True,
-)
+""", unsafe_allow_html=True)
 
-NOME_ARQUIVO = "estoque_galpao_pro.json"
+# --- FUNÇÕES E DADOS ---
+ARQUIVO_ESTOQUE = "estoque_galpao_pro.json"
 ARQUIVO_USUARIOS = "usuarios_galpao.json"
-ARQUIVO_LOGS = "logs_auditoria.json"
-SENHA_DEV = "1980"
-
-LISTA_CORREDORES = [f"Corredor {i:02d}" for i in range(1, 26)]
-LISTA_PALLETS = [f"Pallet {i:02d}" for i in range(1, 26)]
-LISTA_LADOS = ["Direito", "Esquerdo", "Centro / Único"]
-OPCOES_CAIXA = ["Caixa com 12 garrafas", "Caixa com 6 garrafas", "Caixa com 3 garrafas", "Garrafa Avulsa (1 un)", "Outra quantidade"]
 
 def obter_saudacao():
     hora = datetime.now().hour
@@ -53,211 +35,70 @@ def obter_saudacao():
     elif 12 <= hora < 18: return "Boa tarde"
     else: return "Boa noite"
 
-def carregar_dados():
-    if os.path.exists(NOME_ARQUIVO):
-        try:
-            with open(NOME_ARQUIVO, "r", encoding="utf-8") as f: return json.load(f)
-        except: pass
-    return [{"nome": "Château Margaux", "tipo": "Tinto", "safra": "2015", "pallet": "Corredor 01 - Pallet 01", "lado": "Direito", "caixa": "Caixa com 12 garrafas", "volume": "750ml"}]
-
-def salvar_dados(estoque):
-    with open(NOME_ARQUIVO, "w", encoding="utf-8") as f: json.dump(estoque, f, ensure_ascii=False, indent=4)
-
-def carregar_usuarios():
-    if os.path.exists(ARQUIVO_USUARIOS):
-        try:
-            with open(ARQUIVO_USUARIOS, "r", encoding="utf-8") as f: return json.load(f)
-        except: pass
-    return [{"nome": "Vagner Souza", "cargo": "Administrador", "senha": "1980"}]
-
-def salvar_usuarios(usuarios):
-    with open(ARQUIVO_USUARIOS, "w", encoding="utf-8") as f: json.dump(usuarios, f, ensure_ascii=False, indent=4)
-
-def carregar_logs():
-    if os.path.exists(ARQUIVO_LOGS):
-        try:
-            with open(ARQUIVO_LOGS, "r", encoding="utf-8") as f: return json.load(f)
-        except: pass
-    return []
-
-def registrar_log(usuario, acao, detalhes):
-    logs = carregar_logs()
-    logs.insert(0, {"data_hora": datetime.now().strftime("%d/%m/%Y %H:%M:%S"), "usuario": usuario, "acao": acao, "detalhes": detalhes})
-    with open(ARQUIVO_LOGS, "w", encoding="utf-8") as f: json.dump(logs, f, ensure_ascii=False, indent=4)
-
-def gerar_qr_code_api(texto):
-    return f"https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={urllib.parse.quote(texto)}"
-
 # Sessão
-if "estoque" not in st.session_state: st.session_state.estoque = carregar_dados()
-if "usuarios" not in st.session_state: st.session_state.usuarios = carregar_usuarios()
+if "estoque" not in st.session_state: st.session_state.estoque = []
+if "usuarios" not in st.session_state: st.session_state.usuarios = [{"nome": "Vagner Souza", "cargo": "Administrador", "senha": "1980"}]
 if "usuario_logado" not in st.session_state: st.session_state.usuario_logado = None
 if "menu_atual" not in st.session_state: st.session_state.menu_atual = "🏠 Home"
-if "modo_dev" not in st.session_state: st.session_state.modo_dev = False
 
-# --- TELA DE LOGIN / CADASTRO CENTRALIZADA ---
+# --- TELA DE LOGIN ---
 if st.session_state.usuario_logado is None:
-    st.write("")
-    _, col_centro, _ = st.columns([1, 1.2, 1])
+    _, col_centro, _ = st.columns([1, 1.5, 1])
     with col_centro:
-        with st.container(border=True):
-            if os.path.exists("imagem premium.jpeg"):
-                _, col_img, _ = st.columns([1, 1.2, 1])
-                with col_img: st.image("imagem premium.jpeg", width=110)
-            st.markdown("<h2 style='text-align: center; color: #7A1C2E; margin-bottom: 0;'>🍷 Wine Map Pro</h2>", unsafe_allow_html=True)
-            
-            tab_login, tab_cadastro, tab_dev = st.tabs(["🔑 Entrar", "👤 Criar Conta", "⚙️ Dev"])
-            
-            with tab_login:
-                with st.form("login_form"):
-                    u = st.text_input("Usuário").strip()
-                    p = st.text_input("Senha", type="password").strip()
-                    if st.form_submit_button("ENTRAR", use_container_width=True):
-                        user = next((x for x in st.session_state.usuarios if x['nome'].lower() == u.lower() and x['senha'] == p), None)
-                        if user:
-                            st.session_state.usuario_logado = user
-                            st.session_state.modo_dev = False
-                            st.rerun()
-                        else: st.error("Usuário ou senha incorretos.")
-            
-            with tab_cadastro:
-                with st.form("cadastro_form"):
-                    n = st.text_input("Nome Completo").strip()
-                    c = st.selectbox("Cargo", ["Operador", "Conferente", "Administrador"])
-                    s = st.text_input("Senha", type="password").strip()
-                    if st.form_submit_button("CADASTRAR", use_container_width=True):
-                        if n and s:
-                            if any(x['nome'].lower() == n.lower() for x in st.session_state.usuarios):
-                                st.error("Este usuário já existe.")
-                            else:
-                                novo = {"nome": n, "cargo": c, "senha": s}
-                                st.session_state.usuarios.append(novo)
-                                salvar_usuarios(st.session_state.usuarios)
-                                registrar_log(n, "Criação de Conta", f"Cargo: {c}")
-                                st.session_state.usuario_logado = novo
-                                st.rerun()
-                        else: st.error("Preencha todos os campos.")
-            
-            with tab_dev:
-                with st.form("dev_form"):
-                    sp = st.text_input("Senha Mestra", type="password")
-                    if st.form_submit_button("ACESSAR DEV", use_container_width=True):
-                        if sp == SENHA_DEV:
-                            st.session_state.modo_dev = True
-                            st.session_state.usuario_logado = {"nome": "Dev", "cargo": "Desenvolvedor"}
-                            st.rerun()
-                        else: st.error("Senha incorreta.")
+        # Logo centralizada via div HTML
+        st.markdown('<div class="logo-container">', unsafe_allow_html=True)
+        if os.path.exists("imagem premium.jpeg"):
+            st.image("imagem premium.jpeg", width=180)
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        st.markdown("<h2 class='center-text' style='color: #7A1C2E;'>🍷 Wine Map Pro</h2>", unsafe_allow_html=True)
+        
+        tab1, tab2, tab3 = st.tabs(["🔑 Entrar", "👤 Cadastro", "⚙️ Dev"])
+        
+        with tab1:
+            u = st.text_input("Usuário")
+            p = st.text_input("Senha", type="password")
+            if st.button("ENTRAR"):
+                user = next((x for x in st.session_state.usuarios if x['nome'] == u and x['senha'] == p), None)
+                if user: st.session_state.usuario_logado = user; st.rerun()
+                else: st.error("Dados incorretos.")
+        
+        with tab2:
+            n = st.text_input("Nome")
+            s = st.text_input("Senha Nova", type="password")
+            if st.button("CRIAR CONTA"):
+                st.session_state.usuarios.append({"nome": n, "cargo": "Operador", "senha": s})
+                st.success("Conta criada! Pode entrar.")
+        
+        with tab3:
+            sp = st.text_input("Senha Mestra", type="password")
+            if st.button("ACESSAR MODO GERENCIAR"):
+                if sp == "1980":
+                    st.session_state.usuario_logado = {"nome": "Dev", "cargo": "Admin"}
+                    st.rerun()
+                else: st.error("Senha Dev incorreta")
     st.stop()
 
-# Topo fixo logado
-c_t1, c_t2, c_t3 = st.columns([3, 2, 1])
-with c_t1: st.markdown(f"<span style='color: #7A1C2E; font-weight: bold;'>🍷 Premium Wines</span> | Usuário: <b>{st.session_state.usuario_logado['nome']}</b>", unsafe_allow_html=True)
-with c_t2:
-    if st.session_state.menu_atual != "🏠 Home":
-        if st.button("⬅️ Voltar ao Menu", use_container_width=True): st.session_state.menu_atual = "🏠 Home"; st.rerun()
-with c_t3:
-    if st.button("🚪 Sair", use_container_width=True): st.session_state.usuario_logado = None; st.session_state.modo_dev = False; st.session_state.menu_atual = "🏠 Home"; st.rerun()
+# --- HOME LOGADO ---
+# Cabeçalho
+c_top1, c_top2 = st.columns([4, 1])
+c_top1.write(f"Olá, **{st.session_state.usuario_logado['nome']}**")
+if c_top2.button("🚪 Sair"): st.session_state.usuario_logado = None; st.rerun()
 
-st.markdown("---")
+# Logo na Home
+st.markdown('<div class="logo-container">', unsafe_allow_html=True)
+if os.path.exists("imagem premium.jpeg"): st.image("imagem premium.jpeg", width=220)
+st.markdown('</div>', unsafe_allow_html=True)
 
-# Menus
-if st.session_state.menu_atual == "🏠 Home":
-    if os.path.exists("imagem premium.jpeg"):
-        _, c_img, _ = st.columns([1, 1, 1])
-        with c_img: st.image("imagem premium.jpeg", width=220)
-    
-    st.markdown(f"<h1 style='text-align: center; color: #7A1C2E;'>{obter_saudacao()}, {st.session_state.usuario_logado['nome']}! 👋</h1>", unsafe_allow_html=True)
-    
-    c1, c2, c3 = st.columns(3)
-    if c1.button("🔍 Buscar / Filtros", use_container_width=True): st.session_state.menu_atual = "Filtros"; st.rerun()
-    if c2.button("📷 Escanear Pallet", use_container_width=True): st.session_state.menu_atual = "Scanner"; st.rerun()
-    if c3.button("🍷 Estoque Completo", use_container_width=True): st.session_state.menu_atual = "Estoque"; st.rerun()
+st.markdown(f"<h1 class='center-text' style='color: #7A1C2E;'>{obter_saudacao()}!</h1>", unsafe_allow_html=True)
 
-    st.write("")
-    c4, c5, c6 = st.columns(3)
-    if c4.button("➕ Cadastrar Vinho", use_container_width=True): st.session_state.menu_atual = "Cadastrar"; st.rerun()
-    if c5.button("📱 Gerar QR Code", use_container_width=True): st.session_state.menu_atual = "GerarQR"; st.rerun()
-    if c6.button("📋 Histórico", use_container_width=True): st.session_state.menu_atual = "Historico"; st.rerun()
+# Botões do Menu
+cols = st.columns(3)
+if cols[0].button("🔍 Buscar/Filtros"): st.session_state.menu_atual = "Filtros"
+if cols[1].button("📷 Escanear Pallet"): st.session_state.menu_atual = "Scanner"
+if cols[2].button("🍷 Estoque Completo"): st.session_state.menu_atual = "Estoque"
 
-    st.write("")
-    c7, c8 = st.columns(2)
-    if c7.button("✏️ Editar Vinho", use_container_width=True): st.session_state.menu_atual = "Editar"; st.rerun()
-    if c8.button("🗑️ Excluir Vinho", use_container_width=True): st.session_state.menu_atual = "Excluir"; st.rerun()
-
-elif st.session_state.menu_atual == "Filtros":
-    st.subheader("🔍 Busca Avançada por Filtros")
-    termo = st.text_input("Filtrar por Nome:").strip().lower()
-    res = [v for v in st.session_state.estoque if termo in v.get("nome", "").lower()]
-    for v in res:
-        st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra')})</div><p><span class='badge-pallet'>📍 {v.get('pallet')}</span></p></div>", unsafe_allow_html=True)
-
-elif st.session_state.menu_atual == "Scanner":
-    st.subheader("📷 Escanear QR Code do Pallet")
-    foto = st.camera_input("Capturar Foto")
-    if foto and OPENCV_DISPONIVEL:
-        img = cv2.imdecode(np.frombuffer(foto.getvalue(), np.uint8), cv2.IMREAD_COLOR)
-        val, _, _ = cv2.QRCodeDetector().detectAndDecode(img)
-        if val:
-            st.success(f"Pallet: {val}")
-            for v in [x for x in st.session_state.estoque if x.get('pallet') == val]:
-                st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')}</div></div>", unsafe_allow_html=True)
-        else: st.error("Nenhum QR Code encontrado.")
-
-elif st.session_state.menu_atual == "Estoque":
-    st.subheader("🍷 Estoque Completo")
-    st.dataframe(pd.DataFrame(st.session_state.estoque), use_container_width=True)
-
-elif st.session_state.menu_atual == "Cadastrar":
-    st.subheader("➕ Cadastrar Novo Vinho")
-    with st.form("cad"):
-        nome = st.text_input("Nome").strip()
-        tipo = st.text_input("Tipo").strip()
-        safra = st.text_input("Safra", "2024").strip()
-        cor = st.selectbox("Corredor", LISTA_CORREDORES)
-        pal = st.selectbox("Pallet", LISTA_PALLETS)
-        lado = st.selectbox("Lado", LISTA_LADOS)
-        caixa = st.selectbox("Caixa", OPCOES_CAIXA)
-        if st.form_submit_button("Salvar"):
-            st.session_state.estoque.append({"nome": nome, "tipo": tipo, "safra": safra, "pallet": f"{cor} - {pal}", "lado": lado, "caixa": caixa})
-            salvar_dados(st.session_state.estoque)
-            registrar_log(st.session_state.usuario_logado['nome'], "Cadastro", nome)
-            st.success("Cadastrado com sucesso!")
-            st.rerun()
-
-elif st.session_state.menu_atual == "GerarQR":
-    st.subheader("📱 Gerar QR Code")
-    c = st.selectbox("Corredor", LISTA_CORREDORES)
-    p = st.selectbox("Pallet", LISTA_PALLETS)
-    if st.button("Gerar"): st.image(gerar_qr_code_api(f"{c} - {p}"))
-
-elif st.session_state.menu_atual == "Historico":
-    st.subheader("📋 Histórico")
-    for l in carregar_logs():
-        st.write(f"[{l.get('data_hora')}] {l.get('usuario')} - {l.get('acao')}: {l.get('detalhes')}")
-
-elif st.session_state.menu_atual == "Editar":
-    st.subheader("✏️ Editar Vinho")
-    nomes = [f"{v.get('nome')} ({v.get('safra')})" for v in st.session_state.estoque]
-    if nomes:
-        esc = st.selectbox("Selecione", nomes)
-        idx = nomes.index(esc)
-        v = st.session_state.estoque[idx]
-        with st.form("edit"):
-            nn = st.text_input("Nome", v.get('nome'))
-            if st.form_submit_button("Atualizar"):
-                st.session_state.estoque[idx]['nome'] = nn
-                salvar_dados(st.session_state.estoque)
-                st.success("Atualizado!")
-                st.rerun()
-
-elif st.session_state.menu_atual == "Excluir":
-    st.subheader("🗑️ Excluir Vinho")
-    nomes = [f"{v.get('nome')} ({v.get('safra')})" for v in st.session_state.estoque]
-    if nomes:
-        esc = st.selectbox("Selecione", nomes)
-        idx = nomes.index(esc)
-        if st.button("Excluir Definitivamente"):
-            st.session_state.estoque.pop(idx)
-            salvar_dados(st.session_state.estoque)
-            st.success("Excluído!")
-            st.rerun()
+cols2 = st.columns(3)
+if cols2[0].button("➕ Cadastrar Vinho"): st.session_state.menu_atual = "Cadastrar"
+if cols2[1].button("📱 Gerar QR Code"): st.session_state.menu_atual = "GerarQR"
+if cols2[2].button("📋 Histórico"): st.session_state.menu_atual = "Historico"
