@@ -40,6 +40,8 @@ NOME_ARQUIVO = "estoque_galpao_pro.json"
 ARQUIVO_USUARIOS = "usuarios_galpao.json"
 ARQUIVO_LOGS = "logs_auditoria.json"
 SENHA_DEV = "1980"
+# Coloque aqui o seu número de WhatsApp com DDI e DDD (Ex: 5531999999999) para receber os avisos de cadastro
+WHATSAPP_DEV = "5531999999999" 
 
 LISTA_CORREDORES = [f"Corredor {i:02d}" for i in range(1, 26)]
 LISTA_PALLETS = [f"Pallet {i:02d}" for i in range(1, 26)]
@@ -92,9 +94,7 @@ if "estoque" not in st.session_state: st.session_state.estoque = carregar_dados(
 if "usuarios" not in st.session_state: st.session_state.usuarios = carregar_usuarios()
 if "usuario_logado" not in st.session_state: st.session_state.usuario_logado = None
 if "menu_atual" not in st.session_state: st.session_state.menu_atual = "🏠 Home"
-if "etapa_cadastro" not in st.session_state: st.session_state.etapa_cadastro = "dados"
-if "temp_cadastro" not in st.session_state: st.session_state.temp_cadastro = {}
-if "codigo_sms_gerado" not in st.session_state: st.session_state.codigo_sms_gerado = ""
+if "sucesso_cadastro" not in st.session_state: st.session_state.sucesso_cadastro = None
 
 # --- TELA DE LOGIN / CADASTRO / DEV ---
 if st.session_state.usuario_logado is None:
@@ -121,50 +121,33 @@ if st.session_state.usuario_logado is None:
                         else: st.error("Usuário ou senha incorretos.")
             
             with tab_cadastro:
-                if st.session_state.etapa_cadastro == "dados":
+                if st.session_state.sucesso_cadastro:
+                    st.success("Conta criada com sucesso!")
+                    st.info("Clique no botão abaixo para avisar o Desenvolvedor via WhatsApp sobre o seu novo acesso:")
+                    msg_wa = f"Olá Vagner, acabei de criar minha conta no Wine Map Pro.\n\n*Usuário:* {st.session_state.sucesso_cadastro['nome']}\n*Celular:* {st.session_state.sucesso_cadastro['celular']}"
+                    link_wa = f"https://api.whatsapp.com/send?phone={WHATSAPP_DEV}&text={urllib.parse.quote(msg_wa)}"
+                    st.markdown(f'<a href="{link_wa}" target="_blank"><button style="background-color: #25D366; color: white; padding: 10px 20px; border: none; border-radius: 12px; width: 100%; font-weight: bold; cursor: pointer; text-align: center; text-decoration: none; display: inline-block;">💬 Enviar aviso para o WhatsApp do Dev</button></a>', unsafe_allow_html=True)
+                    st.write("")
+                    if st.button("Ir para o Login", use_container_width=True):
+                        st.session_state.sucesso_cadastro = None
+                        st.rerun()
+                else:
                     with st.form("cadastro_form"):
                         n = st.text_input("Nome Completo / Usuário").strip()
-                        cel = st.text_input("Celular (WhatsApp/SMS)").strip()
+                        cel = st.text_input("Celular (WhatsApp)").strip()
                         s = st.text_input("Senha Desejada", type="password").strip()
-                        if st.form_submit_button("AVANÇAR E ENVIAR CÓDIGO", use_container_width=True):
+                        if st.form_submit_button("CADASTRAR CONTA", use_container_width=True):
                             if n and cel and s:
                                 if any(x['nome'].lower() == n.lower() for x in st.session_state.usuarios):
                                     st.error("Este usuário já existe.")
                                 else:
-                                    import random
-                                    code = str(random.randint(1000, 9999))
-                                    st.session_state.codigo_sms_gerado = code
-                                    st.session_state.temp_cadastro = {"nome": n, "cargo": "Operador", "senha": s, "celular": cel}
-                                    st.session_state.etapa_cadastro = "verificacao"
+                                    novo = {"nome": n, "cargo": "Operador", "senha": s, "celular": cel}
+                                    st.session_state.usuarios.append(novo)
+                                    salvar_usuarios(st.session_state.usuarios)
+                                    registrar_log(n, "Criação de Conta", f"Novo cadastro realizado. Celular: {cel}")
+                                    st.session_state.sucesso_cadastro = novo
                                     st.rerun()
                             else: st.error("Preencha todos os campos.")
-                
-                elif st.session_state.etapa_cadastro == "verificacao":
-                    st.info(f"📱 Código de verificação enviado para o celular: **{st.session_state.temp_cadastro.get('celular')}**")
-                    # Para facilitar o teste prático sem custo de SMS real, exibimos o código gerado:
-                    st.warning(f"🔒 [Simulação de SMS]: Seu código de acesso é **{st.session_state.codigo_sms_gerado}**")
-                    
-                    with st.form("verif_form"):
-                        codigo_digitado = st.text_input("Digite o Código recebido no Celular").strip()
-                        col_v1, col_v2 = st.columns(2)
-                        validar = col_v1.form_submit_button("CONFIRMAR CÓDIGO", use_container_width=True)
-                        voltar = col_v2.form_submit_button("VOLTAR", use_container_width=True)
-                        
-                        if voltar:
-                            st.session_state.etapa_cadastro = "dados"
-                            st.rerun()
-                            
-                        if validar:
-                            if codigo_digitado == st.session_state.codigo_sms_gerado:
-                                novo = st.session_state.temp_cadastro
-                                st.session_state.usuarios.append(novo)
-                                salvar_usuarios(st.session_state.usuarios)
-                                registrar_log(novo['nome'], "Criação de Conta", f"Cadastro validado via celular {novo['celular']}")
-                                st.session_state.usuario_logado = novo
-                                st.session_state.etapa_cadastro = "dados"
-                                st.rerun()
-                            else:
-                                st.error("Código incorreto. Tente novamente.")
             
             with tab_dev:
                 with st.form("dev_form"):
