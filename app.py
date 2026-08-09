@@ -54,8 +54,8 @@ if not os.path.exists(PASTA_BACKUP):
     os.makedirs(PASTA_BACKUP)
 
 LISTA_CORREDORES = [f"Corredor {i:02d}" for i in range(1, 26)]
-LISTA_PALLETS = [f"Pallet {i:02d}" for i in range(1, 26)]
-LISTA_PRATELEIRAS = [f"Prateleira {i:02d}" for i in range(1, 6)]
+LISTA_LOCAIS_TIPO = ["Pallet", "Prateleira"]
+LISTA_NUMEROS_LOCAL = [f"Item {i:02d}" for i in range(1, 26)]
 LISTA_LADOS = ["Direito", "Esquerdo", "Centro / Único"]
 OPCOES_CAIXA = ["Caixa com 12 garrafas", "Caixa com 6 garrafas", "Caixa com 3 garrafas", "Caixa com 2 garrafas", "Garrafa Avulsa (1 un)", "Outra quantidade"]
 
@@ -75,7 +75,7 @@ def carregar_dados():
         try:
             with open(NOME_ARQUIVO, "r", encoding="utf-8") as f: return json.load(f)
         except: pass
-    return [{"nome": "Château Margaux", "tipo": "Tinto", "safra": "2015", "localizacao": "Corredor 01 - Pallet 01 - Prateleira 01", "lado": "Direito", "caixa": "Caixa com 12 garrafas", "foto": ""}]
+    return [{"nome": "Château Margaux", "tipo": "Tinto", "safra": "2015", "localizacao": "Corredor 01 - Pallet 01", "lado": "Direito", "caixa": "Caixa com 12 garrafas", "foto": ""}]
 
 def salvar_dados(estoque):
     with open(NOME_ARQUIVO, "w", encoding="utf-8") as f: json.dump(estoque, f, ensure_ascii=False, indent=4)
@@ -125,6 +125,7 @@ if "usuarios" not in st.session_state: st.session_state.usuarios = carregar_usua
 if "usuario_logado" not in st.session_state: st.session_state.usuario_logado = None
 if "menu_atual" not in st.session_state: st.session_state.menu_atual = "🏠 Home"
 if "termo_busca" not in st.session_state: st.session_state.termo_busca = ""
+if "vinho_para_duplicar" not in st.session_state: st.session_state.vinho_para_duplicar = None
 
 # --- TELA DE LOGIN / CADASTRO / DEV ---
 if st.session_state.usuario_logado is None:
@@ -230,7 +231,7 @@ if st.session_state.menu_atual == "🏠 Home":
     st.write("")
     c4, c5, c6 = st.columns(3)
     with c4:
-        if st.button("➕ Cadastrar Vinho\n\nAdicionar ao sistema", use_container_width=True): st.session_state.menu_atual = "Cadastrar"; st.rerun()
+        if st.button("➕ Cadastrar Vinho\n\nAdicionar ao sistema", use_container_width=True): st.session_state.vinho_para_duplicar = None; st.session_state.menu_atual = "Cadastrar"; st.rerun()
     with c5:
         if st.button("📱 Gerar QR Code\n\nEtiquetas de locais", use_container_width=True): st.session_state.menu_atual = "GerarQR"; st.rerun()
     with c6:
@@ -263,7 +264,6 @@ elif st.session_state.menu_atual == "Filtros":
                 st.session_state.termo_busca = resultado
                 st.rerun()
     
-    # Validação segura ignorando letras maiúsculas ou minúsculas (.lower())
     if termo or st.session_state.termo_busca:
         termo_pesquisa = termo.lower() if termo else st.session_state.termo_busca.lower()
         res = [v for v in st.session_state.estoque if termo_pesquisa in v.get("nome", "").lower()]
@@ -311,8 +311,8 @@ elif st.session_state.menu_atual == "Estoque":
     estoque_ordenado = sorted(st.session_state.estoque, key=lambda x: x.get('nome', '').lower())
     
     if estoque_ordenado:
-        st.info("💡 Clique em qualquer vinho abaixo para expandir e ver sua foto e detalhes com letras ampliadas.")
-        for v in estoque_ordenado:
+        st.info("💡 Clique em qualquer vinho abaixo para expandir, ver detalhes ou duplicar o cadastro para uma nova caixa/lote.")
+        for idx_estoque, v in enumerate(estoque_ordenado):
             nome_exibicao = f"🍷 {v.get('nome')} ({v.get('safra', '')}) — [{v.get('tipo', 'Geral')}]"
             with st.expander(nome_exibicao):
                 col_e1, col_e2 = st.columns([1, 2])
@@ -327,41 +327,54 @@ elif st.session_state.menu_atual == "Estoque":
                     st.markdown(f"<p style='font-size: 1.05rem;'><b>Safra:</b> {v.get('safra', 'N/A')}</p>", unsafe_allow_html=True)
                     st.markdown(f"<p style='font-size: 1.05rem; margin-top: 10px;'><b>Localização:</b><br><span class='badge-pallet-grande'>📍 {v.get('localizacao', 'Não informada')} ({v.get('lado', '')})</span></p>", unsafe_allow_html=True)
                     st.markdown(f"<p style='font-size: 1.05rem; margin-top: 10px;'><b>Embalagem:</b><br><span class='badge-caixa-grande'>📦 {v.get('caixa', 'N/A')}</span></p>", unsafe_allow_html=True)
+                    
+                    st.write("")
+                    if st.button("📋 Duplicar Este Cadastro", key=f"dup_{idx_estoque}"):
+                        st.session_state.vinho_para_duplicar = v
+                        st.session_state.menu_atual = "Cadastrar"
+                        st.rerun()
     else:
         st.info("Nenhum vinho cadastrado no estoque.")
 
 elif st.session_state.menu_atual == "Cadastrar":
-    st.subheader("➕ Cadastrar Novo Vinho no Galpão")
-    with st.form("cad"):
-        nome = st.text_input("Nome do Vinho").strip()
-        tipo = st.text_input("Tipo (ex: Tinto, Branco)").strip()
-        safra = st.text_input("Safra", "2024").strip()
+    st.subheader("➕ Cadastrar Novo Vinho / Duplicar Cadastro")
+    
+    # Se veio de uma duplicação, recupera os dados, senão inicia vazio
+    dados_padrao = st.session_state.vinho_para_duplicar if st.session_state.vinho_para_duplicar else {}
+    
+    if st.session_state.vinho_para_duplicar:
+        st.info(f"📋 Duplicando dados de: **{dados_padrao.get('nome')} ({dados_padrao.get('safra')})**. Ajuste o que precisar e salve.")
+    
+    with st.form("cad", clear_on_submit=True):
+        nome = st.text_input("Nome do Vinho", value=dados_padrao.get("nome", "")).strip()
+        tipo = st.text_input("Tipo (ex: Tinto, Branco)", value=dados_padrao.get("tipo", "")).strip()
+        safra = st.text_input("Safra", value=dados_padrao.get("safra", "2024")).strip()
         
         col_loc1, col_loc2, col_loc3 = st.columns(3)
         with col_loc1:
             cor = st.selectbox("Corredor", LISTA_CORREDORES)
         with col_loc2:
-            pal = st.selectbox("Pallet", LISTA_PALLETS)
+            tipo_local = st.selectbox("Tipo de Local", LISTA_LOCAIS_TIPO)
         with col_loc3:
-            prat = st.selectbox("Prateleira", LISTA_PRATELEIRAS)
+            num_local = st.selectbox("Número", LISTA_NUMEROS_LOCAL)
             
         lado = st.selectbox("Lado", LISTA_LADOS)
         caixa = st.selectbox("Quantidade / Caixa", OPCOES_CAIXA)
         foto_vinho = st.file_uploader("Enviar Foto do Vinho", type=["jpg", "png", "jpeg"])
         
-        if st.form_submit_button("Salvar Vinho no Estoque"):
-            caminho_foto = ""
+        enviar = st.form_submit_button("Salvar Vinho no Estoque")
+        if enviar:
+            caminho_foto = dados_padrao.get("foto", "")
             if foto_vinho is not None:
                 os.makedirs("fotos_vinhos", exist_ok=True)
                 caminho_foto = os.path.join("fotos_vinhos", foto_vinho.name)
                 with open(caminho_foto, "wb") as f:
                     f.write(foto_vinho.getbuffer())
             
-            # Aqui é onde ocorre a formatação inteligente do texto (.title())
             nome_formatado = nome.title()
             tipo_formatado = tipo.title()
             
-            localizacao_completa = f"{cor} - {pal} - {prat}"
+            localizacao_completa = f"{cor} - {tipo_local} {num_local.replace('Item ', '')}"
             st.session_state.estoque.append({
                 "nome": nome_formatado, 
                 "tipo": tipo_formatado, 
@@ -373,15 +386,17 @@ elif st.session_state.menu_atual == "Cadastrar":
             })
             salvar_dados(st.session_state.estoque)
             registrar_log(st.session_state.usuario_logado['nome'], "Cadastro de Vinho", f"{nome_formatado} em {localizacao_completa}")
-            st.success("Vinho cadastrado com sucesso!")
-            st.rerun()
+            
+            # Limpa o estado de duplicação após salvar
+            st.session_state.vinho_para_duplicar = None
+            st.success("Vinho cadastrado com sucesso! O formulário está pronto para um novo cadastro.")
 
 elif st.session_state.menu_atual == "GerarQR":
     st.subheader("📱 Gerar QR Code de Localização")
     c = st.selectbox("Corredor", LISTA_CORREDORES)
-    p = st.selectbox("Pallet", LISTA_PALLETS)
-    pr = st.selectbox("Prateleira", LISTA_PRATELEIRAS)
-    texto_qr = f"{c} - {p} - {pr}"
+    tl = st.selectbox("Tipo de Local", LISTA_LOCAIS_TIPO)
+    nl = st.selectbox("Número", LISTA_NUMEROS_LOCAL)
+    texto_qr = f"{c} - {tl} {nl.replace('Item ', '')}"
     if st.button("Gerar Etiqueta QR"): 
         st.image(gerar_qr_code_api(texto_qr))
         st.info(f"QR Code gerado para: **{texto_qr}**")
@@ -408,9 +423,9 @@ elif st.session_state.menu_atual == "Editar":
             with col_loc1:
                 cor = st.selectbox("Corredor", LISTA_CORREDORES)
             with col_loc2:
-                pal = st.selectbox("Pallet", LISTA_PALLETS)
+                tipo_local = st.selectbox("Tipo de Local", LISTA_LOCAIS_TIPO)
             with col_loc3:
-                prat = st.selectbox("Prateleira", LISTA_PRATELEIRAS)
+                num_local = st.selectbox("Número", LISTA_NUMEROS_LOCAL)
                 
             nlado = st.selectbox("Lado", LISTA_LADOS, index=LISTA_LADOS.index(v.get('lado', 'Direito')) if v.get('lado') in LISTA_LADOS else 0)
             ncaixa = st.selectbox("Quantidade / Caixa", OPCOES_CAIXA, index=OPCOES_CAIXA.index(v.get('caixa', 'Caixa com 12 garrafas')) if v.get('caixa') in OPCOES_CAIXA else 0)
@@ -431,11 +446,10 @@ elif st.session_state.menu_atual == "Editar":
                     with open(caminho_foto, "wb") as f:
                         f.write(nova_foto_vinho.getbuffer())
                 
-                # Aplica a formatação automática na edição também
                 nome_formatado = nn.title()
                 tipo_formatado = nt.title()
 
-                localizacao_completa = f"{cor} - {pal} - {prat}"
+                localizacao_completa = f"{cor} - {tipo_local} {num_local.replace('Item ', '')}"
                 st.session_state.estoque[idx] = {
                     "nome": nome_formatado,
                     "tipo": tipo_formatado,
