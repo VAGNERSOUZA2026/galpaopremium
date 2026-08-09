@@ -224,7 +224,7 @@ if st.session_state.menu_atual == "🏠 Home":
     with c1:
         if st.button("🔍 Buscar / Filtros\n\nMúltiplos critérios", use_container_width=True): st.session_state.menu_atual = "Filtros"; st.rerun()
     with c2:
-        if st.button("📷 Escanear Local\n\nSelecionar Corredor", use_container_width=True): st.session_state.menu_atual = "Scanner"; st.rerun()
+        if st.button("🗺️ Mapa de Sepração\n\nGerar rota por lista", use_container_width=True): st.session_state.menu_atual = "MapaSeparacao"; st.rerun()
     with c3:
         if st.button("🍷 Estoque Completo\n\nVer todos os vinhos", use_container_width=True): st.session_state.menu_atual = "Estoque"; st.rerun()
 
@@ -238,10 +238,12 @@ if st.session_state.menu_atual == "🏠 Home":
         if st.button("📋 Histórico\n\nLogs de Auditoria", use_container_width=True): st.session_state.menu_atual = "Historico"; st.rerun()
 
     st.write("")
-    c7, c8 = st.columns(2)
+    c7, c8, c9 = st.columns(3)
     with c7:
-        if st.button("✏️ Editar Vinho\n\nModificar item", use_container_width=True): st.session_state.menu_atual = "Editar"; st.rerun()
+        if st.button("📷 Escanear Local\n\nCâmera QR", use_container_width=True): st.session_state.menu_atual = "Scanner"; st.rerun()
     with c8:
+        if st.button("✏️ Editar Vinho\n\nModificar item", use_container_width=True): st.session_state.menu_atual = "Editar"; st.rerun()
+    with c9:
         if st.button("🗑️ Excluir Vinho\n\nRemover item", use_container_width=True): st.session_state.menu_atual = "Excluir"; st.rerun()
 
     if st.session_state.usuario_logado['cargo'] in ["Administrador", "Desenvolvedor"] or st.session_state.usuario_logado['nome'] == "Dev":
@@ -293,6 +295,57 @@ elif st.session_state.menu_atual == "Filtros":
     else:
         st.info("Digite algo no campo acima ou use a busca por voz.")
 
+elif st.session_state.menu_atual == "MapaSeparacao":
+    st.subheader("🗺️ Mapa de Separação (Rota Otimizada)")
+    st.markdown("Cole abaixo a sua lista de vinhos (copiada do Word, Excel ou digitada, um nome por linha) para gerar o roteiro de busca no galpão:")
+    
+    lista_texto_usuario = st.text_area("Lista de Vinhos para Separar:", height=180, placeholder="Ex:\nChâteau Margaux\nLa Consulta Malbec\nCatena Zapata")
+    
+    if st.button("Gerar Mapa de Rota"):
+        if lista_texto_usuario.strip():
+            linhas = [l.strip() for l in lista_texto_usuario.split("\n") if l.strip()]
+            vinhos_encontrados = []
+            vinhos_nao_encontrados = []
+            
+            for item in linhas:
+                encontrado = None
+                for v in st.session_state.estoque:
+                    if item.lower() in v.get("nome", "").lower():
+                        encontrado = v
+                        break
+                if encontrado:
+                    if encontrado not in vinhos_encontrados:
+                        vinhos_encontrados.append(encontrado)
+                else:
+                    vinhos_nao_encontrados.append(item)
+            
+            # Ordena por localização (Corredor / Prateleira / Pallet)
+            vinhos_encontrados.sort(key=lambda x: x.get('localizacao', ''))
+            
+            st.markdown("---")
+            st.markdown(f"### 📍 Rota Otimizada de Coleta ({len(vinhos_encontrados)} itens encontrados)")
+            
+            if vinhos_encontrados:
+                for idx, v in enumerate(vinhos_encontrados, 1):
+                    st.markdown(
+                        f"""<div class='wine-card'>
+                            <div style="font-size: 0.9rem; color: #6C757D; font-weight: bold;">PASSO {idx:02d}</div>
+                            <div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra', '')})</div>
+                            <p style="font-size: 1rem; margin-top: 6px;">
+                                <span class='badge-pallet-grande'>📍 {v.get('localizacao', 'Não informada')} — Lado: {v.get('lado', '')}</span><br><br>
+                                <span class='badge-caixa-grande'>📦 Embalagem: {v.get('caixa', 'N/A')}</span>
+                            </p>
+                        </div>""",
+                        unsafe_allow_html=True
+                    )
+            else:
+                st.info("Nenhum dos vinhos da lista foi localizado no estoque atual.")
+                
+            if vinhos_nao_encontrados:
+                st.warning(f"⚠️ Os seguintes itens não foram encontrados no sistema: {', '.join(vinhos_nao_encontrados)}")
+        else:
+            st.error("Por favor, cole ou digite pelo menos um vinho na caixa de texto.")
+
 elif st.session_state.menu_atual == "Scanner":
     st.subheader("📷 Escanear QR Code do Local")
     foto = st.camera_input("Capturar Foto")
@@ -339,7 +392,6 @@ elif st.session_state.menu_atual == "Estoque":
 elif st.session_state.menu_atual == "Cadastrar":
     st.subheader("➕ Cadastrar Novo Vinho / Duplicar Cadastro")
     
-    # Se veio de uma duplicação, recupera os dados, senão inicia vazio
     dados_padrao = st.session_state.vinho_para_duplicar if st.session_state.vinho_para_duplicar else {}
     
     if st.session_state.vinho_para_duplicar:
@@ -387,7 +439,6 @@ elif st.session_state.menu_atual == "Cadastrar":
             salvar_dados(st.session_state.estoque)
             registrar_log(st.session_state.usuario_logado['nome'], "Cadastro de Vinho", f"{nome_formatado} em {localizacao_completa}")
             
-            # Limpa o estado de duplicação após salvar
             st.session_state.vinho_para_duplicar = None
             st.success("Vinho cadastrado com sucesso! O formulário está pronto para um novo cadastro.")
 
