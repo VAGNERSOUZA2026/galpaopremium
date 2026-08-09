@@ -21,22 +21,21 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Estilização CSS Avançada (Fundo totalmente em vermelho bordo, cartões e inputs destacados)
+# Estilização CSS com fundo limpo e legível, caixa central destacada em branco puro e detalhes em vermelho bordo
 st.markdown(
     """
     <style>
-    /* Fundo geral da página de login em Vermelho Bordo vibrante e elegante */
-    .stApp { background: linear-gradient(135deg, #7A1C2E 0%, #4A0E1A 100%); color: #1A1A1A; font-family: 'Poppins', sans-serif; }
+    .stApp { background: linear-gradient(135deg, #F8F9FA 0%, #E9ECEF 100%); color: #1A1A1A; font-family: 'Poppins', sans-serif; }
     [data-testid="stSidebar"] { display: none; }
     
-    /* Caixa central de Login/Cadastro com efeito vidro elegante */
-    .login-box { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 24px; padding: 35px; box-shadow: 0px 15px 35px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2); }
+    /* Caixa de Login/Cadastro com fundo branco perfeitamente legível e borda bordo */
+    .login-container { background: #FFFFFF; border-radius: 20px; padding: 35px; box-shadow: 0px 10px 30px rgba(122, 28, 46, 0.15); border: 2px solid #7A1C2E; }
     
     .wine-card { background-color: #FFFFFF; color: #1A1A1A; border-radius: 14px; padding: 16px; margin-bottom: 12px; border: 1px solid #E9ECEF; box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03); }
     .wine-title { color: #7A1C2E; font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
     .badge-pallet { background-color: #7A1C2E; color: #FFFFFF; padding: 3px 8px; border-radius: 6px; font-weight: 600; font-size: 0.75rem; display: inline-block; }
     
-    .stButton button { background-color: #7A1C2E !important; color: #FFFFFF !important; border-radius: 12px !important; font-weight: 600 !important; border: none !important; padding: 10px 16px !important; width: 100%; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2); }
+    .stButton button { background-color: #7A1C2E !important; color: #FFFFFF !important; border-radius: 12px !important; font-weight: 600 !important; border: none !important; padding: 10px 16px !important; width: 100%; box-shadow: 0px 4px 10px rgba(122, 28, 46, 0.2); }
     .stButton button:hover { background-color: #922338 !important; color: #FFD700 !important; }
     </style>
 """, unsafe_allow_html=True,
@@ -100,19 +99,18 @@ if "usuarios" not in st.session_state: st.session_state.usuarios = carregar_usua
 if "usuario_logado" not in st.session_state: st.session_state.usuario_logado = None
 if "menu_atual" not in st.session_state: st.session_state.menu_atual = "🏠 Home"
 
-# --- TELA DE LOGIN / CADASTRO / DEV COM VISUAL MODIFICADO E NOME ATUALIZADO ---
+# --- TELA DE LOGIN / CADASTRO / DEV COM VISUAL CORRETO E LEGÍVEL ---
 if st.session_state.usuario_logado is None:
     st.write("")
     _, col_centro, _ = st.columns([1, 1.25, 1])
     with col_centro:
-        # Iniciando o container customizado com fundo bordo suave e requintado
-        st.markdown("<div class='login-box'>", unsafe_allow_html=True)
+        st.markdown("<div class='login-container'>", unsafe_allow_html=True)
         if os.path.exists("imagem premium.jpeg"):
             _, col_img, _ = st.columns([1, 1.2, 1])
-            with col_img: st.image("imagem premium.jpeg", width=120)
+            with col_img: st.image("imagem premium.jpeg", width=110)
         
-        st.markdown("<h1 style='text-align: center; color: #7A1C2E; font-size: 1.6rem; font-weight: 800; margin-bottom: 2px;'>PREMIUM WINES GALPÃO</h1>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center; color: #555555; font-size: 0.9rem; margin-bottom: 20px;'>Controle Inteligente de Estoque e Vinhos</p>", unsafe_allow_html=True)
+        st.markdown("<h1 style='text-align: center; color: #7A1C2E; font-size: 1.5rem; font-weight: 800; margin-top: 10px; margin-bottom: 2px;'>PREMIUM WINES GALPÃO</h1>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center; color: #6C757D; font-size: 0.9rem; margin-bottom: 25px;'>Controle Inteligente de Estoque e Vinhos</p>", unsafe_allow_html=True)
         
         tab_login, tab_cadastro, tab_dev = st.tabs(["🔑 Entrar", "👤 Criar Conta", "⚙️ Dev"])
         
