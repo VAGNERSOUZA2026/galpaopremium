@@ -7,6 +7,10 @@ import streamlit as st
 import urllib.parse
 from streamlit_javascript import st_javascript
 
+# Importação para ler arquivos Excel e Word
+import openpyxl
+from docx import Document
+
 # Importação segura do OpenCV
 try:
     import cv2
@@ -119,6 +123,35 @@ def buscar_por_voz():
     """
     return st_javascript(js_code)
 
+def extrair_linhas_de_arquivo(arquivo_enviado):
+    linhas = []
+    extensao = arquivo_enviado.name.split('.')[-1].lower()
+    
+    try:
+        if extensao in ['xlsx', 'xls']:
+            df = pd.read_excel(arquivo_enviado)
+            for coluna in df.columns:
+                for val in df[coluna].dropna():
+                    if str(val).strip():
+                        linhas.append(str(val).strip())
+        elif extensao == 'docx':
+            doc = Document(arquivo_enviado)
+            for p in doc.paragraphs:
+                if p.text.strip():
+                    linhas.append(p.text.strip())
+            for tabela in doc.tables:
+                for linha in tabela.rows:
+                    for celula in linha.cells:
+                        if celula.text.strip():
+                            linhas.append(celula.text.strip())
+        elif extensao == 'txt':
+            conteudo = arquivo_enviado.getvalue().decode("utf-8")
+            linhas = [l.strip() for l in conteudo.split("\n") if l.strip()]
+    except Exception as e:
+        st.error(f"Erro ao ler o arquivo: {e}")
+        
+    return linhas
+
 # Sessão
 if "estoque" not in st.session_state: st.session_state.estoque = carregar_dados()
 if "usuarios" not in st.session_state: st.session_state.usuarios = carregar_usuarios()
@@ -224,7 +257,7 @@ if st.session_state.menu_atual == "🏠 Home":
     with c1:
         if st.button("🔍 Buscar / Filtros\n\nMúltiplos critérios", use_container_width=True): st.session_state.menu_atual = "Filtros"; st.rerun()
     with c2:
-        if st.button("🗺️ Mapa de Sepração\n\nGerar rota por lista", use_container_width=True): st.session_state.menu_atual = "MapaSeparacao"; st.rerun()
+        if st.button("🗺️ Mapa de Separação\n\nEnviar arquivo ou lista", use_container_width=True): st.session_state.menu_atual = "MapaSeparacao"; st.rerun()
     with c3:
         if st.button("🍷 Estoque Completo\n\nVer todos os vinhos", use_container_width=True): st.session_state.menu_atual = "Estoque"; st.rerun()
 
@@ -297,13 +330,25 @@ elif st.session_state.menu_atual == "Filtros":
 
 elif st.session_state.menu_atual == "MapaSeparacao":
     st.subheader("🗺️ Mapa de Separação (Rota Otimizada)")
-    st.markdown("Cole abaixo a sua lista de vinhos (copiada do Word, Excel ou digitada, um nome por linha) para gerar o roteiro de busca no galpão:")
+    st.markdown("Envie o arquivo recebido (**Excel** ou **Word**) ou cole a lista abaixo para gerar o roteiro automático de busca no galpão:")
     
-    lista_texto_usuario = st.text_area("Lista de Vinhos para Separar:", height=180, placeholder="Ex:\nChâteau Margaux\nLa Consulta Malbec\nCatena Zapata")
+    # Opção de upload de arquivo (Word ou Excel)
+    arquivo_enviado = st.file_uploader("📂 Enviar arquivo da lista (Word .docx ou Excel .xlsx)", type=["xlsx", "xls", "docx", "txt"])
+    
+    st.markdown("<p style='text-align: center; color: #6C757D; font-weight: bold; margin: 10px 0;'>— OU —</p>", unsafe_allow_html=True)
+    
+    lista_texto_usuario = st.text_area("Digite ou cole os vinhos manualmente (um por linha):", height=120, placeholder="Ex:\nChâteau Margaux\nLa Consulta Malbec\nCatena Zapata")
     
     if st.button("Gerar Mapa de Rota"):
-        if lista_texto_usuario.strip():
+        linhas = []
+        
+        # Se enviou arquivo, extrai dele
+        if arquivo_enviado is not None:
+            linhas = extrair_linhas_de_arquivo(arquivo_enviado)
+        elif lista_texto_usuario.strip():
             linhas = [l.strip() for l in lista_texto_usuario.split("\n") if l.strip()]
+            
+        if linhas:
             vinhos_encontrados = []
             vinhos_nao_encontrados = []
             
@@ -342,9 +387,9 @@ elif st.session_state.menu_atual == "MapaSeparacao":
                 st.info("Nenhum dos vinhos da lista foi localizado no estoque atual.")
                 
             if vinhos_nao_encontrados:
-                st.warning(f"⚠️ Os seguintes itens não foram encontrados no sistema: {', '.join(vinhos_nao_encontrados)}")
+                st.warning(f"⚠️ Os seguintes itens do arquivo/lista não foram encontrados no sistema: {', '.join(vinhos_nao_encontrados)}")
         else:
-            st.error("Por favor, cole ou digite pelo menos um vinho na caixa de texto.")
+            st.error("Por favor, envie um arquivo com a lista ou digite/cole os itens na caixa de texto.")
 
 elif st.session_state.menu_atual == "Scanner":
     st.subheader("📷 Escanear QR Code do Local")
