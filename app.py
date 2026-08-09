@@ -266,22 +266,30 @@ elif st.session_state.menu_atual == "Scanner":
         else: st.error("Nenhum QR Code encontrado.")
 
 elif st.session_state.menu_atual == "Estoque":
-    st.subheader("🍷 Estoque Completo")
-    for v in st.session_state.estoque:
-        col_f1, col_f2 = st.columns([1, 4])
-        with col_f1:
-            if v.get("foto") and os.path.exists(v.get("foto")):
-                st.image(v.get("foto"), width=100)
-            else:
-                st.write("Sem foto")
-        with col_f2:
-            st.markdown(
-                f"""<div class='wine-card'>
-                    <div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra', '')})</div>
-                    <p>Tipo: {v.get('tipo')} | <span class='badge-pallet'>📍 {v.get('localizacao')}</span> <span class='badge-caixa'>📦 {v.get('caixa', 'N/A')}</span></p>
-                </div>""", 
-                unsafe_allow_html=True
-            )
+    st.subheader("🍷 Estoque Completo (Ordem Alfabética)")
+    
+    # Ordena o estoque em ordem alfabética pelo nome do vinho
+    estoque_ordenado = sorted(st.session_state.estoque, key=lambda x: x.get('nome', '').lower())
+    
+    if estoque_ordenado:
+        st.info("💡 Clique em qualquer vinho abaixo para expandir e ver sua foto, localização completa e detalhes.")
+        for v in estoque_ordenado:
+            nome_exibicao = f"🍷 {v.get('nome')} ({v.get('safra', '')}) — [{v.get('tipo', 'Geral')}]"
+            with st.expander(nome_exibicao):
+                col_e1, col_e2 = st.columns([1, 2])
+                with col_e1:
+                    if v.get("foto") and os.path.exists(v.get("foto")):
+                        st.image(v.get("foto"), width=160, caption="Foto do Vinho")
+                    else:
+                        st.info("Este vinho não possui foto cadastrada.")
+                with col_e2:
+                    st.markdown(f"**Nome:** {v.get('nome')}")
+                    st.markdown(f"**Tipo:** {v.get('tipo', 'N/A')}")
+                    st.markdown(f"**Safra:** {v.get('safra', 'N/A')}")
+                    st.markdown(f"**Localização:** <span class='badge-pallet'>📍 {v.get('localizacao', 'Não informada')} ({v.get('lado', '')})</span>", unsafe_allow_html=True)
+                    st.markdown(f"**Embalagem:** <span class='badge-caixa'>📦 {v.get('caixa', 'N/A')}</span>", unsafe_allow_html=True)
+    else:
+        st.info("Nenhum vinho cadastrado no estoque.")
 
 elif st.session_state.menu_atual == "Cadastrar":
     st.subheader("➕ Cadastrar Novo Vinho no Galpão")
