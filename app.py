@@ -98,7 +98,7 @@ def salvar_usuarios(usuarios):
 def carregar_logs():
     if os.path.exists(ARQUIVO_LOGS):
         try:
-            with open(ARQUIVO_LOGS, "r", encoding="utf-8") as f: return json.load(f)
+            with open(ARQUIVO_LOGS, "r", encoding="utf-8") as f: json.load(f)
         except: pass
     return []
 
@@ -155,10 +155,20 @@ def extrair_linhas_de_arquivo(arquivo_enviado):
 # Sessão
 if "estoque" not in st.session_state: st.session_state.estoque = carregar_dados()
 if "usuarios" not in st.session_state: st.session_state.usuarios = carregar_usuarios()
-if "usuario_logado" not in st.session_state: st.session_state.usuario_logado = None
 if "menu_atual" not in st.session_state: st.session_state.menu_atual = "🏠 Home"
 if "termo_busca" not in st.session_state: st.session_state.termo_busca = ""
 if "vinho_para_duplicar" not in st.session_state: st.session_state.vinho_para_duplicar = None
+
+# Recupera sessão persistida via URL se houver refresh (F5 / Puxar tela)
+query_params = st.query_params
+user_url = query_params.get("user", None)
+cargo_url = query_params.get("cargo", "Operador")
+
+if "usuario_logado" not in st.session_state or st.session_state.usuario_logado is None:
+    if user_url:
+        st.session_state.usuario_logado = {"nome": user_url, "cargo": cargo_url}
+    else:
+        st.session_state.usuario_logado = None
 
 # --- TELA DE LOGIN / CADASTRO / DEV ---
 if st.session_state.usuario_logado is None:
@@ -191,6 +201,8 @@ if st.session_state.usuario_logado is None:
                     user = next((x for x in st.session_state.usuarios if x['nome'].lower() == u.lower() and x['senha'] == p), None)
                     if user:
                         st.session_state.usuario_logado = user
+                        st.query_params["user"] = user['nome']
+                        st.query_params["cargo"] = user['cargo']
                         st.rerun()
                     else: st.error("Usuário ou senha incorretos.")
         
@@ -209,6 +221,8 @@ if st.session_state.usuario_logado is None:
                             salvar_usuarios(st.session_state.usuarios)
                             registrar_log(n, "Criação de Conta", "Novo cadastro simples realizado")
                             st.session_state.usuario_logado = novo
+                            st.query_params["user"] = novo['nome']
+                            st.query_params["cargo"] = novo['cargo']
                             st.rerun()
                     else: st.error("Preencha todos os campos.")
         
@@ -218,7 +232,10 @@ if st.session_state.usuario_logado is None:
                 st.write("")
                 if st.form_submit_button("ACESSAR DEV", use_container_width=True):
                     if sp == SENHA_DEV:
-                        st.session_state.usuario_logado = {"nome": "Dev", "cargo": "Desenvolvedor"}
+                        dev_obj = {"nome": "Dev", "cargo": "Desenvolvedor"}
+                        st.session_state.usuario_logado = dev_obj
+                        st.query_params["user"] = "Dev"
+                        st.query_params["cargo"] = "Desenvolvedor"
                         st.rerun()
                     else: st.error("Senha incorreta.")
     st.stop()
@@ -230,7 +247,11 @@ with c_t2:
     if st.session_state.menu_atual != "🏠 Home":
         if st.button("⬅️ Voltar ao Menu", use_container_width=True): st.session_state.menu_atual = "🏠 Home"; st.rerun()
 with c_t3:
-    if st.button("🚪 Sair", use_container_width=True): st.session_state.usuario_logado = None; st.session_state.menu_atual = "🏠 Home"; st.rerun()
+    if st.button("🚪 Sair", use_container_width=True): 
+        st.session_state.usuario_logado = None
+        st.query_params.clear()
+        st.session_state.menu_atual = "🏠 Home"
+        st.rerun()
 
 st.markdown("---")
 
