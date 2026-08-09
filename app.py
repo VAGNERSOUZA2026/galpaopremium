@@ -21,7 +21,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Estilização CSS limpa e refinada
+# Estilização CSS limpa e refinada com destaque para os badges
 st.markdown(
     """
     <style>
@@ -32,8 +32,9 @@ st.markdown(
     
     .wine-card { background-color: #FFFFFF; color: #1A1A1A; border-radius: 14px; padding: 16px; margin-bottom: 12px; border: 1px solid #E9ECEF; box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03); }
     .wine-title { color: #7A1C2E; font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
-    .badge-pallet { background-color: #7A1C2E; color: #FFFFFF; padding: 3px 8px; border-radius: 6px; font-weight: 600; font-size: 0.75rem; display: inline-block; }
-    .badge-caixa { background-color: #495057; color: #FFFFFF; padding: 3px 8px; border-radius: 6px; font-weight: 600; font-size: 0.75rem; display: inline-block; margin-left: 6px; }
+    
+    .badge-pallet-grande { background-color: #7A1C2E; color: #FFFFFF; padding: 6px 14px; border-radius: 8px; font-weight: 700; font-size: 1rem; display: inline-block; letter-spacing: 0.5px; box-shadow: 0px 2px 6px rgba(122, 28, 46, 0.2); }
+    .badge-caixa-grande { background-color: #343A40; color: #FFFFFF; padding: 6px 14px; border-radius: 8px; font-weight: 700; font-size: 1rem; display: inline-block; letter-spacing: 0.5px; box-shadow: 0px 2px 6px rgba(52, 58, 64, 0.2); }
     
     .stButton button { background-color: #7A1C2E !important; color: #FFFFFF !important; border-radius: 12px !important; font-weight: 600 !important; border: none !important; padding: 10px 16px !important; width: 100%; box-shadow: 0px 4px 10px rgba(122, 28, 46, 0.2); }
     .stButton button:hover { background-color: #922338 !important; color: #FFD700 !important; }
@@ -240,10 +241,10 @@ elif st.session_state.menu_atual == "Filtros":
                     st.markdown(
                         f"""<div class='wine-card'>
                             <div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra', '')})</div>
-                            <p>
-                                Tipo: {v.get('tipo', 'N/A')} | 
-                                <span class='badge-pallet'>📍 {v.get('localizacao', 'Não informada')}</span> 
-                                <span class='badge-caixa'>📦 {v.get('caixa', 'N/A')}</span>
+                            <p style="font-size: 1rem; margin-top: 8px;">
+                                Tipo: <b>{v.get('tipo', 'N/A')}</b><br><br>
+                                <span class='badge-pallet-grande'>📍 {v.get('localizacao', 'Não informada')} ({v.get('lado', '')})</span><br><br>
+                                <span class='badge-caixa-grande'>📦 {v.get('caixa', 'N/A')}</span>
                             </p>
                         </div>""", 
                         unsafe_allow_html=True
@@ -268,11 +269,10 @@ elif st.session_state.menu_atual == "Scanner":
 elif st.session_state.menu_atual == "Estoque":
     st.subheader("🍷 Estoque Completo (Ordem Alfabética)")
     
-    # Ordena o estoque em ordem alfabética pelo nome do vinho
     estoque_ordenado = sorted(st.session_state.estoque, key=lambda x: x.get('nome', '').lower())
     
     if estoque_ordenado:
-        st.info("💡 Clique em qualquer vinho abaixo para expandir e ver sua foto, localização completa e detalhes.")
+        st.info("💡 Clique em qualquer vinho abaixo para expandir e ver sua foto e detalhes com letras ampliadas.")
         for v in estoque_ordenado:
             nome_exibicao = f"🍷 {v.get('nome')} ({v.get('safra', '')}) — [{v.get('tipo', 'Geral')}]"
             with st.expander(nome_exibicao):
@@ -283,11 +283,11 @@ elif st.session_state.menu_atual == "Estoque":
                     else:
                         st.info("Este vinho não possui foto cadastrada.")
                 with col_e2:
-                    st.markdown(f"**Nome:** {v.get('nome')}")
-                    st.markdown(f"**Tipo:** {v.get('tipo', 'N/A')}")
-                    st.markdown(f"**Safra:** {v.get('safra', 'N/A')}")
-                    st.markdown(f"**Localização:** <span class='badge-pallet'>📍 {v.get('localizacao', 'Não informada')} ({v.get('lado', '')})</span>", unsafe_allow_html=True)
-                    st.markdown(f"**Embalagem:** <span class='badge-caixa'>📦 {v.get('caixa', 'N/A')}</span>", unsafe_allow_html=True)
+                    st.markdown(f"<p style='font-size: 1.05rem;'><b>Nome:</b> {v.get('nome')}</p>", unsafe_allow_html=True)
+                    st.markdown(f"<p style='font-size: 1.05rem;'><b>Tipo:</b> {v.get('tipo', 'N/A')}</p>", unsafe_allow_html=True)
+                    st.markdown(f"<p style='font-size: 1.05rem;'><b>Safra:</b> {v.get('safra', 'N/A')}</p>", unsafe_allow_html=True)
+                    st.markdown(f"<p style='font-size: 1.05rem; margin-top: 10px;'><b>Localização:</b><br><span class='badge-pallet-grande'>📍 {v.get('localizacao', 'Não informada')} ({v.get('lado', '')})</span></p>", unsafe_allow_html=True)
+                    st.markdown(f"<p style='font-size: 1.05rem; margin-top: 10px;'><b>Embalagem:</b><br><span class='badge-caixa-grande'>📦 {v.get('caixa', 'N/A')}</span></p>", unsafe_allow_html=True)
     else:
         st.info("Nenhum vinho cadastrado no estoque.")
 
