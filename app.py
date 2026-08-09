@@ -40,8 +40,6 @@ NOME_ARQUIVO = "estoque_galpao_pro.json"
 ARQUIVO_USUARIOS = "usuarios_galpao.json"
 ARQUIVO_LOGS = "logs_auditoria.json"
 SENHA_DEV = "1980"
-# Coloque aqui o seu número de WhatsApp com DDI e DDD (Ex: 5531999999999) para receber os avisos de cadastro
-WHATSAPP_DEV = "5531999999999" 
 
 LISTA_CORREDORES = [f"Corredor {i:02d}" for i in range(1, 26)]
 LISTA_PALLETS = [f"Pallet {i:02d}" for i in range(1, 26)]
@@ -69,7 +67,7 @@ def carregar_usuarios():
         try:
             with open(ARQUIVO_USUARIOS, "r", encoding="utf-8") as f: return json.load(f)
         except: pass
-    return [{"nome": "Vagner Souza", "cargo": "Administrador", "senha": "1980", "celular": ""}]
+    return [{"nome": "Vagner Souza", "cargo": "Administrador", "senha": "1980"}]
 
 def salvar_usuarios(usuarios):
     with open(ARQUIVO_USUARIOS, "w", encoding="utf-8") as f: json.dump(usuarios, f, ensure_ascii=False, indent=4)
@@ -94,7 +92,6 @@ if "estoque" not in st.session_state: st.session_state.estoque = carregar_dados(
 if "usuarios" not in st.session_state: st.session_state.usuarios = carregar_usuarios()
 if "usuario_logado" not in st.session_state: st.session_state.usuario_logado = None
 if "menu_atual" not in st.session_state: st.session_state.menu_atual = "🏠 Home"
-if "sucesso_cadastro" not in st.session_state: st.session_state.sucesso_cadastro = None
 
 # --- TELA DE LOGIN / CADASTRO / DEV ---
 if st.session_state.usuario_logado is None:
@@ -121,33 +118,21 @@ if st.session_state.usuario_logado is None:
                         else: st.error("Usuário ou senha incorretos.")
             
             with tab_cadastro:
-                if st.session_state.sucesso_cadastro:
-                    st.success("Conta criada com sucesso!")
-                    st.info("Clique no botão abaixo para avisar o Desenvolvedor via WhatsApp sobre o seu novo acesso:")
-                    msg_wa = f"Olá Vagner, acabei de criar minha conta no Wine Map Pro.\n\n*Usuário:* {st.session_state.sucesso_cadastro['nome']}\n*Celular:* {st.session_state.sucesso_cadastro['celular']}"
-                    link_wa = f"https://api.whatsapp.com/send?phone={WHATSAPP_DEV}&text={urllib.parse.quote(msg_wa)}"
-                    st.markdown(f'<a href="{link_wa}" target="_blank"><button style="background-color: #25D366; color: white; padding: 10px 20px; border: none; border-radius: 12px; width: 100%; font-weight: bold; cursor: pointer; text-align: center; text-decoration: none; display: inline-block;">💬 Enviar aviso para o WhatsApp do Dev</button></a>', unsafe_allow_html=True)
-                    st.write("")
-                    if st.button("Ir para o Login", use_container_width=True):
-                        st.session_state.sucesso_cadastro = None
-                        st.rerun()
-                else:
-                    with st.form("cadastro_form"):
-                        n = st.text_input("Nome Completo / Usuário").strip()
-                        cel = st.text_input("Celular (WhatsApp)").strip()
-                        s = st.text_input("Senha Desejada", type="password").strip()
-                        if st.form_submit_button("CADASTRAR CONTA", use_container_width=True):
-                            if n and cel and s:
-                                if any(x['nome'].lower() == n.lower() for x in st.session_state.usuarios):
-                                    st.error("Este usuário já existe.")
-                                else:
-                                    novo = {"nome": n, "cargo": "Operador", "senha": s, "celular": cel}
-                                    st.session_state.usuarios.append(novo)
-                                    salvar_usuarios(st.session_state.usuarios)
-                                    registrar_log(n, "Criação de Conta", f"Novo cadastro realizado. Celular: {cel}")
-                                    st.session_state.sucesso_cadastro = novo
-                                    st.rerun()
-                            else: st.error("Preencha todos os campos.")
+                with st.form("cadastro_form"):
+                    n = st.text_input("Nome / Usuário").strip()
+                    s = st.text_input("Senha", type="password").strip()
+                    if st.form_submit_button("CADASTRAR E ENTRAR", use_container_width=True):
+                        if n and s:
+                            if any(x['nome'].lower() == n.lower() for x in st.session_state.usuarios):
+                                st.error("Este usuário já existe.")
+                            else:
+                                novo = {"nome": n, "cargo": "Operador", "senha": s}
+                                st.session_state.usuarios.append(novo)
+                                salvar_usuarios(st.session_state.usuarios)
+                                registrar_log(n, "Criação de Conta", "Novo cadastro simples realizado")
+                                st.session_state.usuario_logado = novo
+                                st.rerun()
+                        else: st.error("Preencha todos os campos.")
             
             with tab_dev:
                 with st.form("dev_form"):
@@ -328,9 +313,9 @@ elif st.session_state.menu_atual == "GerenciarUsuarios":
     if not st.session_state.usuarios:
         st.info("Nenhum usuário cadastrado.")
     else:
-        df_usuarios = pd.DataFrame(st.session_state.usuarios)[["nome", "celular", "senha"]]
-        df_usuarios.columns = ["Usuário", "Celular", "Senha"]
-        st.markdown("##### Relação de Contas, Celulares e Senhas:")
+        df_usuarios = pd.DataFrame(st.session_state.usuarios)[["nome", "senha"]]
+        df_usuarios.columns = ["Usuário", "Senha"]
+        st.markdown("##### Relação de Contas e Senhas:")
         st.dataframe(df_usuarios, use_container_width=True)
         
         st.markdown("---")
@@ -343,7 +328,6 @@ elif st.session_state.menu_atual == "GerenciarUsuarios":
         
         with st.form("form_gerenciar_usuario"):
             novo_nome = st.text_input("Nome / Usuário", user_obj.get("nome", ""))
-            novo_celular = st.text_input("Celular", user_obj.get("celular", ""))
             nova_senha = st.text_input("Senha", user_obj.get("senha", ""))
             
             col_btn1, col_btn2 = st.columns(2)
@@ -353,7 +337,6 @@ elif st.session_state.menu_atual == "GerenciarUsuarios":
             if atualizar_usuario:
                 if novo_nome.strip():
                     st.session_state.usuarios[idx_u]["nome"] = novo_nome.strip()
-                    st.session_state.usuarios[idx_u]["celular"] = novo_celular.strip()
                     st.session_state.usuarios[idx_u]["senha"] = nova_senha.strip()
                     salvar_usuarios(st.session_state.usuarios)
                     registrar_log(st.session_state.usuario_logado['nome'], "Gerenciamento de Conta", f"Atualizou credenciais de: {usuario_selecionado}")
