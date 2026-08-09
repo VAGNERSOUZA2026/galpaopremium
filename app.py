@@ -15,27 +15,28 @@ except ImportError:
 
 # Configuração da página
 st.set_page_config(
-    page_title="Premium Wines - Wine Map Pro",
+    page_title="Premium Wines - Galpão",
     page_icon="imagem premium.jpeg",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
-# Estilização CSS Avançada (Visual com mais vida e identidade bordo)
+# Estilização CSS Avançada (Fundo totalmente em vermelho bordo, cartões e inputs destacados)
 st.markdown(
     """
     <style>
-    .stApp { background: linear-gradient(135deg, #F8F9FA 0%, #E9ECEF 100%); color: #1A1A1A; font-family: 'Poppins', sans-serif; }
+    /* Fundo geral da página de login em Vermelho Bordo vibrante e elegante */
+    .stApp { background: linear-gradient(135deg, #7A1C2E 0%, #4A0E1A 100%); color: #1A1A1A; font-family: 'Poppins', sans-serif; }
     [data-testid="stSidebar"] { display: none; }
     
-    /* Caixa de Login/Cadastro Estilizada */
-    .login-container { background: #FFFFFF; border-radius: 20px; padding: 30px; box-shadow: 0px 10px 30px rgba(122, 28, 46, 0.15); border: 2px solid #7A1C2E; }
+    /* Caixa central de Login/Cadastro com efeito vidro elegante */
+    .login-box { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 24px; padding: 35px; box-shadow: 0px 15px 35px rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2); }
     
     .wine-card { background-color: #FFFFFF; color: #1A1A1A; border-radius: 14px; padding: 16px; margin-bottom: 12px; border: 1px solid #E9ECEF; box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03); }
     .wine-title { color: #7A1C2E; font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
     .badge-pallet { background-color: #7A1C2E; color: #FFFFFF; padding: 3px 8px; border-radius: 6px; font-weight: 600; font-size: 0.75rem; display: inline-block; }
     
-    .stButton button { background-color: #7A1C2E !important; color: #FFFFFF !important; border-radius: 12px !important; font-weight: 600 !important; border: none !important; padding: 10px 16px !important; width: 100%; box-shadow: 0px 4px 10px rgba(122, 28, 46, 0.2); }
+    .stButton button { background-color: #7A1C2E !important; color: #FFFFFF !important; border-radius: 12px !important; font-weight: 600 !important; border: none !important; padding: 10px 16px !important; width: 100%; box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2); }
     .stButton button:hover { background-color: #922338 !important; color: #FFD700 !important; }
     </style>
 """, unsafe_allow_html=True,
@@ -99,18 +100,19 @@ if "usuarios" not in st.session_state: st.session_state.usuarios = carregar_usua
 if "usuario_logado" not in st.session_state: st.session_state.usuario_logado = None
 if "menu_atual" not in st.session_state: st.session_state.menu_atual = "🏠 Home"
 
-# --- TELA DE LOGIN / CADASTRO / DEV COM NOVO VISUAL ---
+# --- TELA DE LOGIN / CADASTRO / DEV COM VISUAL MODIFICADO E NOME ATUALIZADO ---
 if st.session_state.usuario_logado is None:
     st.write("")
-    _, col_centro, _ = st.columns([1, 1.3, 1])
+    _, col_centro, _ = st.columns([1, 1.25, 1])
     with col_centro:
-        st.markdown("<div class='login-container'>", unsafe_allow_html=True)
+        # Iniciando o container customizado com fundo bordo suave e requintado
+        st.markdown("<div class='login-box'>", unsafe_allow_html=True)
         if os.path.exists("imagem premium.jpeg"):
             _, col_img, _ = st.columns([1, 1.2, 1])
             with col_img: st.image("imagem premium.jpeg", width=120)
         
-        st.markdown("<h1 style='text-align: center; color: #7A1C2E; font-size: 1.8rem; font-weight: 800; margin-bottom: 5px;'>🍷 Wine Map Pro</h1>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center; color: #6C757D; font-size: 0.9rem; margin-bottom: 25px;'>Sistema Inteligente de Gestão de Galpão</p>", unsafe_allow_html=True)
+        st.markdown("<h1 style='text-align: center; color: #7A1C2E; font-size: 1.6rem; font-weight: 800; margin-bottom: 2px;'>PREMIUM WINES GALPÃO</h1>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center; color: #555555; font-size: 0.9rem; margin-bottom: 20px;'>Controle Inteligente de Estoque e Vinhos</p>", unsafe_allow_html=True)
         
         tab_login, tab_cadastro, tab_dev = st.tabs(["🔑 Entrar", "👤 Criar Conta", "⚙️ Dev"])
         
@@ -158,7 +160,7 @@ if st.session_state.usuario_logado is None:
 
 # --- TOPO LOGADO ---
 c_t1, c_t2, c_t3 = st.columns([3, 2, 1])
-with c_t1: st.markdown(f"<span style='color: #7A1C2E; font-weight: bold;'>🍷 Premium Wines</span> | Usuário: <b>{st.session_state.usuario_logado['nome']}</b>", unsafe_allow_html=True)
+with c_t1: st.markdown(f"<span style='color: #7A1C2E; font-weight: bold;'>🍷 PREMIUM WINES GALPÃO</span> | Usuário: <b>{st.session_state.usuario_logado['nome']}</b>", unsafe_allow_html=True)
 with c_t2:
     if st.session_state.menu_atual != "🏠 Home":
         if st.button("⬅️ Voltar ao Menu", use_container_width=True): st.session_state.menu_atual = "🏠 Home"; st.rerun()
@@ -190,7 +192,7 @@ if st.session_state.menu_atual == "🏠 Home":
     with c1:
         if st.button("🔍 Buscar / Filtros\n\nMúltiplos critérios", use_container_width=True): st.session_state.menu_atual = "Filtros"; st.rerun()
     with c2:
-        if st.button("📷 Escanear Pallet\n\nSelecionar Corredor", use_container_width=True): st.session_state.menu_atual = "Scanner"; st.rerun()
+        if st.button("📷 Escanear Local\n\nSelecionar Corredor", use_container_width=True): st.session_state.menu_atual = "Scanner"; st.rerun()
     with c3:
         if st.button("🍷 Estoque Completo\n\nVer todos os vinhos", use_container_width=True): st.session_state.menu_atual = "Estoque"; st.rerun()
 
@@ -199,7 +201,7 @@ if st.session_state.menu_atual == "🏠 Home":
     with c4:
         if st.button("➕ Cadastrar Vinho\n\nAdicionar ao sistema", use_container_width=True): st.session_state.menu_atual = "Cadastrar"; st.rerun()
     with c5:
-        if st.button("📱 Gerar QR Code\n\nEtiquetas de pallets", use_container_width=True): st.session_state.menu_atual = "GerarQR"; st.rerun()
+        if st.button("📱 Gerar QR Code\n\nEtiquetas de locais", use_container_width=True): st.session_state.menu_atual = "GerarQR"; st.rerun()
     with c6:
         if st.button("📋 Histórico\n\nLogs de Auditoria", use_container_width=True): st.session_state.menu_atual = "Historico"; st.rerun()
 
@@ -254,7 +256,7 @@ elif st.session_state.menu_atual == "Cadastrar":
         tipo = st.text_input("Tipo (ex: Tinto, Branco)").strip()
         safra = st.text_input("Safra", "2024").strip()
         
-        # Seleção detalhada de Corredor, Pallet e Prateleira
+        # Seleção completa contemplando Corredor, Pallet e Prateleira
         col_loc1, col_loc2, col_loc3 = st.columns(3)
         with col_loc1:
             cor = st.selectbox("Corredor", LISTA_CORREDORES)
