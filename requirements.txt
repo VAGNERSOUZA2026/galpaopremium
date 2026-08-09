@@ -1,5 +1,7 @@
 streamlit
 pandas
+openpyxl
+python-docx
+streamlit-javascript
 opencv-python-headless
 numpy
-streamlit-javascript
