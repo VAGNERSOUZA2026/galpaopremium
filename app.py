@@ -254,7 +254,7 @@ elif st.session_state.menu_atual == "Filtros":
     
     c_texto, c_voz = st.columns([4, 1])
     with c_texto:
-        termo = st.text_input("Filtrar por Nome:", value=st.session_state.termo_busca).strip().lower()
+        termo = st.text_input("Filtrar por Nome:", value=st.session_state.termo_busca).strip()
     with c_voz:
         st.write("<br>", unsafe_allow_html=True)
         if st.button("🎙️ Voz"):
@@ -263,9 +263,11 @@ elif st.session_state.menu_atual == "Filtros":
                 st.session_state.termo_busca = resultado
                 st.rerun()
     
+    # Validação segura ignorando letras maiúsculas ou minúsculas (.lower())
     if termo or st.session_state.termo_busca:
-        termo_pesquisa = termo if termo else st.session_state.termo_busca.lower()
+        termo_pesquisa = termo.lower() if termo else st.session_state.termo_busca.lower()
         res = [v for v in st.session_state.estoque if termo_pesquisa in v.get("nome", "").lower()]
+        
         if res:
             for v in res:
                 col_f1, col_f2 = st.columns([1, 4])
@@ -355,10 +357,14 @@ elif st.session_state.menu_atual == "Cadastrar":
                 with open(caminho_foto, "wb") as f:
                     f.write(foto_vinho.getbuffer())
             
+            # Aqui é onde ocorre a formatação inteligente do texto (.title())
+            nome_formatado = nome.title()
+            tipo_formatado = tipo.title()
+            
             localizacao_completa = f"{cor} - {pal} - {prat}"
             st.session_state.estoque.append({
-                "nome": nome, 
-                "tipo": tipo, 
+                "nome": nome_formatado, 
+                "tipo": tipo_formatado, 
                 "safra": safra, 
                 "localizacao": localizacao_completa, 
                 "lado": lado, 
@@ -366,7 +372,7 @@ elif st.session_state.menu_atual == "Cadastrar":
                 "foto": caminho_foto
             })
             salvar_dados(st.session_state.estoque)
-            registrar_log(st.session_state.usuario_logado['nome'], "Cadastro de Vinho", f"{nome} em {localizacao_completa}")
+            registrar_log(st.session_state.usuario_logado['nome'], "Cadastro de Vinho", f"{nome_formatado} em {localizacao_completa}")
             st.success("Vinho cadastrado com sucesso!")
             st.rerun()
 
@@ -394,9 +400,9 @@ elif st.session_state.menu_atual == "Editar":
         v = st.session_state.estoque[idx]
         
         with st.form("edit_completo"):
-            nn = st.text_input("Nome do Vinho", v.get('nome', ''))
-            nt = st.text_input("Tipo", v.get('tipo', ''))
-            ns = st.text_input("Safra", v.get('safra', ''))
+            nn = st.text_input("Nome do Vinho", v.get('nome', '')).strip()
+            nt = st.text_input("Tipo", v.get('tipo', '')).strip()
+            ns = st.text_input("Safra", v.get('safra', '')).strip()
             
             col_loc1, col_loc2, col_loc3 = st.columns(3)
             with col_loc1:
@@ -425,18 +431,22 @@ elif st.session_state.menu_atual == "Editar":
                     with open(caminho_foto, "wb") as f:
                         f.write(nova_foto_vinho.getbuffer())
                 
+                # Aplica a formatação automática na edição também
+                nome_formatado = nn.title()
+                tipo_formatado = nt.title()
+
                 localizacao_completa = f"{cor} - {pal} - {prat}"
                 st.session_state.estoque[idx] = {
-                    "nome": nn.strip(),
-                    "tipo": nt.strip(),
-                    "safra": ns.strip(),
+                    "nome": nome_formatado,
+                    "tipo": tipo_formatado,
+                    "safra": ns,
                     "localizacao": localizacao_completa,
                     "lado": nlado,
                     "caixa": ncaixa,
                     "foto": caminho_foto
                 }
                 salvar_dados(st.session_state.estoque)
-                registrar_log(st.session_state.usuario_logado['nome'], "Edição de Vinho", f"Atualizado: {nn}")
+                registrar_log(st.session_state.usuario_logado['nome'], "Edição de Vinho", f"Atualizado: {nome_formatado}")
                 st.success("Vinho atualizado com sucesso!")
                 st.rerun()
     else:
