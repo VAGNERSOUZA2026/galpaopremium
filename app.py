@@ -27,11 +27,11 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Estilização CSS limpa e refinada com destaque para os badges
+# Estilização CSS com bloqueio de pull-to-refresh para celulares
 st.markdown(
     """
     <style>
-    .stApp { background: linear-gradient(135deg, #F8F9FA 0%, #E9ECEF 100%); color: #1A1A1A; font-family: 'Poppins', sans-serif; }
+    .stApp { background: linear-gradient(135deg, #F8F9FA 0%, #E9ECEF 100%); color: #1A1A1A; font-family: 'Poppins', sans-serif; overscroll-behavior-y: none; }
     [data-testid="stSidebar"] { display: none; }
     
     label { color: #7A1C2E !important; font-weight: 700 !important; font-size: 0.95rem !important; }
@@ -332,7 +332,6 @@ elif st.session_state.menu_atual == "MapaSeparacao":
     st.subheader("🗺️ Mapa de Separação (Rota Otimizada)")
     st.markdown("Envie o arquivo recebido (**Excel** ou **Word**) ou cole a lista abaixo para gerar o roteiro automático de busca no galpão:")
     
-    # Opção de upload de arquivo (Word ou Excel)
     arquivo_enviado = st.file_uploader("📂 Enviar arquivo da lista (Word .docx ou Excel .xlsx)", type=["xlsx", "xls", "docx", "txt"])
     
     st.markdown("<p style='text-align: center; color: #6C757D; font-weight: bold; margin: 10px 0;'>— OU —</p>", unsafe_allow_html=True)
@@ -342,7 +341,6 @@ elif st.session_state.menu_atual == "MapaSeparacao":
     if st.button("Gerar Mapa de Rota"):
         linhas = []
         
-        # Se enviou arquivo, extrai dele
         if arquivo_enviado is not None:
             linhas = extrair_linhas_de_arquivo(arquivo_enviado)
         elif lista_texto_usuario.strip():
@@ -364,7 +362,6 @@ elif st.session_state.menu_atual == "MapaSeparacao":
                 else:
                     vinhos_nao_encontrados.append(item)
             
-            # Ordena por localização (Corredor / Prateleira / Pallet)
             vinhos_encontrados.sort(key=lambda x: x.get('localizacao', ''))
             
             st.markdown("---")
