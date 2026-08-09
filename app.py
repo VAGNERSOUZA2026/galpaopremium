@@ -21,15 +21,18 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Estilização CSS com fundo limpo e legível, caixa central destacada em branco puro e detalhes em vermelho bordo
+# Estilização CSS limpa, moderna e com forte destaque nos rótulos e campos de login
 st.markdown(
     """
     <style>
     .stApp { background: linear-gradient(135deg, #F8F9FA 0%, #E9ECEF 100%); color: #1A1A1A; font-family: 'Poppins', sans-serif; }
     [data-testid="stSidebar"] { display: none; }
     
-    /* Caixa de Login/Cadastro com fundo branco perfeitamente legível e borda bordo */
-    .login-container { background: #FFFFFF; border-radius: 20px; padding: 35px; box-shadow: 0px 10px 30px rgba(122, 28, 46, 0.15); border: 2px solid #7A1C2E; }
+    /* Caixa principal de Login com design limpo, sem bugs visuais */
+    .login-box { background: #FFFFFF; border-radius: 20px; padding: 30px; box-shadow: 0px 10px 30px rgba(122, 28, 46, 0.12); border: 2px solid #7A1C2E; max-width: 500px; margin: 0 auto; }
+    
+    /* Destaque para os rótulos (labels) de Usuário e Senha */
+    label { color: #7A1C2E !important; font-weight: 700 !important; font-size: 0.95rem !important; }
     
     .wine-card { background-color: #FFFFFF; color: #1A1A1A; border-radius: 14px; padding: 16px; margin-bottom: 12px; border: 1px solid #E9ECEF; box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03); }
     .wine-title { color: #7A1C2E; font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
@@ -99,18 +102,26 @@ if "usuarios" not in st.session_state: st.session_state.usuarios = carregar_usua
 if "usuario_logado" not in st.session_state: st.session_state.usuario_logado = None
 if "menu_atual" not in st.session_state: st.session_state.menu_atual = "🏠 Home"
 
-# --- TELA DE LOGIN / CADASTRO / DEV COM VISUAL CORRETO E LEGÍVEL ---
+# --- TELA DE LOGIN / CADASTRO / DEV COM TÍTULO PREMIUM WINES E GALPÃO CENTRALIZADO ---
 if st.session_state.usuario_logado is None:
     st.write("")
     _, col_centro, _ = st.columns([1, 1.25, 1])
     with col_centro:
-        st.markdown("<div class='login-container'>", unsafe_allow_html=True)
         if os.path.exists("imagem premium.jpeg"):
             _, col_img, _ = st.columns([1, 1.2, 1])
             with col_img: st.image("imagem premium.jpeg", width=110)
         
-        st.markdown("<h1 style='text-align: center; color: #7A1C2E; font-size: 1.5rem; font-weight: 800; margin-top: 10px; margin-bottom: 2px;'>PREMIUM WINES GALPÃO</h1>", unsafe_allow_html=True)
-        st.markdown("<p style='text-align: center; color: #6C757D; font-size: 0.9rem; margin-bottom: 25px;'>Controle Inteligente de Estoque e Vinhos</p>", unsafe_allow_html=True)
+        # Título ajustado: PREMIUM WINES e GALPÃO centralizado logo abaixo
+        st.markdown(
+            """
+            <div style="text-align: center; margin-top: 10px; margin-bottom: 20px;">
+                <h1 style="color: #7A1C2E; font-size: 1.5rem; font-weight: 800; margin-bottom: 0; letter-spacing: 1px;">PREMIUM WINES</h1>
+                <h2 style="color: #7A1C2E; font-size: 1.2rem; font-weight: 700; margin-top: 2px; letter-spacing: 2px;">GALPÃO</h2>
+                <p style="color: #6C757D; font-size: 0.85rem; margin-top: 5px;">Controle Inteligente de Estoque e Vinhos</p>
+            </div>
+            """, 
+            unsafe_allow_html=True
+        )
         
         tab_login, tab_cadastro, tab_dev = st.tabs(["🔑 Entrar", "👤 Criar Conta", "⚙️ Dev"])
         
@@ -153,7 +164,6 @@ if st.session_state.usuario_logado is None:
                         st.session_state.usuario_logado = {"nome": "Dev", "cargo": "Desenvolvedor"}
                         st.rerun()
                     else: st.error("Senha incorreta.")
-        st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
 # --- TOPO LOGADO ---
@@ -254,7 +264,6 @@ elif st.session_state.menu_atual == "Cadastrar":
         tipo = st.text_input("Tipo (ex: Tinto, Branco)").strip()
         safra = st.text_input("Safra", "2024").strip()
         
-        # Seleção completa contemplando Corredor, Pallet e Prateleira
         col_loc1, col_loc2, col_loc3 = st.columns(3)
         with col_loc1:
             cor = st.selectbox("Corredor", LISTA_CORREDORES)
