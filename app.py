@@ -226,21 +226,28 @@ elif st.session_state.menu_atual == "Filtros":
     st.subheader("🔍 Busca Avançada por Filtros")
     termo = st.text_input("Filtrar por Nome:").strip().lower()
     
-    # Exibe resultados apenas se houver termo digitado
     if termo:
         res = [v for v in st.session_state.estoque if termo in v.get("nome", "").lower()]
         if res:
             for v in res:
-                st.markdown(
-                    f"""<div class='wine-card'>
-                        <div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra', '')})</div>
-                        <p>
-                            <span class='badge-pallet'>📍 {v.get('localizacao', '')}</span>
-                            <span class='badge-caixa'>📦 {v.get('caixa', 'Não especificado')}</span>
-                        </p>
-                    </div>""", 
-                    unsafe_allow_html=True
-                )
+                col_f1, col_f2 = st.columns([1, 4])
+                with col_f1:
+                    if v.get("foto") and os.path.exists(v.get("foto")):
+                        st.image(v.get("foto"), width=90)
+                    else:
+                        st.write("Sem foto")
+                with col_f2:
+                    st.markdown(
+                        f"""<div class='wine-card'>
+                            <div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra', '')})</div>
+                            <p>
+                                Tipo: {v.get('tipo', 'N/A')} | 
+                                <span class='badge-pallet'>📍 {v.get('localizacao', 'Não informada')}</span> 
+                                <span class='badge-caixa'>📦 {v.get('caixa', 'N/A')}</span>
+                            </p>
+                        </div>""", 
+                        unsafe_allow_html=True
+                    )
         else:
             st.info("Nenhum vinho encontrado com este nome.")
     else:
@@ -346,7 +353,6 @@ elif st.session_state.menu_atual == "Editar":
             nt = st.text_input("Tipo", v.get('tipo', ''))
             ns = st.text_input("Safra", v.get('safra', ''))
             
-            # Localização atual salva separada ou padrão
             col_loc1, col_loc2, col_loc3 = st.columns(3)
             with col_loc1:
                 cor = st.selectbox("Corredor", LISTA_CORREDORES)
