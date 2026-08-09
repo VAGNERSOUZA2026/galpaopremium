@@ -21,22 +21,19 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Estilização CSS limpa, moderna e com forte destaque nos rótulos e campos de login
+# Estilização CSS limpa e refinada
 st.markdown(
     """
     <style>
     .stApp { background: linear-gradient(135deg, #F8F9FA 0%, #E9ECEF 100%); color: #1A1A1A; font-family: 'Poppins', sans-serif; }
     [data-testid="stSidebar"] { display: none; }
     
-    /* Caixa principal de Login com design limpo, sem bugs visuais */
-    .login-box { background: #FFFFFF; border-radius: 20px; padding: 30px; box-shadow: 0px 10px 30px rgba(122, 28, 46, 0.12); border: 2px solid #7A1C2E; max-width: 500px; margin: 0 auto; }
-    
-    /* Destaque para os rótulos (labels) de Usuário e Senha */
     label { color: #7A1C2E !important; font-weight: 700 !important; font-size: 0.95rem !important; }
     
     .wine-card { background-color: #FFFFFF; color: #1A1A1A; border-radius: 14px; padding: 16px; margin-bottom: 12px; border: 1px solid #E9ECEF; box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03); }
     .wine-title { color: #7A1C2E; font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
     .badge-pallet { background-color: #7A1C2E; color: #FFFFFF; padding: 3px 8px; border-radius: 6px; font-weight: 600; font-size: 0.75rem; display: inline-block; }
+    .badge-caixa { background-color: #495057; color: #FFFFFF; padding: 3px 8px; border-radius: 6px; font-weight: 600; font-size: 0.75rem; display: inline-block; margin-left: 6px; }
     
     .stButton button { background-color: #7A1C2E !important; color: #FFFFFF !important; border-radius: 12px !important; font-weight: 600 !important; border: none !important; padding: 10px 16px !important; width: 100%; box-shadow: 0px 4px 10px rgba(122, 28, 46, 0.2); }
     .stButton button:hover { background-color: #922338 !important; color: #FFD700 !important; }
@@ -53,7 +50,7 @@ LISTA_CORREDORES = [f"Corredor {i:02d}" for i in range(1, 26)]
 LISTA_PALLETS = [f"Pallet {i:02d}" for i in range(1, 26)]
 LISTA_PRATELEIRAS = [f"Prateleira {i:02d}" for i in range(1, 6)]
 LISTA_LADOS = ["Direito", "Esquerdo", "Centro / Único"]
-OPCOES_CAIXA = ["Caixa com 12 garrafas", "Caixa com 6 garrafas", "Caixa com 3 garrafas", "Garrafa Avulsa (1 un)", "Outra quantidade"]
+OPCOES_CAIXA = ["Caixa com 12 garrafas", "Caixa com 6 garrafas", "Caixa com 3 garrafas", "Caixa com 2 garrafas", "Garrafa Avulsa (1 un)", "Outra quantidade"]
 
 def obter_saudacao():
     hora = datetime.now().hour
@@ -102,22 +99,21 @@ if "usuarios" not in st.session_state: st.session_state.usuarios = carregar_usua
 if "usuario_logado" not in st.session_state: st.session_state.usuario_logado = None
 if "menu_atual" not in st.session_state: st.session_state.menu_atual = "🏠 Home"
 
-# --- TELA DE LOGIN / CADASTRO / DEV COM TÍTULO PREMIUM WINES E GALPÃO CENTRALIZADO ---
+# --- TELA DE LOGIN / CADASTRO / DEV COM LOGO AMPLIADA ---
 if st.session_state.usuario_logado is None:
     st.write("")
-    _, col_centro, _ = st.columns([1, 1.25, 1])
+    _, col_centro, _ = st.columns([1, 1.3, 1])
     with col_centro:
         if os.path.exists("imagem premium.jpeg"):
-            _, col_img, _ = st.columns([1, 1.2, 1])
-            with col_img: st.image("imagem premium.jpeg", width=110)
+            _, col_img, _ = st.columns([1, 1.8, 1])
+            with col_img: st.image("imagem premium.jpeg", width=190)
         
-        # Título ajustado: PREMIUM WINES e GALPÃO centralizado logo abaixo
         st.markdown(
             """
             <div style="text-align: center; margin-top: 10px; margin-bottom: 20px;">
-                <h1 style="color: #7A1C2E; font-size: 1.5rem; font-weight: 800; margin-bottom: 0; letter-spacing: 1px;">PREMIUM WINES</h1>
-                <h2 style="color: #7A1C2E; font-size: 1.2rem; font-weight: 700; margin-top: 2px; letter-spacing: 2px;">GALPÃO</h2>
-                <p style="color: #6C757D; font-size: 0.85rem; margin-top: 5px;">Controle Inteligente de Estoque e Vinhos</p>
+                <h1 style="color: #7A1C2E; font-size: 1.6rem; font-weight: 800; margin-bottom: 0; letter-spacing: 1px;">PREMIUM WINES</h1>
+                <h2 style="color: #7A1C2E; font-size: 1.3rem; font-weight: 700; margin-top: 2px; letter-spacing: 2px;">GALPÃO</h2>
+                <p style="color: #6C757D; font-size: 0.9rem; margin-top: 5px;">Controle Inteligente de Estoque e Vinhos</p>
             </div>
             """, 
             unsafe_allow_html=True
@@ -229,9 +225,26 @@ if st.session_state.menu_atual == "🏠 Home":
 elif st.session_state.menu_atual == "Filtros":
     st.subheader("🔍 Busca Avançada por Filtros")
     termo = st.text_input("Filtrar por Nome:").strip().lower()
-    res = [v for v in st.session_state.estoque if termo in v.get("nome", "").lower()]
-    for v in res:
-        st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra', '')})</div><p><span class='badge-pallet'>📍 {v.get('localizacao', '')}</span></p></div>", unsafe_allow_html=True)
+    
+    # Exibe resultados apenas se houver termo digitado
+    if termo:
+        res = [v for v in st.session_state.estoque if termo in v.get("nome", "").lower()]
+        if res:
+            for v in res:
+                st.markdown(
+                    f"""<div class='wine-card'>
+                        <div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra', '')})</div>
+                        <p>
+                            <span class='badge-pallet'>📍 {v.get('localizacao', '')}</span>
+                            <span class='badge-caixa'>📦 {v.get('caixa', 'Não especificado')}</span>
+                        </p>
+                    </div>""", 
+                    unsafe_allow_html=True
+                )
+        else:
+            st.info("Nenhum vinho encontrado com este nome.")
+    else:
+        st.info("Digite algo no campo acima para buscar os vinhos cadastrados.")
 
 elif st.session_state.menu_atual == "Scanner":
     st.subheader("📷 Escanear QR Code do Local")
@@ -250,12 +263,18 @@ elif st.session_state.menu_atual == "Estoque":
     for v in st.session_state.estoque:
         col_f1, col_f2 = st.columns([1, 4])
         with col_f1:
-            if v.get("foto"):
+            if v.get("foto") and os.path.exists(v.get("foto")):
                 st.image(v.get("foto"), width=100)
             else:
                 st.write("Sem foto")
         with col_f2:
-            st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra', '')})</div><p>Tipo: {v.get('tipo')} | <span class='badge-pallet'>📍 {v.get('localizacao')}</span></p></div>", unsafe_allow_html=True)
+            st.markdown(
+                f"""<div class='wine-card'>
+                    <div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra', '')})</div>
+                    <p>Tipo: {v.get('tipo')} | <span class='badge-pallet'>📍 {v.get('localizacao')}</span> <span class='badge-caixa'>📦 {v.get('caixa', 'N/A')}</span></p>
+                </div>""", 
+                unsafe_allow_html=True
+            )
 
 elif st.session_state.menu_atual == "Cadastrar":
     st.subheader("➕ Cadastrar Novo Vinho no Galpão")
@@ -315,19 +334,62 @@ elif st.session_state.menu_atual == "Historico":
         st.write(f"[{l.get('data_hora')}] {l.get('usuario')} - {l.get('acao')}: {l.get('detalhes')}")
 
 elif st.session_state.menu_atual == "Editar":
-    st.subheader("✏️ Editar Vinho")
+    st.subheader("✏️ Editar Vinho (Todos os Dados e Imagem)")
     nomes = [f"{v.get('nome')} ({v.get('safra', '')})" for v in st.session_state.estoque]
     if nomes:
-        esc = st.selectbox("Selecione", nomes)
+        esc = st.selectbox("Selecione o Vinho para Editar", nomes)
         idx = nomes.index(esc)
         v = st.session_state.estoque[idx]
-        with st.form("edit"):
-            nn = st.text_input("Nome", v.get('nome'))
-            if st.form_submit_button("Atualizar"):
-                st.session_state.estoque[idx]['nome'] = nn
+        
+        with st.form("edit_completo"):
+            nn = st.text_input("Nome do Vinho", v.get('nome', ''))
+            nt = st.text_input("Tipo", v.get('tipo', ''))
+            ns = st.text_input("Safra", v.get('safra', ''))
+            
+            # Localização atual salva separada ou padrão
+            col_loc1, col_loc2, col_loc3 = st.columns(3)
+            with col_loc1:
+                cor = st.selectbox("Corredor", LISTA_CORREDORES)
+            with col_loc2:
+                pal = st.selectbox("Pallet", LISTA_PALLETS)
+            with col_loc3:
+                prat = st.selectbox("Prateleira", LISTA_PRATELEIRAS)
+                
+            nlado = st.selectbox("Lado", LISTA_LADOS, index=LISTA_LADOS.index(v.get('lado', 'Direito')) if v.get('lado') in LISTA_LADOS else 0)
+            ncaixa = st.selectbox("Quantidade / Caixa", OPCOES_CAIXA, index=OPCOES_CAIXA.index(v.get('caixa', 'Caixa com 12 garrafas')) if v.get('caixa') in OPCOES_CAIXA else 0)
+            
+            st.write("---")
+            if v.get("foto") and os.path.exists(v.get("foto")):
+                st.image(v.get("foto"), width=120, caption="Foto atual cadastrada")
+            else:
+                st.info("Este vinho está sem foto cadastrada atualmente.")
+                
+            nova_foto_vinho = st.file_uploader("Alterar / Adicionar Foto do Vinho", type=["jpg", "png", "jpeg"])
+            
+            if st.form_submit_button("💾 Salvar Alterações"):
+                caminho_foto = v.get("foto", "")
+                if nova_foto_vinho is not None:
+                    os.makedirs("fotos_vinhos", exist_ok=True)
+                    caminho_foto = os.path.join("fotos_vinhos", nova_foto_vinho.name)
+                    with open(caminho_foto, "wb") as f:
+                        f.write(nova_foto_vinho.getbuffer())
+                
+                localizacao_completa = f"{cor} - {pal} - {prat}"
+                st.session_state.estoque[idx] = {
+                    "nome": nn.strip(),
+                    "tipo": nt.strip(),
+                    "safra": ns.strip(),
+                    "localizacao": localizacao_completa,
+                    "lado": nlado,
+                    "caixa": ncaixa,
+                    "foto": caminho_foto
+                }
                 salvar_dados(st.session_state.estoque)
-                st.success("Atualizado!")
+                registrar_log(st.session_state.usuario_logado['nome'], "Edição de Vinho", f"Atualizado: {nn}")
+                st.success("Vinho atualizado com sucesso!")
                 st.rerun()
+    else:
+        st.info("Nenhum vinho cadastrado para editar.")
 
 elif st.session_state.menu_atual == "Excluir":
     st.subheader("🗑️ Excluir Vinho")
