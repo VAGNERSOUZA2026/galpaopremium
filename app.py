@@ -559,30 +559,35 @@ elif st.session_state.menu_atual == "📷 Escanear QR Code / Câmera":
             )
 
 elif st.session_state.menu_atual == "📱 Gerar QR Code de Pallets":
-    st.subheader("📱 Gerar QR Code de Pallets (Acesso Livre)")
+    st.subheader("📱 Gerar QR Code e Consultar Posição de Pallets")
+    st.markdown(
+        "<p style='color: #6C757D;'>Selecione o corredor e o pallet para gerar o QR code e ver quais vinhos e lados estão armazenados nele.</p>",
+        unsafe_allow_html=True,
+    )
     c_corr = st.selectbox("Corredor:", LISTA_CORREDORES)
     c_pall = st.selectbox("Pallet:", LISTA_PALLETS)
     pallet_selecionado = f"{c_corr} - {c_pall}"
-    if st.button("Gerar Etiqueta QR Code", use_container_width=True):
+
+    col_qr1, col_qr2 = st.columns([1, 1])
+
+    with col_qr1:
+        st.markdown("#### 🏷️ Etiqueta QR Code")
         url_qr = gerar_qr_code_api(pallet_selecionado)
         st.image(
             url_qr, caption=f"QR Code para {pallet_selecionado}", width=220
         )
 
-elif st.session_state.menu_atual == "🍷 Ver estoque completo":
-    st.subheader("🍷 Estoque Completo (Acesso Livre)")
-    if st.session_state.estoque:
-        df = pd.DataFrame(st.session_state.estoque)
-        if "foto" in df.columns:
-            df = df.drop(columns=["foto"])
-        st.dataframe(df, use_container_width=True)
-    else:
-        st.info("Estoque vazio.")
-
-elif st.session_state.menu_atual == "➕ Cadastrar novo vinho":
-    st.subheader("➕ Novo Cadastro de Vinho (Exclusivo Administrador)")
-    with st.form(f"form_cad_{st.session_state.form_key}"):
-        nome = st.text_input("Nome do Vinho:").strip()
-        tipo = st.text_input("Tipo (ex: Tinto, Branco):").strip()
-        safra = st.text_input("Safra (Ano ou NV):", value="2024").strip()
-        sel_corredor = st.selectbox("Corredor:", LISTA_CORRED
+    with col_qr2:
+        st.markdown(f"#### 📦 Vinhos no {pallet_selecionado}")
+        vinhos_no_pallet = [
+            v
+            for v in st.session_state.estoque
+            if v.get("pallet") == pallet_selecionado
+        ]
+        if vinhos_no_pallet:
+            for v in vinhos_no_pallet:
+                st.markdown(
+                    f"""
+                    <div class="wine-card" style="padding: 10px; margin-bottom: 8px;">
+                        <div class="wine-title" style="font-size: 0.95rem;">🍷 {v.get('nome')} ({v.get('safra')})</div>
+              
