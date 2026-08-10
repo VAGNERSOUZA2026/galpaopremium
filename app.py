@@ -174,7 +174,7 @@ def registrar_log(usuario, acao, detalhes):
         "acao": acao,
         "detalhes": detalhes,
     }
-    logs.insert(0, novo_log)  # Insere o mais recente no topo
+    logs.insert(0, novo_log)
     try:
         with open(ARQUIVO_LOGS, "w", encoding="utf-8") as f:
             json.dump(logs, f, ensure_ascii=False, indent=4)
@@ -403,11 +403,20 @@ if st.session_state.menu_atual == "⚙️ Gerenciar Usuários (Dev)" and not e_d
 
 # --- TELAS DO APLICATIVO ---
 if st.session_state.menu_atual == "🏠 Home":
+    # Lógica dinâmica para saudação correta baseada na hora atual
+    hora_atual = datetime.now().hour
+    if 5 <= hora_atual < 12:
+        saudacao = "Bom dia,"
+    elif 12 <= hora_atual < 18:
+        saudacao = "Boa tarde,"
+    else:
+        saudacao = "Boa noite,"
+
     st.markdown(
         f"""
         <div class="header-container">
-            <p class="sub-title">Bom dia,</p>
-            <h1 class="main-title">{st.session_state.usuario_logado['nome']}! 👋</h1>
+            <p class="sub-title">{saudacao}</p>
+            <h1 class="main-title">{st.session_state.usuario_logado['nome']}! 🍷</h1>
             <p class="sub-title">Seu nível de acesso: <b>{st.session_state.usuario_logado['cargo']}</b></p>
         </div>
     """,
@@ -485,7 +494,6 @@ elif st.session_state.menu_atual == "🔍 Buscar / Filtros Múltiplos":
         lados_disponiveis = ["Todos"] + LISTA_LADOS
         filtro_lado = st.selectbox("Filtrar por Lado:", lados_disponiveis)
 
-    # Filtragem combinada
     resultados = st.session_state.estoque
     if termo_nome:
         resultados = [
@@ -577,9 +585,4 @@ elif st.session_state.menu_atual == "➕ Cadastrar novo vinho":
         nome = st.text_input("Nome do Vinho:").strip()
         tipo = st.text_input("Tipo (ex: Tinto, Branco):").strip()
         safra = st.text_input("Safra (Ano ou NV):", value="2024").strip()
-        sel_corredor = st.selectbox("Corredor:", LISTA_CORREDORES)
-        sel_pallet = st.selectbox("Pallet:", LISTA_PALLETS)
-        lado = st.selectbox("Lado:", LISTA_LADOS)
-        caixa = st.selectbox("Caixa:", OPCOES_CAIXA)
-
-        if st.form_submit_button("SALVAR C
+        sel_corredor = st.selectbox("Corredor:", LISTA_CORRED
