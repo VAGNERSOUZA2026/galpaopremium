@@ -1,7 +1,7 @@
 import json
 import os
 import shutil
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import pandas as pd
 import streamlit as st
 import urllib.parse
@@ -64,7 +64,9 @@ LISTA_LADOS = ["Direito", "Esquerdo", "Centro / Único"]
 OPCOES_CAIXA = ["Caixa com 12 garrafas", "Caixa com 6 garrafas", "Caixa com 3 garrafas", "Caixa com 2 garrafas", "Garrafa Avulsa (1 un)", "Outra quantidade"]
 
 def obter_saudacao():
-    hora = datetime.now().hour
+    # Fuso horário de Brasília (UTC-3)
+    fuso_brasilia = timezone(timedelta(hours=-3))
+    hora = datetime.now(fuso_brasilia).hour
     if 0 <= hora < 12: return "Bom dia"
     elif 12 <= hora < 18: return "Boa tarde"
     else: return "Boa noite"
@@ -98,7 +100,7 @@ def salvar_usuarios(usuarios):
 def carregar_logs():
     if os.path.exists(ARQUIVO_LOGS):
         try:
-            with open(ARQUIVO_LOGS, "r", encoding="utf-8") as f: json.load(f)
+            with open(ARQUIVO_LOGS, "r", encoding="utf-8") as f: return json.load(f)
         except: pass
     return []
 
@@ -126,7 +128,6 @@ def buscar_por_voz():
 def extrair_linhas_de_arquivo(arquivo_enviado):
     linhas = []
     extensao = arquivo_enviado.name.split('.')[-1].lower()
-    
     try:
         if extensao in ['xlsx', 'xls']:
             df = pd.read_excel(arquivo_enviado)
@@ -149,7 +150,6 @@ def extrair_linhas_de_arquivo(arquivo_enviado):
             linhas = [l.strip() for l in conteudo.split("\n") if l.strip()]
     except Exception as e:
         st.error(f"Erro ao ler o arquivo: {e}")
-        
     return linhas
 
 # Sessão
@@ -159,7 +159,7 @@ if "menu_atual" not in st.session_state: st.session_state.menu_atual = "🏠 Hom
 if "termo_busca" not in st.session_state: st.session_state.termo_busca = ""
 if "vinho_para_duplicar" not in st.session_state: st.session_state.vinho_para_duplicar = None
 
-# Recupera sessão persistida via URL se houver refresh (F5 / Puxar tela)
+# Recuperação de sessão via URL
 query_params = st.query_params
 user_url = query_params.get("user", None)
 cargo_url = query_params.get("cargo", "Operador")
@@ -302,13 +302,12 @@ if st.session_state.menu_atual == "🏠 Home":
 
     if st.session_state.usuario_logado['cargo'] in ["Administrador", "Desenvolvedor"] or st.session_state.usuario_logado['nome'] == "Dev":
         st.write("")
-        if st.button("⚙️ Gerenciar Contas Cadastradas (Ver Logins e Senhas)", use_container_width=True):
+        if st.button("⚙️ Gerenciar Contas Cadastradas", use_container_width=True):
             st.session_state.menu_atual = "GerenciarUsuarios"
             st.rerun()
 
 elif st.session_state.menu_atual == "Filtros":
     st.subheader("🔍 Busca por Nome ou Voz")
-    
     c_texto, c_voz = st.columns([4, 1])
     with c_texto:
         termo = st.text_input("Filtrar por Nome:", value=st.session_state.termo_busca).strip()
@@ -323,7 +322,6 @@ elif st.session_state.menu_atual == "Filtros":
     if termo or st.session_state.termo_busca:
         termo_pesquisa = termo.lower() if termo else st.session_state.termo_busca.lower()
         res = [v for v in st.session_state.estoque if termo_pesquisa in v.get("nome", "").lower()]
-        
         if res:
             for v in res:
                 col_f1, col_f2 = st.columns([1, 4])
@@ -352,16 +350,12 @@ elif st.session_state.menu_atual == "Filtros":
 elif st.session_state.menu_atual == "MapaSeparacao":
     st.subheader("🗺️ Mapa de Separação (Rota Otimizada)")
     st.markdown("Envie o arquivo recebido (**Excel** ou **Word**) ou cole a lista abaixo para gerar o roteiro automático de busca no galpão:")
-    
     arquivo_enviado = st.file_uploader("📂 Enviar arquivo da lista (Word .docx ou Excel .xlsx)", type=["xlsx", "xls", "docx", "txt"])
-    
     st.markdown("<p style='text-align: center; color: #6C757D; font-weight: bold; margin: 10px 0;'>— OU —</p>", unsafe_allow_html=True)
-    
-    lista_texto_usuario = st.text_area("Digite ou cole os vinhos manualmente (um por linha):", height=120, placeholder="Ex:\nChâteau Margaux\nLa Consulta Malbec\nCatena Zapata")
+    lista_texto_usuario = st.text_area("Digite ou cole os vinhos manualmente (um por linha):", height=120)
     
     if st.button("Gerar Mapa de Rota"):
         linhas = []
-        
         if arquivo_enviado is not None:
             linhas = extrair_linhas_de_arquivo(arquivo_enviado)
         elif lista_texto_usuario.strip():
@@ -370,7 +364,6 @@ elif st.session_state.menu_atual == "MapaSeparacao":
         if linhas:
             vinhos_encontrados = []
             vinhos_nao_encontrados = []
-            
             for item in linhas:
                 encontrado = None
                 for v in st.session_state.estoque:
@@ -384,10 +377,8 @@ elif st.session_state.menu_atual == "MapaSeparacao":
                     vinhos_nao_encontrados.append(item)
             
             vinhos_encontrados.sort(key=lambda x: x.get('localizacao', ''))
-            
             st.markdown("---")
             st.markdown(f"### 📍 Rota Otimizada de Coleta ({len(vinhos_encontrados)} itens encontrados)")
-            
             if vinhos_encontrados:
                 for idx, v in enumerate(vinhos_encontrados, 1):
                     st.markdown(
@@ -401,13 +392,10 @@ elif st.session_state.menu_atual == "MapaSeparacao":
                         </div>""",
                         unsafe_allow_html=True
                     )
-            else:
-                st.info("Nenhum dos vinhos da lista foi localizado no estoque atual.")
-                
             if vinhos_nao_encontrados:
-                st.warning(f"⚠️ Os seguintes itens do arquivo/lista não foram encontrados no sistema: {', '.join(vinhos_nao_encontrados)}")
+                st.warning(f"⚠️ Itens não encontrados: {', '.join(vinhos_nao_encontrados)}")
         else:
-            st.error("Por favor, envie um arquivo com a lista ou digite/cole os itens na caixa de texto.")
+            st.error("Por favor, envie um arquivo ou digite os itens.")
 
 elif st.session_state.menu_atual == "Scanner":
     st.subheader("📷 Escanear QR Code do Local")
@@ -416,226 +404,15 @@ elif st.session_state.menu_atual == "Scanner":
         img = cv2.imdecode(np.frombuffer(foto.getvalue(), np.uint8), cv2.IMREAD_COLOR)
         val, _, _ = cv2.QRCodeDetector().detectAndDecode(img)
         if val:
+            termo_lido = val.strip().lower()
             st.success(f"Localizado: {val}")
-            for v in [x for x in st.session_state.estoque if val in x.get('localizacao', '')]:
-                st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')}</div></div>", unsafe_allow_html=True)
-        else: st.error("Nenhum QR Code encontrado.")
-
-elif st.session_state.menu_atual == "Estoque":
-    st.subheader("🍷 Estoque Completo (Ordem Alfabética)")
-    
-    estoque_ordenado = sorted(st.session_state.estoque, key=lambda x: x.get('nome', '').lower())
-    
-    if estoque_ordenado:
-        st.info("💡 Clique em qualquer vinho abaixo para expandir, ver detalhes ou duplicar o cadastro para uma nova caixa/lote.")
-        for idx_estoque, v in enumerate(estoque_ordenado):
-            nome_exibicao = f"🍷 {v.get('nome')} ({v.get('safra', '')}) — [{v.get('tipo', 'Geral')}]"
-            with st.expander(nome_exibicao):
-                col_e1, col_e2 = st.columns([1, 2])
-                with col_e1:
-                    if v.get("foto") and os.path.exists(v.get("foto")):
-                        st.image(v.get("foto"), width=160, caption="Foto do Vinho")
-                    else:
-                        st.info("Este vinho não possui foto cadastrada.")
-                with col_e2:
-                    st.markdown(f"<p style='font-size: 1.05rem;'><b>Nome:</b> {v.get('nome')}</p>", unsafe_allow_html=True)
-                    st.markdown(f"<p style='font-size: 1.05rem;'><b>Tipo:</b> {v.get('tipo', 'N/A')}</p>", unsafe_allow_html=True)
-                    st.markdown(f"<p style='font-size: 1.05rem;'><b>Safra:</b> {v.get('safra', 'N/A')}</p>", unsafe_allow_html=True)
-                    st.markdown(f"<p style='font-size: 1.05rem; margin-top: 10px;'><b>Localização:</b><br><span class='badge-pallet-grande'>📍 {v.get('localizacao', 'Não informada')} ({v.get('lado', '')})</span></p>", unsafe_allow_html=True)
-                    st.markdown(f"<p style='font-size: 1.05rem; margin-top: 10px;'><b>Embalagem:</b><br><span class='badge-caixa-grande'>📦 {v.get('caixa', 'N/A')}</span></p>", unsafe_allow_html=True)
-                    
-                    st.write("")
-                    if st.button("📋 Duplicar Este Cadastro", key=f"dup_{idx_estoque}"):
-                        st.session_state.vinho_para_duplicar = v
-                        st.session_state.menu_atual = "Cadastrar"
-                        st.rerun()
-    else:
-        st.info("Nenhum vinho cadastrado no estoque.")
-
-elif st.session_state.menu_atual == "Cadastrar":
-    st.subheader("➕ Cadastrar Novo Vinho / Duplicar Cadastro")
-    
-    dados_padrao = st.session_state.vinho_para_duplicar if st.session_state.vinho_para_duplicar else {}
-    
-    if st.session_state.vinho_para_duplicar:
-        st.info(f"📋 Duplicando dados de: **{dados_padrao.get('nome')} ({dados_padrao.get('safra')})**. Ajuste o que precisar e salve.")
-    
-    with st.form("cad", clear_on_submit=True):
-        nome = st.text_input("Nome do Vinho", value=dados_padrao.get("nome", "")).strip()
-        tipo = st.text_input("Tipo (ex: Tinto, Branco)", value=dados_padrao.get("tipo", "")).strip()
-        safra = st.text_input("Safra", value=dados_padrao.get("safra", "2024")).strip()
-        
-        col_loc1, col_loc2, col_loc3 = st.columns(3)
-        with col_loc1:
-            cor = st.selectbox("Corredor", LISTA_CORREDORES)
-        with col_loc2:
-            tipo_local = st.selectbox("Tipo de Local", LISTA_LOCAIS_TIPO)
-        with col_loc3:
-            num_local = st.selectbox("Número", LISTA_NUMEROS_LOCAL)
-            
-        lado = st.selectbox("Lado", LISTA_LADOS)
-        caixa = st.selectbox("Quantidade / Caixa", OPCOES_CAIXA)
-        foto_vinho = st.file_uploader("Enviar Foto do Vinho", type=["jpg", "png", "jpeg"])
-        
-        enviar = st.form_submit_button("Salvar Vinho no Estoque")
-        if enviar:
-            caminho_foto = dados_padrao.get("foto", "")
-            if foto_vinho is not None:
-                os.makedirs("fotos_vinhos", exist_ok=True)
-                caminho_foto = os.path.join("fotos_vinhos", foto_vinho.name)
-                with open(caminho_foto, "wb") as f:
-                    f.write(foto_vinho.getbuffer())
-            
-            nome_formatado = nome.title()
-            tipo_formatado = tipo.title()
-            
-            localizacao_completa = f"{cor} - {tipo_local} {num_local.replace('Item ', '')}"
-            st.session_state.estoque.append({
-                "nome": nome_formatado, 
-                "tipo": tipo_formatado, 
-                "safra": safra, 
-                "localizacao": localizacao_completa, 
-                "lado": lado, 
-                "caixa": caixa,
-                "foto": caminho_foto
-            })
-            salvar_dados(st.session_state.estoque)
-            registrar_log(st.session_state.usuario_logado['nome'], "Cadastro de Vinho", f"{nome_formatado} em {localizacao_completa}")
-            
-            st.session_state.vinho_para_duplicar = None
-            st.success("Vinho cadastrado com sucesso! O formulário está pronto para um novo cadastro.")
-
-elif st.session_state.menu_atual == "GerarQR":
-    st.subheader("📱 Gerar QR Code de Localização")
-    c = st.selectbox("Corredor", LISTA_CORREDORES)
-    tl = st.selectbox("Tipo de Local", LISTA_LOCAIS_TIPO)
-    nl = st.selectbox("Número", LISTA_NUMEROS_LOCAL)
-    texto_qr = f"{c} - {tl} {nl.replace('Item ', '')}"
-    if st.button("Gerar Etiqueta QR"): 
-        st.image(gerar_qr_code_api(texto_qr))
-        st.info(f"QR Code gerado para: **{texto_qr}**")
-
-elif st.session_state.menu_atual == "Historico":
-    st.subheader("📋 Histórico de Atividades")
-    for l in carregar_logs():
-        st.write(f"[{l.get('data_hora')}] {l.get('usuario')} - {l.get('acao')}: {l.get('detalhes')}")
-
-elif st.session_state.menu_atual == "Editar":
-    st.subheader("✏️ Editar Vinho (Todos os Dados e Imagem)")
-    nomes = [f"{v.get('nome')} ({v.get('safra', '')})" for v in st.session_state.estoque]
-    if nomes:
-        esc = st.selectbox("Selecione o Vinho para Editar", nomes)
-        idx = nomes.index(esc)
-        v = st.session_state.estoque[idx]
-        
-        with st.form("edit_completo"):
-            nn = st.text_input("Nome do Vinho", v.get('nome', '')).strip()
-            nt = st.text_input("Tipo", v.get('tipo', '')).strip()
-            ns = st.text_input("Safra", v.get('safra', '')).strip()
-            
-            col_loc1, col_loc2, col_loc3 = st.columns(3)
-            with col_loc1:
-                cor = st.selectbox("Corredor", LISTA_CORREDORES)
-            with col_loc2:
-                tipo_local = st.selectbox("Tipo de Local", LISTA_LOCAIS_TIPO)
-            with col_loc3:
-                num_local = st.selectbox("Número", LISTA_NUMEROS_LOCAL)
-                
-            nlado = st.selectbox("Lado", LISTA_LADOS, index=LISTA_LADOS.index(v.get('lado', 'Direito')) if v.get('lado') in LISTA_LADOS else 0)
-            ncaixa = st.selectbox("Quantidade / Caixa", OPCOES_CAIXA, index=OPCOES_CAIXA.index(v.get('caixa', 'Caixa com 12 garrafas')) if v.get('caixa') in OPCOES_CAIXA else 0)
-            
-            st.write("---")
-            if v.get("foto") and os.path.exists(v.get("foto")):
-                st.image(v.get("foto"), width=120, caption="Foto atual cadastrada")
-            else:
-                st.info("Este vinho está sem foto cadastrada atualmente.")
-                
-            nova_foto_vinho = st.file_uploader("Alterar / Adicionar Foto do Vinho", type=["jpg", "png", "jpeg"])
-            
-            if st.form_submit_button("💾 Salvar Alterações"):
-                caminho_foto = v.get("foto", "")
-                if nova_foto_vinho is not None:
-                    os.makedirs("fotos_vinhos", exist_ok=True)
-                    caminho_foto = os.path.join("fotos_vinhos", nova_foto_vinho.name)
-                    with open(caminho_foto, "wb") as f:
-                        f.write(nova_foto_vinho.getbuffer())
-                
-                nome_formatado = nn.title()
-                tipo_formatado = nt.title()
-
-                localizacao_completa = f"{cor} - {tipo_local} {num_local.replace('Item ', '')}"
-                st.session_state.estoque[idx] = {
-                    "nome": nome_formatado,
-                    "tipo": tipo_formatado,
-                    "safra": ns,
-                    "localizacao": localizacao_completa,
-                    "lado": nlado,
-                    "caixa": ncaixa,
-                    "foto": caminho_foto
-                }
-                salvar_dados(st.session_state.estoque)
-                registrar_log(st.session_state.usuario_logado['nome'], "Edição de Vinho", f"Atualizado: {nome_formatado}")
-                st.success("Vinho atualizado com sucesso!")
-                st.rerun()
-    else:
-        st.info("Nenhum vinho cadastrado para editar.")
-
-elif st.session_state.menu_atual == "Excluir":
-    st.subheader("🗑️ Excluir Vinho")
-    nomes = [f"{v.get('nome')} ({v.get('safra', '')})" for v in st.session_state.estoque]
-    if nomes:
-        esc = st.selectbox("Selecione", nomes)
-        idx = nomes.index(esc)
-        if st.button("Excluir Definitivamente"):
-            st.session_state.estoque.pop(idx)
-            salvar_dados(st.session_state.estoque)
-            st.success("Excluído!")
-            st.rerun()
-
-elif st.session_state.menu_atual == "GerenciarUsuarios":
-    st.subheader("⚙️ Gerenciamento de Contas (Credenciais de Acesso)")
-    
-    if not st.session_state.usuarios:
-        st.info("Nenhum usuário cadastrado.")
-    else:
-        df_usuarios = pd.DataFrame(st.session_state.usuarios)[["nome", "senha"]]
-        df_usuarios.columns = ["Usuário", "Senha"]
-        st.markdown("##### Relação de Contas e Senhas:")
-        st.dataframe(df_usuarios, use_container_width=True)
-        
-        st.markdown("---")
-        
-        nomes_usuarios = [u["nome"] for u in st.session_state.usuarios]
-        usuario_selecionado = st.selectbox("Selecione a conta para editar ou excluir:", nomes_usuarios)
-        
-        idx_u = next(i for i, u in enumerate(st.session_state.usuarios) if u["nome"] == usuario_selecionado)
-        user_obj = st.session_state.usuarios[idx_u]
-        
-        with st.form("form_gerenciar_usuario"):
-            novo_nome = st.text_input("Nome / Usuário", user_obj.get("nome", ""))
-            nova_senha = st.text_input("Senha", user_obj.get("senha", ""))
-            
-            col_btn1, col_btn2 = st.columns(2)
-            atualizar_usuario = col_btn1.form_submit_button("💾 Salvar Alterações", use_container_width=True)
-            excluir_usuario = col_btn2.form_submit_button("🗑️ Excluir Conta", use_container_width=True)
-            
-            if atualizar_usuario:
-                if novo_nome.strip():
-                    st.session_state.usuarios[idx_u]["nome"] = novo_nome.strip()
-                    st.session_state.usuarios[idx_u]["senha"] = nova_senha.strip()
-                    salvar_usuarios(st.session_state.usuarios)
-                    registrar_log(st.session_state.usuario_logado['nome'], "Gerenciamento de Conta", f"Atualizou credenciais de: {usuario_selecionado}")
-                    st.success(f"Credenciais atualizadas com sucesso!")
-                    st.rerun()
-                else:
-                    st.error("O nome de usuário não pode ficar em branco.")
-                
-            if excluir_usuario:
-                if len(st.session_state.usuarios) <= 1:
-                    st.error("Não é possível excluir o último usuário restante do sistema.")
-                else:
-                    removido = st.session_state.usuarios.pop(idx_u)
-                    salvar_usuarios(st.session_state.usuarios)
-                    registrar_log(st.session_state.usuario_logado['nome'], "Exclusão de Conta", f"Removeu o usuário: {removido['nome']}")
-                    st.success(f"Conta de {usuario_selecionado} excluída com sucesso!")
-                    st.rerun()
+            resultados = [
+                v for v in st.session_state.estoque 
+                if termo_lido in v.get('localizacao', '').lower()
+            ]
+            if resultados:
+                st.write(f"### 🍷 Vinhos encontrados neste local:")
+                for v in resultados:
+                    st.markdown(
+                        f"""<div class='wine-card'>
+                   
