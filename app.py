@@ -1,9 +1,9 @@
-import streamlit as st
 import json
 import os
 import shutil
 from datetime import datetime
 import pandas as pd
+import streamlit as st
 import urllib.parse
 from streamlit_javascript import st_javascript
 
@@ -19,95 +19,33 @@ try:
 except ImportError:
     OPENCV_DISPONIVEL = False
 
-# 1. Configuração da página (DEVE SER A PRIMEIRA CHAMADA DO STREAMLIT)
+# Configuração da página
 st.set_page_config(
     page_title="Premium Wines - Galpão",
+    page_icon="imagem premium.jpeg",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
 
-# 2. Estilização CSS Dark Mode (Wine Map Pro Style)
+# Estilização CSS com bloqueio de pull-to-refresh para celulares
 st.markdown(
     """
     <style>
-    /* Fundo Geral */
-    .stApp {
-        background-color: #121212 !important;
-        color: #FFFFFF !important;
-        font-family: 'Poppins', sans-serif;
-        overscroll-behavior-y: none;
-    }
-
-    /* Cards Estilo Wine Map Pro */
-    .wine-card {
-        background-color: #1E1E1E !important;
-        border: 1px solid #333333 !important;
-        border-radius: 16px !important;
-        padding: 16px !important;
-        margin-bottom: 12px !important;
-        box-shadow: 0px 4px 15px rgba(0,0,0,0.3) !important;
-        color: #FFFFFF !important;
-    }
-    
-    .wine-title { 
-        color: #C9A227 !important; 
-        font-size: 1.1rem; 
-        font-weight: 700; 
-        margin-bottom: 4px; 
-    }
-
-    .badge-pallet-grande { 
-        background-color: #581825; 
-        color: #FFFFFF; 
-        padding: 6px 14px; 
-        border-radius: 8px; 
-        font-weight: 700; 
-        font-size: 1rem; 
-        display: inline-block; 
-        box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.4); 
-    }
-    
-    .badge-caixa-grande { 
-        background-color: #333333; 
-        color: #FFFFFF; 
-        padding: 6px 14px; 
-        border-radius: 8px; 
-        font-weight: 700; 
-        font-size: 1rem; 
-        display: inline-block; 
-        box-shadow: 0px 2px 6px rgba(0, 0, 0, 0.4); 
-    }
-
-    /* Botões personalizados */
-    div.stButton > button {
-        background-color: #581825 !important;
-        color: #FFFFFF !important;
-        border-radius: 12px !important;
-        border: none !important;
-        font-weight: 600 !important;
-        padding: 10px 16px !important;
-        width: 100%;
-        box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.3);
-    }
-    div.stButton > button:hover {
-        background-color: #7A1C2E !important;
-        color: #FFD700 !important;
-    }
-
-    /* Títulos e Textos */
-    h1, h2, h3, p, label { color: #FFFFFF !important; }
-    
-    /* Inputs e Selects */
-    .stTextInput > div > div > input, .stSelectbox > div > div, .stTextArea textarea {
-        background-color: #1E1E1E !important;
-        color: white !important;
-        border: 1px solid #333333 !important;
-        border-radius: 8px !important;
-    }
-    
+    .stApp { background: linear-gradient(135deg, #F8F9FA 0%, #E9ECEF 100%); color: #1A1A1A; font-family: 'Poppins', sans-serif; overscroll-behavior-y: none; }
     [data-testid="stSidebar"] { display: none; }
+    
+    label { color: #7A1C2E !important; font-weight: 700 !important; font-size: 0.95rem !important; }
+    
+    .wine-card { background-color: #FFFFFF; color: #1A1A1A; border-radius: 14px; padding: 16px; margin-bottom: 12px; border: 1px solid #E9ECEF; box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03); }
+    .wine-title { color: #7A1C2E; font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
+    
+    .badge-pallet-grande { background-color: #7A1C2E; color: #FFFFFF; padding: 6px 14px; border-radius: 8px; font-weight: 700; font-size: 1rem; display: inline-block; letter-spacing: 0.5px; box-shadow: 0px 2px 6px rgba(122, 28, 46, 0.2); }
+    .badge-caixa-grande { background-color: #343A40; color: #FFFFFF; padding: 6px 14px; border-radius: 8px; font-weight: 700; font-size: 1rem; display: inline-block; letter-spacing: 0.5px; box-shadow: 0px 2px 6px rgba(52, 58, 64, 0.2); }
+    
+    .stButton button { background-color: #7A1C2E !important; color: #FFFFFF !important; border-radius: 12px !important; font-weight: 600 !important; border: none !important; padding: 10px 16px !important; width: 100%; box-shadow: 0px 4px 10px rgba(122, 28, 46, 0.2); }
+    .stButton button:hover { background-color: #922338 !important; color: #FFD700 !important; }
     </style>
-    """, unsafe_allow_html=True,
+""", unsafe_allow_html=True,
 )
 
 NOME_ARQUIVO = "estoque_galpao_pro.json"
@@ -160,7 +98,7 @@ def salvar_usuarios(usuarios):
 def carregar_logs():
     if os.path.exists(ARQUIVO_LOGS):
         try:
-            with open(ARQUIVO_LOGS, "r", encoding="utf-8") as f: return json.load(f)
+            with open(ARQUIVO_LOGS, "r", encoding="utf-8") as f: json.load(f)
         except: pass
     return []
 
@@ -188,6 +126,7 @@ def buscar_por_voz():
 def extrair_linhas_de_arquivo(arquivo_enviado):
     linhas = []
     extensao = arquivo_enviado.name.split('.')[-1].lower()
+    
     try:
         if extensao in ['xlsx', 'xls']:
             df = pd.read_excel(arquivo_enviado)
@@ -210,9 +149,10 @@ def extrair_linhas_de_arquivo(arquivo_enviado):
             linhas = [l.strip() for l in conteudo.split("\n") if l.strip()]
     except Exception as e:
         st.error(f"Erro ao ler o arquivo: {e}")
+        
     return linhas
 
-# Inicialização de Estado
+# Sessão
 if "estoque" not in st.session_state: st.session_state.estoque = carregar_dados()
 if "usuarios" not in st.session_state: st.session_state.usuarios = carregar_usuarios()
 if "menu_atual" not in st.session_state: st.session_state.menu_atual = "🏠 Home"
@@ -235,11 +175,16 @@ if st.session_state.usuario_logado is None:
     st.write("")
     _, col_centro, _ = st.columns([1, 1.3, 1])
     with col_centro:
+        if os.path.exists("imagem premium.jpeg"):
+            _, col_img, _ = st.columns([1, 1.8, 1])
+            with col_img: st.image("imagem premium.jpeg", width=190)
+        
         st.markdown(
             """
-            <div style="text-align: center; margin-top: 10px; margin-bottom: 20px;" class="wine-card">
-                <h1 style="color: #C9A227; font-size: 1.6rem; font-weight: 800; margin-bottom: 0; letter-spacing: 1px;">WINE MAP PRO</h1>
-                <p style="color: #CCCCCC; font-size: 0.9rem; margin-top: 5px;">Controle Inteligente de Estoque e Vinhos</p>
+            <div style="text-align: center; margin-top: 10px; margin-bottom: 20px;">
+                <h1 style="color: #7A1C2E; font-size: 1.6rem; font-weight: 800; margin-bottom: 0; letter-spacing: 1px;">PREMIUM WINES</h1>
+                <h2 style="color: #7A1C2E; font-size: 1.3rem; font-weight: 700; margin-top: 2px; letter-spacing: 2px;">GALPÃO</h2>
+                <p style="color: #6C757D; font-size: 0.9rem; margin-top: 5px;">Controle Inteligente de Estoque e Vinhos</p>
             </div>
             """, 
             unsafe_allow_html=True
@@ -297,7 +242,7 @@ if st.session_state.usuario_logado is None:
 
 # --- TOPO LOGADO ---
 c_t1, c_t2, c_t3 = st.columns([3, 2, 1])
-with c_t1: st.markdown(f"<span style='color: #C9A227; font-weight: bold;'>🍷 WINE MAP PRO</span> | Usuário: <b>{st.session_state.usuario_logado['nome']}</b>", unsafe_allow_html=True)
+with c_t1: st.markdown(f"<span style='color: #7A1C2E; font-weight: bold;'>🍷 PREMIUM WINES GALPÃO</span> | Usuário: <b>{st.session_state.usuario_logado['nome']}</b>", unsafe_allow_html=True)
 with c_t2:
     if st.session_state.menu_atual != "🏠 Home":
         if st.button("⬅️ Voltar ao Menu", use_container_width=True): st.session_state.menu_atual = "🏠 Home"; st.rerun()
@@ -312,13 +257,18 @@ st.markdown("---")
 
 # --- MENU PRINCIPAL (HOME) ---
 if st.session_state.menu_atual == "🏠 Home":
+    if os.path.exists("imagem premium.jpeg"):
+        _, c_img, _ = st.columns([1.5, 1, 1.5])
+        with c_img:
+            st.image("imagem premium.jpeg", width=220)
+    
     saudacao = obter_saudacao()
     st.markdown(
         f"""
-        <div style="text-align: center; margin-bottom: 25px;" class="wine-card">
-            <p style="color: #AAAAAA; margin-bottom: 0; font-size: 1.1rem;">{saudacao},</p>
-            <h1 style="color: #C9A227; font-size: 2.2rem; font-weight: 800; margin-top: 0;">{st.session_state.usuario_logado['nome']}! 👋</h1>
-            <p style="color: #DDDDDD; font-size: 0.95rem;">Escolha abaixo a opção desejada para gerenciar o galpão:</p>
+        <div style="text-align: center; margin-bottom: 25px;">
+            <p style="color: #6C757D; margin-bottom: 0; font-size: 1.1rem;">{saudacao},</p>
+            <h1 style="color: #7A1C2E; font-size: 2.2rem; font-weight: 800; margin-top: 0;">{st.session_state.usuario_logado['nome']}! 👋</h1>
+            <p style="color: #495057; font-size: 0.95rem;">Escolha abaixo a opção desejada para gerenciar o galpão:</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -358,6 +308,7 @@ if st.session_state.menu_atual == "🏠 Home":
 
 elif st.session_state.menu_atual == "Filtros":
     st.subheader("🔍 Busca por Nome ou Voz")
+    
     c_texto, c_voz = st.columns([4, 1])
     with c_texto:
         termo = st.text_input("Filtrar por Nome:", value=st.session_state.termo_busca).strip()
@@ -403,11 +354,14 @@ elif st.session_state.menu_atual == "MapaSeparacao":
     st.markdown("Envie o arquivo recebido (**Excel** ou **Word**) ou cole a lista abaixo para gerar o roteiro automático de busca no galpão:")
     
     arquivo_enviado = st.file_uploader("📂 Enviar arquivo da lista (Word .docx ou Excel .xlsx)", type=["xlsx", "xls", "docx", "txt"])
-    st.markdown("<p style='text-align: center; color: #888888; font-weight: bold; margin: 10px 0;'>— OU —</p>", unsafe_allow_html=True)
+    
+    st.markdown("<p style='text-align: center; color: #6C757D; font-weight: bold; margin: 10px 0;'>— OU —</p>", unsafe_allow_html=True)
+    
     lista_texto_usuario = st.text_area("Digite ou cole os vinhos manualmente (um por linha):", height=120, placeholder="Ex:\nChâteau Margaux\nLa Consulta Malbec\nCatena Zapata")
     
     if st.button("Gerar Mapa de Rota"):
         linhas = []
+        
         if arquivo_enviado is not None:
             linhas = extrair_linhas_de_arquivo(arquivo_enviado)
         elif lista_texto_usuario.strip():
@@ -438,7 +392,7 @@ elif st.session_state.menu_atual == "MapaSeparacao":
                 for idx, v in enumerate(vinhos_encontrados, 1):
                     st.markdown(
                         f"""<div class='wine-card'>
-                            <div style="font-size: 0.9rem; color: #C9A227; font-weight: bold;">PASSO {idx:02d}</div>
+                            <div style="font-size: 0.9rem; color: #6C757D; font-weight: bold;">PASSO {idx:02d}</div>
                             <div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra', '')})</div>
                             <p style="font-size: 1rem; margin-top: 6px;">
                                 <span class='badge-pallet-grande'>📍 {v.get('localizacao', 'Não informada')} — Lado: {v.get('lado', '')}</span><br><br>
@@ -469,6 +423,7 @@ elif st.session_state.menu_atual == "Scanner":
 
 elif st.session_state.menu_atual == "Estoque":
     st.subheader("🍷 Estoque Completo (Ordem Alfabética)")
+    
     estoque_ordenado = sorted(st.session_state.estoque, key=lambda x: x.get('nome', '').lower())
     
     if estoque_ordenado:
@@ -499,6 +454,7 @@ elif st.session_state.menu_atual == "Estoque":
 
 elif st.session_state.menu_atual == "Cadastrar":
     st.subheader("➕ Cadastrar Novo Vinho / Duplicar Cadastro")
+    
     dados_padrao = st.session_state.vinho_para_duplicar if st.session_state.vinho_para_duplicar else {}
     
     if st.session_state.vinho_para_duplicar:
@@ -510,9 +466,12 @@ elif st.session_state.menu_atual == "Cadastrar":
         safra = st.text_input("Safra", value=dados_padrao.get("safra", "2024")).strip()
         
         col_loc1, col_loc2, col_loc3 = st.columns(3)
-        with col_loc1: cor = st.selectbox("Corredor", LISTA_CORREDORES)
-        with col_loc2: tipo_local = st.selectbox("Tipo de Local", LISTA_LOCAIS_TIPO)
-        with col_loc3: num_local = st.selectbox("Número", LISTA_NUMEROS_LOCAL)
+        with col_loc1:
+            cor = st.selectbox("Corredor", LISTA_CORREDORES)
+        with col_loc2:
+            tipo_local = st.selectbox("Tipo de Local", LISTA_LOCAIS_TIPO)
+        with col_loc3:
+            num_local = st.selectbox("Número", LISTA_NUMEROS_LOCAL)
             
         lado = st.selectbox("Lado", LISTA_LADOS)
         caixa = st.selectbox("Quantidade / Caixa", OPCOES_CAIXA)
@@ -529,8 +488,8 @@ elif st.session_state.menu_atual == "Cadastrar":
             
             nome_formatado = nome.title()
             tipo_formatado = tipo.title()
-            localizacao_completa = f"{cor} - {tipo_local} {num_local.replace('Item ', '')}"
             
+            localizacao_completa = f"{cor} - {tipo_local} {num_local.replace('Item ', '')}"
             st.session_state.estoque.append({
                 "nome": nome_formatado, 
                 "tipo": tipo_formatado, 
@@ -542,6 +501,7 @@ elif st.session_state.menu_atual == "Cadastrar":
             })
             salvar_dados(st.session_state.estoque)
             registrar_log(st.session_state.usuario_logado['nome'], "Cadastro de Vinho", f"{nome_formatado} em {localizacao_completa}")
+            
             st.session_state.vinho_para_duplicar = None
             st.success("Vinho cadastrado com sucesso! O formulário está pronto para um novo cadastro.")
 
@@ -574,9 +534,12 @@ elif st.session_state.menu_atual == "Editar":
             ns = st.text_input("Safra", v.get('safra', '')).strip()
             
             col_loc1, col_loc2, col_loc3 = st.columns(3)
-            with col_loc1: cor = st.selectbox("Corredor", LISTA_CORREDORES)
-            with col_loc2: tipo_local = st.selectbox("Tipo de Local", LISTA_LOCAIS_TIPO)
-            with col_loc3: num_local = st.selectbox("Número", LISTA_NUMEROS_LOCAL)
+            with col_loc1:
+                cor = st.selectbox("Corredor", LISTA_CORREDORES)
+            with col_loc2:
+                tipo_local = st.selectbox("Tipo de Local", LISTA_LOCAIS_TIPO)
+            with col_loc3:
+                num_local = st.selectbox("Número", LISTA_NUMEROS_LOCAL)
                 
             nlado = st.selectbox("Lado", LISTA_LADOS, index=LISTA_LADOS.index(v.get('lado', 'Direito')) if v.get('lado') in LISTA_LADOS else 0)
             ncaixa = st.selectbox("Quantidade / Caixa", OPCOES_CAIXA, index=OPCOES_CAIXA.index(v.get('caixa', 'Caixa com 12 garrafas')) if v.get('caixa') in OPCOES_CAIXA else 0)
@@ -599,8 +562,8 @@ elif st.session_state.menu_atual == "Editar":
                 
                 nome_formatado = nn.title()
                 tipo_formatado = nt.title()
+
                 localizacao_completa = f"{cor} - {tipo_local} {num_local.replace('Item ', '')}"
-                
                 st.session_state.estoque[idx] = {
                     "nome": nome_formatado,
                     "tipo": tipo_formatado,
@@ -631,6 +594,7 @@ elif st.session_state.menu_atual == "Excluir":
 
 elif st.session_state.menu_atual == "GerenciarUsuarios":
     st.subheader("⚙️ Gerenciamento de Contas (Credenciais de Acesso)")
+    
     if not st.session_state.usuarios:
         st.info("Nenhum usuário cadastrado.")
     else:
@@ -638,6 +602,7 @@ elif st.session_state.menu_atual == "GerenciarUsuarios":
         df_usuarios.columns = ["Usuário", "Senha"]
         st.markdown("##### Relação de Contas e Senhas:")
         st.dataframe(df_usuarios, use_container_width=True)
+        
         st.markdown("---")
         
         nomes_usuarios = [u["nome"] for u in st.session_state.usuarios]
