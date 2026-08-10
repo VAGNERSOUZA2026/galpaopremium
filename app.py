@@ -64,7 +64,6 @@ LISTA_LADOS = ["Direito", "Esquerdo", "Centro / Único"]
 OPCOES_CAIXA = ["Caixa com 12 garrafas", "Caixa com 6 garrafas", "Caixa com 3 garrafas", "Caixa com 2 garrafas", "Garrafa Avulsa (1 un)", "Outra quantidade"]
 
 def obter_saudacao():
-    # Fuso horário de Brasília (UTC-3)
     fuso_brasilia = timezone(timedelta(hours=-3))
     hora = datetime.now(fuso_brasilia).hour
     if 0 <= hora < 12: return "Bom dia"
@@ -416,19 +415,4 @@ elif st.session_state.menu_atual == "Scanner":
                 st.write("### 🍷 Vinhos encontrados neste local:")
                 for v in resultados:
                     nome_vinho = v.get('nome', 'Sem nome')
-                    safra_vinho = v.get('safra', 'N/A')
-                    loc_vinho = v.get('localizacao', 'N/A')
-                    lado_vinho = v.get('lado', 'N/A')
-                    caixa_vinho = v.get('caixa', 'N/A')
-                    
-                    st.markdown(
-                        f"<div class='wine-card'>"
-                        f"<div class='wine-title'>🍷 {nome_vinho} ({safra_vinho})</div>"
-                        f"<p>Local: <b>{loc_vinho}</b><br>Lado: {lado_vinho}<br>📦 {caixa_vinho}</p>"
-                        f"</div>",
-                        unsafe_allow_html=True
-                    )
-            else:
-                st.warning(f"Nenhum vinho encontrado vinculado ao local lido: '{val}'.")
-        else:
-            st.error("QR Code não detectado na imagem. Tente novamente.")
+                    safra_vinho = v.get('safra', 'N/A'
