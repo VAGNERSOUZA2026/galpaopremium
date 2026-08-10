@@ -49,15 +49,6 @@ st.markdown(
         box-shadow: 0px 4px 20px rgba(0,0,0,0.4) !important;
     }
 
-    .wine-card-metric {
-        background-color: #1E1E1E !important;
-        border: 1px solid #2C2C2C !important;
-        border-radius: 16px !important;
-        padding: 16px !important;
-        text-align: center;
-        box-shadow: 0px 4px 15px rgba(0,0,0,0.3) !important;
-    }
-
     /* Botões Principais (Tom Vinho #581825 com texto branco) */
     div.stButton > button {
         background-color: #581825 !important;
@@ -181,7 +172,7 @@ if "usuario_logado" not in st.session_state or st.session_state.usuario_logado i
     else:
         st.session_state.usuario_logado = None
 
-# --- TELA DE LOGIN (Estilo Pro da Imagem) ---
+# --- TELA DE LOGIN ---
 if st.session_state.usuario_logado is None:
     st.write("")
     _, col_centro, _ = st.columns([1, 1.2, 1])
@@ -246,14 +237,13 @@ with c_t2:
 
 st.markdown("---")
 
-# Se não estiver na Home, mostra botão de voltar
 if st.session_state.menu_atual != "🏠 Home":
     if st.button("⬅️ Voltar para o Dashboard (Home)"):
         st.session_state.menu_atual = "🏠 Home"
         st.rerun()
     st.write("")
 
-# --- PAINEL HOME / DASHBOARD (Igual ao Print 3 da imagem) ---
+# --- PAINEL HOME / DASHBOARD ---
 if st.session_state.menu_atual == "🏠 Home":
     saudacao = obter_saudacao()
     total_vinhos = len(st.session_state.estoque)
@@ -308,7 +298,7 @@ if st.session_state.menu_atual == "🏠 Home":
             st.session_state.menu_atual = "GerenciarUsuarios"
             st.rerun()
 
-# --- TELA DE BUSCA (Print 4) ---
+# --- TELA DE BUSCA ---
 elif st.session_state.menu_atual == "Filtros":
     st.markdown("### 🔍 Buscar Vinho")
     termo = st.text_input("Pesquisar por nome, vinícola...", placeholder="Digite o nome do vinho...").strip()
@@ -334,7 +324,7 @@ elif st.session_state.menu_atual == "Filtros":
     else:
         st.info("Digite algo na barra acima para iniciar a busca.")
 
-# --- TELA DE CADASTRO (Print 5) ---
+# --- TELA DE CADASTRO ---
 elif st.session_state.menu_atual == "Cadastrar":
     st.markdown("### ➕ Novo Cadastro")
     dados_padrao = st.session_state.vinho_para_duplicar if st.session_state.vinho_para_duplicar else {}
@@ -346,7 +336,7 @@ elif st.session_state.menu_atual == "Cadastrar":
         
         c1, c2, c3 = st.columns(3)
         with c1: cor = st.selectbox("Corredor", LISTA_CORREDORES)
-        with c2: tipo_ local = st.selectbox("Local", LISTA_LOCAIS_TIPO)
+        with c2: tipo_local = st.selectbox("Local", LISTA_LOCAIS_TIPO)
         with c3: num_local = st.selectbox("Número", LISTA_NUMEROS_LOCAL)
         
         lado = st.selectbox("Lado", LISTA_LADOS)
@@ -362,7 +352,7 @@ elif st.session_state.menu_atual == "Cadastrar":
                 with open(caminho_foto, "wb") as f:
                     f.write(foto_vinho.getbuffer())
             
-            localizacao_completa = f"{cor} - {tipo_ local} {num_local.replace('Item ', '')}"
+            localizacao_completa = f"{cor} - {tipo_local} {num_local.replace('Item ', '')}"
             st.session_state.estoque.append({
                 "nome": nome.title(),
                 "tipo": tipo.title(),
@@ -377,7 +367,7 @@ elif st.session_state.menu_atual == "Cadastrar":
             st.success("Vinho cadastrado com sucesso!")
             st.session_state.vinho_para_duplicar = None
 
-# --- TELA DE ESTOQUE (Print 6) ---
+# --- TELA DE ESTOQUE ---
 elif st.session_state.menu_atual == "Estoque":
     st.markdown("### 🍷 Estoque")
     for idx, v in enumerate(st.session_state.estoque):
