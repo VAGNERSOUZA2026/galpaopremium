@@ -108,14 +108,12 @@ if st.session_state.menu_atual == "🏠 Home":
     # Usando colunas para centralizar o bloco da imagem e saudação
     _, col_logo, _ = st.columns([2, 1.2, 2])
     with col_logo:
-        # Se você tiver a imagem salva no projeto, substitua o caminho abaixo. 
-        # Caso contrário, o Streamlit exibirá o espaço reservado ou você pode colocar o caminho do seu arquivo de imagem.
         if os.path.exists("logo_vinho.png"):
             st.image("logo_vinho.png", width=180)
         
         hora = datetime.now().hour
-        saud. = "Bom dia" if 0 <= hora < 12 else ("Boa tarde" if 12 <= hora < 18 else "Boa noite")
-        st.markdown(f"<p style='text-align: center; margin-bottom: 0;'>{saud. },</p>", unsafe_allow_html=True)
+        saudacao = "Bom dia" if 0 <= hora < 12 else ("Boa tarde" if 12 <= hora < 18 else "Boa noite")
+        st.markdown(f"<p style='text-align: center; margin-bottom: 0;'>{saudacao},</p>", unsafe_allow_html=True)
         st.markdown(f"<h2 style='text-align: center; color: #7A1C2E; margin-top: 0;'>{st.session_state.usuario_logado['nome']}! </h2>", unsafe_allow_html=True)
     
     st.markdown("<p style='text-align: center; color: #666; margin-bottom: 30px;'>Escolha abaixo a opção desejada para gerenciar o galpão:</p>", unsafe_allow_html=True)
