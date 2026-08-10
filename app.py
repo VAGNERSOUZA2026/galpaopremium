@@ -406,13 +406,29 @@ elif st.session_state.menu_atual == "Scanner":
         if val:
             termo_lido = val.strip().lower()
             st.success(f"Localizado: {val}")
+            
             resultados = [
                 v for v in st.session_state.estoque 
-                if termo_lido in v.get('localizacao', '').lower()
+                if termo_lido in str(v.get('localizacao', '')).lower()
             ]
+            
             if resultados:
-                st.write(f"### 🍷 Vinhos encontrados neste local:")
+                st.write("### 🍷 Vinhos encontrados neste local:")
                 for v in resultados:
+                    nome_vinho = v.get('nome', 'Sem nome')
+                    safra_vinho = v.get('safra', 'N/A')
+                    loc_vinho = v.get('localizacao', 'N/A')
+                    lado_vinho = v.get('lado', 'N/A')
+                    caixa_vinho = v.get('caixa', 'N/A')
+                    
                     st.markdown(
-                        f"""<div class='wine-card'>
-                   
+                        f"<div class='wine-card'>"
+                        f"<div class='wine-title'>🍷 {nome_vinho} ({safra_vinho})</div>"
+                        f"<p>Local: <b>{loc_vinho}</b><br>Lado: {lado_vinho}<br>📦 {caixa_vinho}</p>"
+                        f"</div>",
+                        unsafe_allow_html=True
+                    )
+            else:
+                st.warning(f"Nenhum vinho encontrado vinculado ao local lido: '{val}'.")
+        else:
+            st.error("QR Code não detectado na imagem. Tente novamente.")
