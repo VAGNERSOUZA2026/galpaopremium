@@ -231,7 +231,9 @@ if st.session_state.usuario_logado is None:
                 nome_login = st.text_input("Nome de Usuário:").strip()
                 senha_login = st.text_input("Senha:", type="password").strip()
 
-                if st.form_submit_button("ENTRAR NO SISTEMA", use_container_width=True):
+                if st.form_submit_button(
+                    "ENTRAR NO SISTEMA", use_container_width=True
+                ):
                     usuario_encontrado = None
                     for u in st.session_state.usuarios:
                         if (
@@ -403,7 +405,7 @@ if st.session_state.menu_atual == "⚙️ Gerenciar Usuários (Dev)" and not e_d
 
 # --- TELAS DO APLICATIVO ---
 if st.session_state.menu_atual == "🏠 Home":
-    # Lógica dinâmica para saudação correta baseada na hora atual
+    # Lógica dinâmica para saudação correta baseada na hora atual e garrafa de vinho no lugar da mãozinha
     hora_atual = datetime.now().hour
     if 5 <= hora_atual < 12:
         saudacao = "Bom dia,"
@@ -589,5 +591,4 @@ elif st.session_state.menu_atual == "📱 Gerar QR Code de Pallets":
                 st.markdown(
                     f"""
                     <div class="wine-card" style="padding: 10px; margin-bottom: 8px;">
-                        <div class="wine-title" style="font-size: 0.95rem;">🍷 {v.get('nome')} ({v.get('safra')})</div>
-              
+                        <div class="wine-title" style="f
