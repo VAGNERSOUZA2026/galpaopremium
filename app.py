@@ -399,4 +399,4 @@ elif st.session_state.menu_atual == "Editar":
         idx = nomes_vinhos.index(vinho_sel)
         v_atual = st.session_state.estoque[idx]
         
-        with st.form("ed
+        with st.form("ed)
