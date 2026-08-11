@@ -28,6 +28,12 @@ st.markdown(
     <style>
     .stApp { background: linear-gradient(135deg, #F8F9FA 0%, #E9ECEF 100%); color: #1A1A1A; font-family: 'Poppins', sans-serif; overscroll-behavior-y: none; }
     [data-testid="stSidebar"] { display: none; }
+    
+    /* Oculta o rodapé e os ícones flutuantes do Streamlit no canto inferior */
+    footer {visibility: hidden;}
+    #MainMenu {visibility: hidden;}
+    [data-testid="stStatusWidget"] {display: none;}
+    
     label { color: #7A1C2E !important; font-weight: 700 !important; font-size: 0.95rem !important; }
     .wine-card { background-color: #FFFFFF; color: #1A1A1A; border-radius: 14px; padding: 16px; margin-bottom: 12px; border: 1px solid #E9ECEF; box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03); }
     .wine-title { color: #7A1C2E; font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
@@ -255,7 +261,6 @@ elif st.session_state.menu_atual == "Filtros":
     ct, cv = st.columns([4, 1])
     with ct: 
         termo_digitado = st.text_input("Filtrar:", value=st.session_state.termo_busca)
-        # Formata automaticamente o que o usuário digita para iniciar com maiúsculas
         termo = termo_digitado.strip().title()
     with cv:
         st.write("<br>", unsafe_allow_html=True)
@@ -394,7 +399,4 @@ elif st.session_state.menu_atual == "Editar":
         idx = nomes_vinhos.index(vinho_sel)
         v_atual = st.session_state.estoque[idx]
         
-        with st.form("edit_f"):
-            n = st.text_input("Nome do Vinho", value=v_atual.get('nome', '')).strip().title()
-            
-           
+        with st.form("ed
