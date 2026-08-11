@@ -420,7 +420,7 @@ elif st.session_state.menu_atual == "GerarQR":
 
     with aba_qr2:
         st.markdown("### 🖨️ Gerador de Lote de Etiquetas")
-        st.markdown("Selecione o intervalo para gerar uma página organizada com vários QR Codes prontos para impressão em grade (vários por folha A4).")
+        st.markdown("Selecione o intervalo para gerar uma página organizada com vários QR Codes prontos para impressão em grade.")
         
         col_l1, col_l2 = st.columns(2)
         with col_l1:
@@ -440,26 +440,79 @@ elif st.session_state.menu_atual == "GerarQR":
                         texto_loc = f"{corr_str} - Pallet {item_str} - Lado: {lado}"
                         lista_etiquetas.append(texto_loc)
             
+            st.session_state.lista_etiquetas_cache = lista_etiquetas
             st.success(f"Foram geradas {len(lista_etiquetas)} etiquetas com base nos seus parâmetros!")
+
+        if "lista_etiquetas_cache" in st.session_state and st.session_state.lista_etiquetas_cache:
+            lista_etiquetas = st.session_state.lista_etiquetas_cache
             
             st.markdown("---")
-            st.markdown("#### 👁️ Pré-visualização para Impressão em Massa")
-            st.markdown("Dica de Impressão: Pressione **Ctrl + P** na sua tela. No painel do navegador, configure a escala para **80% ou Padrão** e desative cabeçalhos e rodapés.")
+            st.markdown("#### 👁️ Impressão e Pré-visualização")
             
-            html_grade = """
-            <div style='display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; font-family: sans-serif;'>
+            # Criação do HTML completo encapsulado para abrir em nova aba perfeitamente limpo
+            html_grade_completo = """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <title>Impressão de Etiquetas - Premium Wines</title>
+                <style>
+                    body { font-family: sans-serif; background: white; margin: 20px; }
+                    .grid-container { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; }
+                    .etiqueta-card { border: 2px dashed #7A1C2E; border-radius: 8px; padding: 10px; width: 180px; text-align: center; background: white; page-break-inside: avoid; margin-bottom: 10px; }
+                    .etiqueta-card img { display: block; margin: 0 auto; width: 120px; }
+                    .etiqueta-texto { font-size: 10px; font-weight: bold; color: #1A1A1A; margin-top: 6px; line-height: 1.2; }
+                    .btn-imprimir { position: fixed; top: 20px; right: 20px; background-color: #7A1C2E; color: white; padding: 12px 20px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+                    .btn-imprimir:hover { background-color: #5c1322; }
+                    @media print { .btn-imprimir { display: none; } }
+                </style>
+            </head>
+            <body>
+                <button class="btn-imprimir" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
+                <div class="grid-container">
             """
+            
             for etiqueta in lista_etiquetas:
                 api_url = gerar_qr_code_api(etiqueta)
-                html_grade += f"""
-                    <div style="border: 2px dashed #7A1C2E; border-radius: 8px; padding: 10px; width: 180px; text-align: center; background: white; page-break-inside: avoid; margin-bottom: 10px;">
+                html_grade_completo += f"""
+                    <div class="etiqueta-card">
+                        <img src="{api_url}">
+                        <div class="etiqueta-texto">{etiqueta}</div>
+                    </div>
+                """
+            html_grade_completo += """
+                </div>
+            </body>
+            </html>
+            """
+            
+            # Converte o HTML completo em URI data para abrir perfeitamente em nova aba
+            import base64
+            b64_html = base64.b64encode(html_grade_completo.encode('utf-8')).decode('utf-8')
+            data_url = f"data:text/html;base64,{b64_html}"
+            
+            st.markdown(f"""
+                <div style="margin: 20px 0; text-align: center;">
+                    <a href="{data_url}" target="_blank" style="background-color: #7A1C2E; color: white; padding: 14px 24px; border-radius: 12px; text-decoration: none; font-size: 16px; font-weight: bold; display: inline-block; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
+                        🚀 Abrir Grade de Etiquetas em Nova Aba (Modo Impressão Perfeito)
+                    </a>
+                </div>
+            """, unsafe_allow_html=True)
+            
+            st.markdown("Dica: Ao clicar no botão acima, uma nova aba abrirá contendo **apenas** as etiquetas e um botão de impressão. Nela, basta clicar em **Imprimir / Salvar PDF** ou apertar `Ctrl + P`.")
+            
+            # Exibe também a pré-visualização normal na tela interna
+            html_preview = "<div style='display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; font-family: sans-serif;'>"
+            for etiqueta in lista_etiquetas:
+                api_url = gerar_qr_code_api(etiqueta)
+                html_preview += f"""
+                    <div style="border: 2px dashed #7A1C2E; border-radius: 8px; padding: 10px; width: 180px; text-align: center; background: white; margin-bottom: 10px;">
                         <img src="{api_url}" width="120" style="display: block; margin: 0 auto;">
                         <div style="font-size: 10px; font-weight: bold; color: #1A1A1A; margin-top: 6px; line-height: 1.2;">{etiqueta}</div>
                     </div>
                 """
-            html_grade += "</div>"
-            
-            components.html(html_grade, height=600, scrolling=True)
+            html_preview += "</div>"
+            components.html(html_preview, height=500, scrolling=True)
 
 elif st.session_state.menu_atual == "Historico":
     st.subheader("📋 Histórico")
