@@ -166,7 +166,7 @@ if st.session_state.usuario_logado is None:
                     if user:
                         st.session_state.usuario_logado = user
                         st.query_params["user"] = user['nome']
-                        st.query_params["cargo"] = user['cargo']
+                        st.query_params["cargo"] = user.get('cargo', 'Operador')
                         st.rerun()
                     else: st.error("Dados incorretos.")
         with tab2:
@@ -240,10 +240,12 @@ if st.session_state.menu_atual == "🏠 Home":
     with c9:
         if st.button("🗑️ Excluir Vinho", use_container_width=True): st.session_state.menu_atual = "Excluir"; st.rerun()
         
-    st.write("")
-    if st.button("⚙️ Gerenciar Contas", use_container_width=True):
-        st.session_state.menu_atual = "GerenciarUsuarios"
-        st.rerun()
+    # Restrição rigorosa: Somente se o cargo for Desenvolvedor o botão de gerenciar contas aparece
+    if st.session_state.usuario_logado.get('cargo') == "Desenvolvedor":
+        st.write("")
+        if st.button("⚙️ Gerenciar Contas", use_container_width=True):
+            st.session_state.menu_atual = "GerenciarUsuarios"
+            st.rerun()
 
 elif st.session_state.menu_atual == "Filtros":
     st.subheader("🔍 Busca por Local ou Nome")
@@ -355,9 +357,14 @@ elif st.session_state.menu_atual == "Historico":
         st.markdown(f"- **{l['data_hora']}** | {l['usuario']} | {l['acao']}")
 
 elif st.session_state.menu_atual == "GerenciarUsuarios":
+    # Trava de segurança extra caso alguém tente forçar o acesso direto
+    if st.session_state.usuario_logado.get('cargo') != "Desenvolvedor":
+        st.error("Acesso negado. Esta área é restrita ao Desenvolvedor.")
+        st.stop()
+        
     st.subheader("⚙️ Gerenciar Usuários")
     for u in st.session_state.usuarios:
-        st.write(f"👤 **{u['nome']}** | Senha: `{u['senha']}`")
+        st.write(f"👤 **{u['nome']}** (Cargo: {u.get('cargo', 'Operador')}) | Senha: `{u['senha']}`")
 
 elif st.session_state.menu_atual == "Editar":
     st.subheader("✏️ Editar Vinho / Mudar de Pallet")
