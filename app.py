@@ -28,6 +28,12 @@ st.markdown(
     <style>
     .stApp { background: linear-gradient(135deg, #F8F9FA 0%, #E9ECEF 100%); color: #1A1A1A; font-family: 'Poppins', sans-serif; overscroll-behavior-y: none; }
     [data-testid="stSidebar"] { display: none; }
+    
+    /* Oculta o rodapé e os ícones flutuantes do Streamlit no canto inferior */
+    footer {visibility: hidden;}
+    #MainMenu {visibility: hidden;}
+    [data-testid="stStatusWidget"] {display: none;}
+    
     label { color: #7A1C2E !important; font-weight: 700 !important; font-size: 0.95rem !important; }
     .wine-card { background-color: #FFFFFF; color: #1A1A1A; border-radius: 14px; padding: 16px; margin-bottom: 12px; border: 1px solid #E9ECEF; box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03); }
     .wine-title { color: #7A1C2E; font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
@@ -255,7 +261,6 @@ elif st.session_state.menu_atual == "Filtros":
     ct, cv = st.columns([4, 1])
     with ct: 
         termo_digitado = st.text_input("Filtrar:", value=st.session_state.termo_busca)
-        # Formata automaticamente o que o usuário digita para iniciar com maiúsculas
         termo = termo_digitado.strip().title()
     with cv:
         st.write("<br>", unsafe_allow_html=True)
@@ -394,69 +399,4 @@ elif st.session_state.menu_atual == "Editar":
         idx = nomes_vinhos.index(vinho_sel)
         v_atual = st.session_state.estoque[idx]
         
-        with st.form("edit_f"):
-            n = st.text_input("Nome do Vinho", value=v_atual.get('nome', '')).strip().title()
-            
-            tipos_disp = ["Tinto", "Branco", "Rosé", "Espumante"]
-            idx_tipo = tipos_disp.index(v_atual.get('tipo')) if v_atual.get('tipo') in tipos_disp else 0
-            t = st.selectbox("Tipo", tipos_disp, index=idx_tipo)
-            
-            s = st.text_input("Safra", value=v_atual.get('safra', ''))
-            
-            st.markdown("---")
-            st.markdown("📍 **Atualizar Localização Física (Pallet / Prateleira)**")
-            corredor = st.selectbox("Corredor", LISTA_CORREDORES)
-            tipo_loc = st.selectbox("Tipo Local", LISTA_LOCAIS_TIPO)
-            numero = st.selectbox("Número", LISTA_NUMEROS_LOCAL)
-            
-            idx_lado = LISTA_LADOS.index(v_atual.get('lado')) if v_atual.get('lado') in LISTA_LADOS else 0
-            lado = st.selectbox("Lado", LISTA_LADOS, index=idx_lado)
-            
-            idx_caixa = OPCOES_CAIXA.index(v_atual.get('caixa')) if v_atual.get('caixa') in OPCOES_CAIXA else 0
-            caixa = st.selectbox("Caixa", OPCOES_CAIXA, index=idx_caixa)
-            
-            foto_vinho = st.file_uploader("Alterar Foto (Opcional)", type=["jpg", "jpeg", "png"])
-            
-            if st.form_submit_button("Salvar Alterações"):
-                if n.strip():
-                    nome_foto = v_atual.get('foto', '')
-                    if foto_vinho is not None:
-                        nome_foto = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{foto_vinho.name}"
-                        caminho_foto = os.path.join(PASTA_FOTOS, nome_foto)
-                        with open(caminho_foto, "wb") as f:
-                            f.write(foto_vinho.getbuffer())
-                    
-                    st.session_state.estoque[idx] = {
-                        "nome": n.strip(),
-                        "tipo": t,
-                        "safra": s.strip(),
-                        "localizacao": f"{corredor} - {tipo_loc} {numero}",
-                        "lado": lado,
-                        "caixa": caixa,
-                        "foto": nome_foto
-                    }
-                    salvar_dados(st.session_state.estoque)
-                    registrar_log(st.session_state.usuario_logado['nome'], "Editar Vinho", f"Atualizado/Movido: {n}")
-                    st.success("Vinho atualizado e reposicionado com sucesso!")
-                    st.session_state.menu_atual = "🏠 Home"
-                    st.rerun()
-                else:
-                    st.error("O nome do vinho não pode ficar vazio.")
-    else:
-        st.info("Nenhum vinho para editar.")
-
-elif st.session_state.menu_atual == "Excluir":
-    st.subheader("🗑️ Excluir Vinho")
-    nomes_vinhos = [f"{v.get('nome')} ({v.get('safra')})" for v in st.session_state.estoque]
-    if nomes_vinhos:
-        vinho_sel = st.selectbox("Selecione para excluir:", nomes_vinhos)
-        if st.button("Confirmar Exclusão"):
-            idx = nomes_vinhos.index(vinho_sel)
-            removido = st.session_state.estoque.pop(idx)
-            salvar_dados(st.session_state.estoque)
-            registrar_log(st.session_state.usuario_logado['nome'], "Excluir Vinho", f"Removido: {removido.get('nome')}")
-            st.success("Vinho excluído com sucesso!")
-            st.session_state.menu_atual = "🏠 Home"
-            st.rerun()
-    else:
-        st.info("Nenhum vinho para excluir.")
+        with st.form("ed
