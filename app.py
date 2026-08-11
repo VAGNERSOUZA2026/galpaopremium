@@ -449,7 +449,7 @@ elif st.session_state.menu_atual == "GerarQR":
             st.markdown("---")
             st.markdown("#### 👁️ Impressão e Pré-visualização")
             
-            # Criação do HTML completo encapsulado para abrir em nova aba perfeitamente limpo
+            # HTML otimizado com Blob para o botão de impressão funcionar perfeitamente em nova aba
             html_grade_completo = """
             <!DOCTYPE html>
             <html>
@@ -486,22 +486,35 @@ elif st.session_state.menu_atual == "GerarQR":
             </html>
             """
             
-            # Converte o HTML completo em URI data para abrir perfeitamente em nova aba
             import base64
             b64_html = base64.b64encode(html_grade_completo.encode('utf-8')).decode('utf-8')
-            data_url = f"data:text/html;base64,{b64_html}"
             
-            st.markdown(f"""
-                <div style="margin: 20px 0; text-align: center;">
-                    <a href="{data_url}" target="_blank" style="background-color: #7A1C2E; color: white; padding: 14px 24px; border-radius: 12px; text-decoration: none; font-size: 16px; font-weight: bold; display: inline-block; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
-                        🚀 Abrir Grade de Etiquetas em Nova Aba (Modo Impressão Perfeito)
-                    </a>
-                </div>
-            """, unsafe_allow_html=True)
+            # Utiliza Blob URL via JavaScript para evitar bloqueios do navegador na nova aba
+            blob_script = f"""
+            <script>
+                function abrirAbaImpressao() {{
+                    var b64 = "{b64_html}";
+                    var bin = atob(b64);
+                    var bytes = new Uint8Array(bin.length);
+                    for (var i = 0; i < bin.length; i++) {{
+                        bytes[i] = bin.charCodeAt(i);
+                    }}
+                    var blob = new Blob([bytes], {{ type: 'text/html' }});
+                    var url = URL.createObjectURL(blob);
+                    window.open(url, '_blank');
+                }}
+            </script>
+            <div style="margin: 20px 0; text-align: center;">
+                <button onclick="abrirAbaImpressao()" style="background-color: #7A1C2E; color: white; padding: 14px 24px; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; display: inline-block; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
+                    🚀 Abrir Grade de Etiquetas em Nova Aba (Modo Impressão Perfeito)
+                </button>
+            </div>
+            """
+            st.markdown(blob_script, unsafe_allow_html=True)
             
-            st.markdown("Dica: Ao clicar no botão acima, uma nova aba abrirá contendo **apenas** as etiquetas e um botão de impressão. Nela, basta clicar em **Imprimir / Salvar PDF** ou apertar `Ctrl + P`.")
+            st.markdown("Dica: Ao clicar no botão acima, uma nova aba abrirá contendo **apenas** as etiquetas. Nela, clique no botão **🖨️ Imprimir / Salvar PDF** no canto superior direito ou aperte **Ctrl + P** para salvar como PDF.")
             
-            # Exibe também a pré-visualização normal na tela interna
+            # Pré-visualização na tela principal
             html_preview = "<div style='display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; font-family: sans-serif;'>"
             for etiqueta in lista_etiquetas:
                 api_url = gerar_qr_code_api(etiqueta)
