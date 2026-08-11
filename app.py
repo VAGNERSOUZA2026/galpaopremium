@@ -4,6 +4,7 @@ import shutil
 from datetime import datetime, timezone, timedelta
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 import urllib.parse
 import openpyxl
 from docx import Document
@@ -445,7 +446,9 @@ elif st.session_state.menu_atual == "GerarQR":
             st.markdown("#### 👁️ Pré-visualização para Impressão em Massa")
             st.markdown("Dica de Impressão: Pressione **Ctrl + P** na sua tela. No painel do navegador, configure a escala para **80% ou Padrão** e desative cabeçalhos e rodapés.")
             
-            html_grade = "<div style='display: flex; flex-wrap: wrap; gap: 15px; justify-content: center;'>"
+            html_grade = """
+            <div style='display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; font-family: sans-serif;'>
+            """
             for etiqueta in lista_etiquetas:
                 api_url = gerar_qr_code_api(etiqueta)
                 html_grade += f"""
@@ -456,7 +459,7 @@ elif st.session_state.menu_atual == "GerarQR":
                 """
             html_grade += "</div>"
             
-            st.markdown(html_grade, unsafe_allow_html=True)
+            components.html(html_grade, height=600, scrolling=True)
 
 elif st.session_state.menu_atual == "Historico":
     st.subheader("📋 Histórico")
