@@ -124,18 +124,17 @@ def extrair_linhas_de_arquivo(arq):
             df = pd.read_excel(arq)
             for c in df.columns:
                 for v in df[c].dropna():
-                    if str(v).strip(): linhas.append(str(v).strip())
+                    if str(v).strip(): linhas.append(str(v).strip().title())
         elif ext == 'docx':
             doc = Document(arq)
             for p in doc.paragraphs:
-                if p.text.strip(): linhas.append(p.text.strip())
-            # Lê também tabelas dentro do documento Word caso o usuário tenha feito em tabela
+                if p.text.strip(): linhas.append(p.text.strip().title())
             for t in doc.tables:
                 for row in t.rows:
                     for cell in row.cells:
-                        if cell.text.strip(): linhas.append(cell.text.strip())
+                        if cell.text.strip(): linhas.append(cell.text.strip().title())
         elif ext == 'txt':
-            linhas = [l.strip() for l in arq.getvalue().decode("utf-8").split("\n") if l.strip()]
+            linhas = [l.strip().title() for l in arq.getvalue().decode("utf-8").split("\n") if l.strip()]
     except: pass
     return linhas
 
@@ -164,7 +163,7 @@ if st.session_state.usuario_logado is None:
         tab1, tab2, tab3 = st.tabs(["🔑 Entrar", "👤 Criar Conta", "⚙️ Dev"])
         with tab1:
             with st.form("l_form"):
-                u = st.text_input("Usuário").strip()
+                u = st.text_input("Usuário").strip().title()
                 p = st.text_input("Senha", type="password").strip()
                 if st.form_submit_button("ENTRAR", use_container_width=True):
                     user = next((x for x in st.session_state.usuarios if x['nome'].lower() == u.lower() and x['senha'] == p), None)
@@ -176,7 +175,7 @@ if st.session_state.usuario_logado is None:
                     else: st.error("Dados incorretos.")
         with tab2:
             with st.form("c_form"):
-                n = st.text_input("Nome").strip()
+                n = st.text_input("Nome").strip().title()
                 s = st.text_input("Senha", type="password").strip()
                 if st.form_submit_button("CADASTRAR", use_container_width=True):
                     if n and s:
@@ -254,12 +253,15 @@ if st.session_state.menu_atual == "🏠 Home":
 elif st.session_state.menu_atual == "Filtros":
     st.subheader("🔍 Busca por Local ou Nome")
     ct, cv = st.columns([4, 1])
-    with ct: termo = st.text_input("Filtrar:", value=st.session_state.termo_busca).strip()
+    with ct: 
+        termo_digitado = st.text_input("Filtrar:", value=st.session_state.termo_busca)
+        # Formata automaticamente o que o usuário digita para iniciar com maiúsculas
+        termo = termo_digitado.strip().title()
     with cv:
         st.write("<br>", unsafe_allow_html=True)
         if st.button("🎙️ Voz"):
             res_voz = buscar_por_voz()
-            if res_voz: st.session_state.termo_busca = res_voz; st.rerun()
+            if res_voz: st.session_state.termo_busca = res_voz.title(); st.rerun()
     
     tp = termo.lower() if termo else st.session_state.termo_busca.lower()
     if tp:
@@ -274,18 +276,18 @@ elif st.session_state.menu_atual == "Filtros":
 elif st.session_state.menu_atual == "MapaSeparacao":
     st.subheader("🗺️ Mapa de Separação (Leitura de Arquivo Word / TXT / Excel)")
     arq = st.file_uploader("Envie o arquivo com a lista de vinhos", type=["xlsx", "xls", "docx", "txt"])
-    txt_man = st.text_area("Ou cole a lista de vinhos manualmente aqui:")
+    txt_man_input = st.text_area("Ou cole a lista de vinhos manualmente aqui:")
+    txt_man = txt_man_input.title() if txt_man_input else ""
     
     if st.button("Gerar Rota / Mapa"):
         linhas = extrair_linhas_de_arquivo(arq) if arq else []
         if txt_man.strip():
-            linhas.extend([l.strip() for l in txt_man.split("\n") if l.strip()])
+            linhas.extend([l.strip().title() for l in txt_man.split("\n") if l.strip()])
             
         if linhas:
             encontrados = []
             for v in st.session_state.estoque:
                 nome_vinho = v.get("nome", "").lower().strip()
-                # Verifica se qualquer linha do arquivo contém parte do nome do vinho ou vice-versa
                 if any(l.lower().strip() in nome_vinho or nome_vinho in l.lower().strip() for l in linhas if len(l.strip()) > 2):
                     if v not in encontrados:
                         encontrados.append(v)
@@ -324,7 +326,7 @@ elif st.session_state.menu_atual == "Estoque":
 elif st.session_state.menu_atual == "Cadastrar":
     st.subheader("➕ Cadastrar Vinho")
     with st.form("cad"):
-        nome = st.text_input("Nome").strip()
+        nome = st.text_input("Nome").strip().title()
         tipo = st.selectbox("Tipo", ["Tinto", "Branco", "Rosé", "Espumante"])
         safra = st.text_input("Safra").strip()
         corredor = st.selectbox("Corredor", LISTA_CORREDORES)
@@ -393,7 +395,7 @@ elif st.session_state.menu_atual == "Editar":
         v_atual = st.session_state.estoque[idx]
         
         with st.form("edit_f"):
-            n = st.text_input("Nome do Vinho", value=v_atual.get('nome', ''))
+            n = st.text_input("Nome do Vinho", value=v_atual.get('nome', '')).strip().title()
             
             tipos_disp = ["Tinto", "Branco", "Rosé", "Espumante"]
             idx_tipo = tipos_disp.index(v_atual.get('tipo')) if v_atual.get('tipo') in tipos_disp else 0
