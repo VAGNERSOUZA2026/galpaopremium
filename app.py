@@ -141,6 +141,12 @@ qp = st.query_params
 user_url = qp.get("user", None)
 cargo_url = qp.get("cargo", "Operador")
 
+# Verifica se veio um parâmetro de busca direto pela URL (ex: escaneando o QR code externamente)
+busca_url = qp.get("busca", None)
+if busca_url:
+    st.session_state.termo_busca = busca_url
+    st.session_state.menu_atual = "Filtros"
+
 if "usuario_logado" not in st.session_state or st.session_state.usuario_logado is None:
     if user_url: st.session_state.usuario_logado = {"nome": user_url, "cargo": cargo_url}
     else: st.session_state.usuario_logado = None
@@ -244,7 +250,7 @@ if st.session_state.menu_atual == "🏠 Home":
         st.rerun()
 
 elif st.session_state.menu_atual == "Filtros":
-    st.subheader("🔍 Busca por Nome ou Voz")
+    st.subheader("🔍 Busca por Local ou Nome")
     ct, cv = st.columns([4, 1])
     with ct: termo = st.text_input("Filtrar:", value=st.session_state.termo_busca).strip()
     with cv:
@@ -255,9 +261,12 @@ elif st.session_state.menu_atual == "Filtros":
     
     tp = termo.lower() if termo else st.session_state.termo_busca.lower()
     if tp:
-        res = [v for v in st.session_state.estoque if tp in v.get("nome", "").lower()]
-        for v in res:
-            st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra')})</div><p><span class='badge-pallet-grande'>📍 {v.get('localizacao')} - Lado: {v.get('lado', 'N/A')}</span></p></div>", unsafe_allow_html=True)
+        res = [v for v in st.session_state.estoque if tp in v.get("nome", "").lower() or tp in v.get("localizacao", "").lower() or tp in v.get("lado", "").lower()]
+        if res:
+            for v in res:
+                st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra')})</div><p>Tipo: <b>{v.get('tipo', 'N/A')}</b> | Caixa: <b>{v.get('caixa', 'N/A')}</b><br><span class='badge-pallet-grande'>📍 {v.get('localizacao')} - Lado: {v.get('lado', 'N/A')}</span></p></div>", unsafe_allow_html=True)
+        else:
+            st.warning("Nenhum vinho encontrado para este filtro/local.")
 
 elif st.session_state.menu_atual == "MapaSeparacao":
     st.subheader("🗺️ Mapa de Separação")
@@ -284,11 +293,8 @@ elif st.session_state.menu_atual == "Scanner":
             for v in st.session_state.estoque:
                 loc_cadastrada = str(v.get('localizacao', '')).strip().lower()
                 lado_cadastrado = str(v.get('lado', '')).strip().lower()
-                
-                # Monta a string completa do local para comparar perfeitamente com o QR code da etiqueta do pallet
                 string_completa_local = f"{loc_cadastrada} - lado: {lado_cadastrado}"
                 
-                # Se o QR code lido corresponder ao local e lado do vinho
                 if termo_lido in string_completa_local or termo_lido == loc_cadastrada or loc_cadastrada in termo_lido:
                     resultados.append(v)
                     
@@ -328,8 +334,8 @@ elif st.session_state.menu_atual == "Cadastrar":
                 st.rerun()
 
 elif st.session_state.menu_atual == "GerarQR":
-    st.subheader("📱 Gerar QR Code do Local (Pallet / Prateleira)")
-    st.write("Selecione abaixo o endereço físico do galpão para gerar a etiqueta do pallet/prateleira:")
+    st.subheader("📱 Gerar QR Code do Local (Para Câmera Comum)")
+    st.write("Selecione o endereço. O QR Code gerado abrirá o sistema direto nos vinhos deste local ao ser escaneado por qualquer celular:")
     
     col_g1, col_g2 = st.columns(2)
     with col_g1:
@@ -339,15 +345,22 @@ elif st.session_state.menu_atual == "GerarQR":
         c_numero = st.selectbox("Número do Item", LISTA_NUMEROS_LOCAL, key="qr_numero")
         c_lado = st.selectbox("Lado", LISTA_LADOS, key="qr_lado")
         
-    # Monta a identificação única daquele pallet/prateleira exato
-    local_etiqueta = f"{c_corredor} - {c_tipo} {c_numero} - Lado: {c_lado}"
+    termo_busca_local = f"{c_corredor} - {c_tipo} {c_numero}"
     
+    # Pega a URL atual do navegador para injetar o parâmetro de busca direto no link do QR code
+    url_base = st_javascript("window.location.href")
+    if isinstance(url_base, str) and "http" in url_base:
+        url_limpa = url_base.split("?")[0]
+        link_qr = f"{url_limpa}?user={urllib.parse.quote(st.session_state.usuario_logado['nome'])}&cargo={urllib.parse.quote(st.session_state.usuario_logado['cargo'])}&busca={urllib.parse.quote(termo_busca_local)}"
+    else:
+        link_qr = termo_busca_local
+
     st.write("")
-    if st.button("Gerar Etiqueta do Local", use_container_width=True):
+    if st.button("Gerar Etiqueta com Link Web", use_container_width=True):
         _, cq, _ = st.columns([1, 2, 1])
         with cq: 
-            st.image(gerar_qr_code_api(local_etiqueta), width=240, caption=local_etiqueta)
-            st.success(f"QR Code gerado para: {local_etiqueta}")
+            st.image(gerar_qr_code_api(link_qr), width=240, caption=f"{termo_busca_local} ({c_lado})")
+            st.success("QR Code com link web gerado com sucesso!")
 
 elif st.session_state.menu_atual == "Historico":
     st.subheader("📋 Histórico")
