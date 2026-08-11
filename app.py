@@ -129,6 +129,11 @@ def extrair_linhas_de_arquivo(arq):
             doc = Document(arq)
             for p in doc.paragraphs:
                 if p.text.strip(): linhas.append(p.text.strip())
+            # Lê também tabelas dentro do documento Word caso o usuário tenha feito em tabela
+            for t in doc.tables:
+                for row in t.rows:
+                    for cell in row.cells:
+                        if cell.text.strip(): linhas.append(cell.text.strip())
         elif ext == 'txt':
             linhas = [l.strip() for l in arq.getvalue().decode("utf-8").split("\n") if l.strip()]
     except: pass
@@ -240,7 +245,6 @@ if st.session_state.menu_atual == "🏠 Home":
     with c9:
         if st.button("🗑️ Excluir Vinho", use_container_width=True): st.session_state.menu_atual = "Excluir"; st.rerun()
         
-    # Restrição rigorosa: Somente se o cargo for Desenvolvedor o botão de gerenciar contas aparece
     if st.session_state.usuario_logado.get('cargo') == "Desenvolvedor":
         st.write("")
         if st.button("⚙️ Gerenciar Contas", use_container_width=True):
@@ -268,17 +272,32 @@ elif st.session_state.menu_atual == "Filtros":
             st.warning("Nenhum vinho encontrado para este filtro/local.")
 
 elif st.session_state.menu_atual == "MapaSeparacao":
-    st.subheader("🗺️ Mapa de Separação")
-    arq = st.file_uploader("Arquivo (Excel/Word/TXT)", type=["xlsx", "xls", "docx", "txt"])
-    txt_man = st.text_area("Ou cole a lista:")
-    if st.button("Gerar Rota"):
-        linhas = extrair_linhas_de_arquivo(arq) if arq else [l.strip() for l in txt_man.split("\n") if l.strip()]
-        encontrados = [v for v in st.session_state.estoque if any(l.lower() in v.get("nome", "").lower() for l in linhas)]
-        if encontrados:
-            for v in encontrados:
-                st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra', 'N/A')})</div><p>Tipo: <b>{v.get('tipo', 'N/A')}</b> | Caixa: <b>{v.get('caixa', 'N/A')}</b><br><span class='badge-pallet-grande'>📍 {v.get('localizacao', 'N/A')} - Lado: {v.get('lado', 'N/A')}</span></p></div>", unsafe_allow_html=True)
+    st.subheader("🗺️ Mapa de Separação (Leitura de Arquivo Word / TXT / Excel)")
+    arq = st.file_uploader("Envie o arquivo com a lista de vinhos", type=["xlsx", "xls", "docx", "txt"])
+    txt_man = st.text_area("Ou cole a lista de vinhos manualmente aqui:")
+    
+    if st.button("Gerar Rota / Mapa"):
+        linhas = extrair_linhas_de_arquivo(arq) if arq else []
+        if txt_man.strip():
+            linhas.extend([l.strip() for l in txt_man.split("\n") if l.strip()])
+            
+        if linhas:
+            encontrados = []
+            for v in st.session_state.estoque:
+                nome_vinho = v.get("nome", "").lower().strip()
+                # Verifica se qualquer linha do arquivo contém parte do nome do vinho ou vice-versa
+                if any(l.lower().strip() in nome_vinho or nome_vinho in l.lower().strip() for l in linhas if len(l.strip()) > 2):
+                    if v not in encontrados:
+                        encontrados.append(v)
+            
+            if encontrados:
+                st.success(f"Foram encontrados {len(encontrados)} vinhos para separação:")
+                for v in encontrados:
+                    st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra', 'N/A')})</div><p>Tipo: <b>{v.get('tipo', 'N/A')}</b> | Caixa: <b>{v.get('caixa', 'N/A')}</b><br><span class='badge-pallet-grande'>📍 {v.get('localizacao', 'N/A')} - Lado: {v.get('lado', 'N/A')}</span></p></div>", unsafe_allow_html=True)
+            else:
+                st.warning("Nenhum vinho do arquivo corresponde aos cadastrados no estoque. Verifique se os nomes batem com o cadastro.")
         else:
-            st.warning("Nenhum vinho encontrado para esta lista.")
+            st.error("Envie um arquivo ou digite pelo menos um nome na caixa de texto.")
 
 elif st.session_state.menu_atual == "Scanner":
     st.subheader("📷 Escanear QR Code do Local")
@@ -357,7 +376,6 @@ elif st.session_state.menu_atual == "Historico":
         st.markdown(f"- **{l['data_hora']}** | {l['usuario']} | {l['acao']}")
 
 elif st.session_state.menu_atual == "GerenciarUsuarios":
-    # Trava de segurança extra caso alguém tente forçar o acesso direto
     if st.session_state.usuario_logado.get('cargo') != "Desenvolvedor":
         st.error("Acesso negado. Esta área é restrita ao Desenvolvedor.")
         st.stop()
