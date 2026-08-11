@@ -41,10 +41,13 @@ NOME_ARQUIVO = "estoque_galpao_pro.json"
 ARQUIVO_USUARIOS = "usuarios_galpao.json"
 ARQUIVO_LOGS = "logs_auditoria.json"
 PASTA_BACKUP = "backups_estoque"
+PASTA_FOTOS = "fotos_vinhos"
 SENHA_DEV = "1980"
 
 if not os.path.exists(PASTA_BACKUP):
     os.makedirs(PASTA_BACKUP)
+if not os.path.exists(PASTA_FOTOS):
+    os.makedirs(PASTA_FOTOS)
 
 LISTA_CORREDORES = [f"Corredor {i:02d}" for i in range(1, 26)]
 LISTA_LOCAIS_TIPO = ["Pallet", "Prateleira"]
@@ -257,7 +260,8 @@ elif st.session_state.menu_atual == "Filtros":
         res = [v for v in st.session_state.estoque if tp in v.get("nome", "").lower() or tp in v.get("localizacao", "").lower() or tp in v.get("lado", "").lower()]
         if res:
             for v in res:
-                st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra')})</div><p>Tipo: <b>{v.get('tipo', 'N/A')}</b> | Caixa: <b>{v.get('caixa', 'N/A')}</b><br><span class='badge-pallet-grande'>📍 {v.get('localizacao')} - Lado: {v.get('lado', 'N/A')}</span></p></div>", unsafe_allow_html=True)
+                img_tag = f"<br><img src='app/static/{v.get('foto')}' width='100' style='border-radius: 8px; margin-top: 8px;'>" if v.get('foto') and os.path.exists(os.path.join(PASTA_FOTOS, v.get('foto'))) else ""
+                st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra')})</div><p>Tipo: <b>{v.get('tipo', 'N/A')}</b> | Caixa: <b>{v.get('caixa', 'N/A')}</b><br><span class='badge-pallet-grande'>📍 {v.get('localizacao')} - Lado: {v.get('lado', 'N/A')}</span>{img_tag}</p></div>", unsafe_allow_html=True)
         else:
             st.warning("Nenhum vinho encontrado para este filtro/local.")
 
@@ -307,12 +311,33 @@ elif st.session_state.menu_atual == "Cadastrar":
         numero = st.selectbox("Número", LISTA_NUMEROS_LOCAL)
         lado = st.selectbox("Lado", LISTA_LADOS)
         caixa = st.selectbox("Caixa", OPCOES_CAIXA)
+        foto_vinho = st.file_uploader("Foto da Garrafa / Rótulo (Opcional)", type=["jpg", "jpeg", "png"])
+        
         if st.form_submit_button("Salvar"):
             if nome:
-                st.session_state.estoque.append({"nome": nome, "tipo": tipo, "safra": safra, "localizacao": f"{corredor} - {tipo_loc} {numero}", "lado": lado, "caixa": caixa, "foto": ""})
+                nome_foto = ""
+                if foto_vinho is not None:
+                    nome_foto = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{foto_vinho.name}"
+                    caminho_foto = os.path.join(PASTA_FOTOS, nome_foto)
+                    with open(caminho_foto, "wb") as f:
+                        f.write(foto_vinho.getbuffer())
+                
+                st.session_state.estoque.append({
+                    "nome": nome, 
+                    "tipo": tipo, 
+                    "safra": safra, 
+                    "localizacao": f"{corredor} - {tipo_loc} {numero}", 
+                    "lado": lado, 
+                    "caixa": caixa, 
+                    "foto": nome_foto
+                })
                 salvar_dados(st.session_state.estoque)
-                registrar_log(st.session_state.usuario_logado['nome'], "Cadastrar", nome)
+                registrar_log(st.session_state.usuario_logado['nome'], "Cadastrar Vinho", nome)
+                st.success("Vinho cadastrado com sucesso!")
+                st.session_state.menu_atual = "🏠 Home"
                 st.rerun()
+            else:
+                st.error("Informe o nome do vinho.")
 
 elif st.session_state.menu_atual == "GerarQR":
     st.subheader("📱 Gerar QR Code")
@@ -337,22 +362,28 @@ elif st.session_state.menu_atual == "GerenciarUsuarios":
 elif st.session_state.menu_atual == "Editar":
     st.subheader("✏️ Editar Vinho")
     nomes_vinhos = [f"{v.get('nome')} ({v.get('safra')})" for v in st.session_state.estoque]
-    vinho_sel = st.selectbox("Selecione:", nomes_vinhos)
-    idx = nomes_vinhos.index(vinho_sel)
-    v_atual = st.session_state.estoque[idx]
-    with st.form("edit_f"):
-        n = st.text_input("Nome", value=v_atual['nome'])
-        if st.form_submit_button("Salvar"):
-            st.session_state.estoque[idx]['nome'] = n
-            salvar_dados(st.session_state.estoque)
-            st.rerun()
+    if nomes_vinhos:
+        vinho_sel = st.selectbox("Selecione:", nomes_vinhos)
+        idx = nomes_vinhos.index(vinho_sel)
+        v_atual = st.session_state.estoque[idx]
+        with st.form("edit_f"):
+            n = st.text_input("Nome", value=v_atual['nome'])
+            if st.form_submit_button("Salvar"):
+                st.session_state.estoque[idx]['nome'] = n
+                salvar_dados(st.session_state.estoque)
+                st.rerun()
+    else:
+        st.info("Nenhum vinho para editar.")
 
 elif st.session_state.menu_atual == "Excluir":
     st.subheader("🗑️ Excluir Vinho")
     nomes_vinhos = [f"{v.get('nome')} ({v.get('safra')})" for v in st.session_state.estoque]
-    vinho_sel = st.selectbox("Selecione para excluir:", nomes_vinhos)
-    if st.button("Confirmar Exclusão"):
-        idx = nomes_vinhos.index(vinho_sel)
-        st.session_state.estoque.pop(idx)
-        salvar_dados(st.session_state.estoque)
-        st.rerun()
+    if nomes_vinhos:
+        vinho_sel = st.selectbox("Selecione para excluir:", nomes_vinhos)
+        if st.button("Confirmar Exclusão"):
+            idx = nomes_vinhos.index(vinho_sel)
+            st.session_state.estoque.pop(idx)
+            salvar_dados(st.session_state.estoque)
+            st.rerun()
+    else:
+        st.info("Nenhum vinho para excluir.")
