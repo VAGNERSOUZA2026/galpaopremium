@@ -70,7 +70,7 @@ def carregar_dados():
         try:
             with open(NOME_ARQUIVO, "r", encoding="utf-8") as f: return json.load(f)
         except: pass
-    return [{"nome": "Château Margaux", "tipo": "Tinto", "safra": "2015", "localizacao": "Corredor 01 - Pallet 01", "lado": "Direito", "caixa": "Caixa com 12 garrafas", "foto": ""}]
+    return [{"nome": "Château Margaux", "tipo": "Tinto", "safra": "2015", "localizacao": "Corredor 01 - Pallet Item 01", "lado": "Direito", "caixa": "Caixa com 12 garrafas", "foto": ""}]
 
 def salvar_dados(estoque):
     with open(NOME_ARQUIVO, "w", encoding="utf-8") as f: json.dump(estoque, f, ensure_ascii=False, indent=4)
@@ -271,29 +271,34 @@ elif st.session_state.menu_atual == "MapaSeparacao":
 
 elif st.session_state.menu_atual == "Scanner":
     st.subheader("📷 Escanear QR Code do Local")
-    foto = st.camera_input("Capturar Foto")
+    foto = st.camera_input("Capturar Foto do QR Code do Pallet/Prateleira")
     if foto and OPENCV_DISPONIVEL:
         img = cv2.imdecode(np.frombuffer(foto.getvalue(), np.uint8), cv2.IMREAD_COLOR)
         val, _, _ = cv2.QRCodeDetector().detectAndDecode(img)
         if val:
             termo_lido = val.strip().lower()
-            st.success(f"QR Code Lido: {val}")
+            st.success(f"Local Identificado: {val}")
+            st.markdown("### 🍷 Vinhos armazenados neste local:")
             
-            # Buscar qualquer vinho cuja localização + lado bata com o que está escrito no QR Code
             resultados = []
             for v in st.session_state.estoque:
-                loc_cadastrada = str(v.get('localizacao', '')).lower()
-                lado_cadastrado = str(v.get('lado', '')).lower()
+                loc_cadastrada = str(v.get('localizacao', '')).strip().lower()
+                lado_cadastrado = str(v.get('lado', '')).strip().lower()
                 
-                # Se o QR code contiver a localização exata, nós exibimos o resultado.
-                if loc_cadastrada in termo_lido:
+                # Monta a string completa do local para comparar perfeitamente com o QR code da etiqueta do pallet
+                string_completa_local = f"{loc_cadastrada} - lado: {lado_cadastrado}"
+                
+                # Se o QR code lido corresponder ao local e lado do vinho
+                if termo_lido in string_completa_local or termo_lido == loc_cadastrada or loc_cadastrada in termo_lido:
                     resultados.append(v)
                     
             if resultados:
                 for v in resultados:
-                    st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra', 'N/A')})</div><p>Local: <b>{v.get('localizacao', 'N/A')}</b> | Lado: <b>{v.get('lado', 'N/A')}</b></p></div>", unsafe_allow_html=True)
-            else: st.warning("Nenhum vinho encontrado com as especificações deste QR Code.")
-        else: st.error("QR Code não detectado. Tente aproximar mais a câmera.")
+                    st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra', 'N/A')})</div><p>Tipo: <b>{v.get('tipo', 'N/A')}</b> | Caixa: <b>{v.get('caixa', 'N/A')}</b><br>📍 Local: <b>{v.get('localizacao', 'N/A')}</b> (Lado: <b>{v.get('lado', 'N/A')}</b>)</p></div>", unsafe_allow_html=True)
+            else: 
+                st.warning("Nenhum vinho cadastrado exatamente neste local e lado no momento.")
+        else: 
+            st.error("QR Code não detectado. Tente aproximar mais a câmera.")
 
 elif st.session_state.menu_atual == "Estoque":
     st.subheader("🍷 Estoque Completo")
@@ -323,33 +328,26 @@ elif st.session_state.menu_atual == "Cadastrar":
                 st.rerun()
 
 elif st.session_state.menu_atual == "GerarQR":
-    st.subheader("📱 Gerar QR Code")
-    st.write("Selecione um vinho do estoque para gerar a etiqueta com sua localização exata:")
+    st.subheader("📱 Gerar QR Code do Local (Pallet / Prateleira)")
+    st.write("Selecione abaixo o endereço físico do galpão para gerar a etiqueta do pallet/prateleira:")
     
-    if not st.session_state.estoque:
-        st.info("Cadastre pelo menos um vinho para gerar o QR Code da localização dele.")
-    else:
-        # Puxa APENAS as localizações reais dos vinhos cadastrados
-        opcoes_qr = []
-        for v in st.session_state.estoque:
-            texto_opcao = f"{v.get('nome')} | Local: {v.get('localizacao', '')} - Lado: {v.get('lado', '')}"
-            opcoes_qr.append(texto_opcao)
-            
-        selecao = st.selectbox("Vinho Cadastrado", opcoes_qr)
+    col_g1, col_g2 = st.columns(2)
+    with col_g1:
+        c_corredor = st.selectbox("Corredor", LISTA_CORREDORES, key="qr_corredor")
+        c_tipo = st.selectbox("Tipo de Local", LISTA_LOCAIS_TIPO, key="qr_tipo")
+    with col_g2:
+        c_numero = st.selectbox("Número do Item", LISTA_NUMEROS_LOCAL, key="qr_numero")
+        c_lado = st.selectbox("Lado", LISTA_LADOS, key="qr_lado")
         
-        # Pega a string que será transformada em QR Code
-        if selecao:
-            idx = opcoes_qr.index(selecao)
-            vinho_selecionado = st.session_state.estoque[idx]
-            
-            # O texto que vai ficar DENTRO do QR Code
-            texto_gerar = f"{vinho_selecionado.get('localizacao', '')} - Lado: {vinho_selecionado.get('lado', '')}"
-            
-            if st.button("Gerar Etiqueta"):
-                _, cq, _ = st.columns([1, 2, 1])
-                with cq: 
-                    st.image(gerar_qr_code_api(texto_gerar), width=240, caption=texto_gerar)
-                    st.success("QR Code gerado com sucesso!")
+    # Monta a identificação única daquele pallet/prateleira exato
+    local_etiqueta = f"{c_corredor} - {c_tipo} {c_numero} - Lado: {c_lado}"
+    
+    st.write("")
+    if st.button("Gerar Etiqueta do Local", use_container_width=True):
+        _, cq, _ = st.columns([1, 2, 1])
+        with cq: 
+            st.image(gerar_qr_code_api(local_etiqueta), width=240, caption=local_etiqueta)
+            st.success(f"QR Code gerado para: {local_etiqueta}")
 
 elif st.session_state.menu_atual == "Historico":
     st.subheader("📋 Histórico")
