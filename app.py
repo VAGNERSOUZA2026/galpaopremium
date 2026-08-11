@@ -396,28 +396,67 @@ elif st.session_state.menu_atual == "Cadastrar":
                 st.warning("O arquivo parece estar vazio ou sem dados válidos.")
 
 elif st.session_state.menu_atual == "GerarQR":
-    st.subheader("📱 Gerar QR Code")
-    c_corredor = st.selectbox("Corredor", LISTA_CORREDORES)
-    c_tipo = st.selectbox("Tipo de Local", LISTA_LOCAIS_TIPO)
-    c_numero = st.selectbox("Número do Item", LISTA_NUMEROS_LOCAL)
-    c_lado = st.selectbox("Lado", LISTA_LADOS)
+    st.subheader("📱 Gerar QR Code de Localização")
     
-    local_etiqueta = f"{c_corredor} - {c_tipo} {c_numero} - Lado: {c_lado}"
+    aba_qr1, aba_qr2 = st.tabs(["Gerar Individual", "Gerar Lote para Impressão (Vários por Página)"])
     
-    if st.button("Gerar Etiqueta"):
-        url_qr = gerar_qr_code_api(local_etiqueta)
-        st.image(url_qr, width=240, caption=local_etiqueta)
+    with aba_qr1:
+        c_corredor = st.selectbox("Corredor", LISTA_CORREDORES, key="ind_corredor")
+        c_tipo = st.selectbox("Tipo de Local", LISTA_LOCAIS_TIPO, key="ind_tipo")
+        c_numero = st.selectbox("Número do Item", LISTA_NUMEROS_LOCAL, key="ind_numero")
+        c_lado = st.selectbox("Lado", LISTA_LADOS, key="ind_lado")
         
-        st.markdown("---")
-        st.markdown("### 📥 Opções da Etiqueta")
-        st.markdown(f"**Texto do QR Code:** `{local_etiqueta}`")
+        local_etiqueta = f"{c_corredor} - {c_tipo} {c_numero} - Lado: {c_lado}"
         
-        st.markdown(f"""
-            <div style="display: flex; gap: 10px; margin-top: 10px;">
-                <a href="{url_qr}" target="_blank" download="qrcode_{local_etiqueta}.png" style="background-color: #7A1C2E; color: white; padding: 10px 16px; border-radius: 12px; text-decoration: none; font-weight: 600; text-align: center; display: inline-block;">📥 Baixar Imagem do QR Code</a>
-            </div>
-            <p style="font-size: 0.85rem; color: #666; margin-top: 8px;">Dica: No celular, você também pode segurar o dedo em cima da imagem do QR Code acima e selecionar <b>"Salvar imagem"</b>.</p>
-        """, unsafe_allow_html=True)
+        if st.button("Gerar Etiqueta Individual"):
+            url_qr = gerar_qr_code_api(local_etiqueta)
+            st.image(url_qr, width=240, caption=local_etiqueta)
+            st.markdown(f"""
+                <div style="margin-top: 10px;">
+                    <a href="{url_qr}" target="_blank" download="qrcode_{local_etiqueta}.png" style="background-color: #7A1C2E; color: white; padding: 10px 16px; border-radius: 12px; text-decoration: none; font-weight: 600; text-align: center; display: inline-block;">📥 Baixar Imagem do QR Code</a>
+                </div>
+            """, unsafe_allow_html=True)
+
+    with aba_qr2:
+        st.markdown("### 🖨️ Gerador de Lote de Etiquetas")
+        st.markdown("Selecione o intervalo para gerar uma página organizada com vários QR Codes prontos para impressão em grade (vários por folha A4).")
+        
+        col_l1, col_l2 = st.columns(2)
+        with col_l1:
+            qtd_corredores = st.slider("Até qual corredor?", 1, 16, 16)
+        with col_l2:
+            qtd_itens = st.slider("Quantos pallets/itens por corredor?", 1, 25, 11)
+            
+        lados_lote = st.multiselect("Lados a incluir:", LISTA_LADOS, default=["Direito", "Esquerdo"])
+        
+        if st.button("Gerar Grade de Etiquetas para Impressão"):
+            lista_etiquetas = []
+            for c in range(1, qtd_corredores + 1):
+                corr_str = f"Corredor {c:02d}"
+                for i in range(1, qtd_itens + 1):
+                    item_str = f"Item {i:02d}"
+                    for lado in lados_lote:
+                        texto_loc = f"{corr_str} - Pallet {item_str} - Lado: {lado}"
+                        lista_etiquetas.append(texto_loc)
+            
+            st.success(f"Foram geradas {len(lista_etiquetas)} etiquetas com base nos seus parâmetros!")
+            
+            st.markdown("---")
+            st.markdown("#### 👁️ Pré-visualização para Impressão em Massa")
+            st.markdown("Dica de Impressão: Pressione **Ctrl + P** na sua tela. No painel do navegador, configure a escala para **80% ou Padrão** e desative cabeçalhos e rodapés.")
+            
+            html_grade = "<div style='display: flex; flex-wrap: wrap; gap: 15px; justify-content: center;'>"
+            for etiqueta in lista_etiquetas:
+                api_url = gerar_qr_code_api(etiqueta)
+                html_grade += f"""
+                    <div style="border: 2px dashed #7A1C2E; border-radius: 8px; padding: 10px; width: 180px; text-align: center; background: white; page-break-inside: avoid; margin-bottom: 10px;">
+                        <img src="{api_url}" width="120" style="display: block; margin: 0 auto;">
+                        <div style="font-size: 10px; font-weight: bold; color: #1A1A1A; margin-top: 6px; line-height: 1.2;">{etiqueta}</div>
+                    </div>
+                """
+            html_grade += "</div>"
+            
+            st.markdown(html_grade, unsafe_allow_html=True)
 
 elif st.session_state.menu_atual == "Historico":
     st.subheader("📋 Histórico")
