@@ -256,7 +256,6 @@ elif st.session_state.menu_atual == "SepararMatriz":
         st.markdown("---")
         st.write("### 📋 Itens Solicitados pela Matriz:")
         
-        # Exibir tabela com opção de exclusão individual
         for idx_p, item_p in enumerate(list(st.session_state.pedido_ativo)):
             col_p1, col_p2 = st.columns([4, 1])
             with col_p1:
@@ -270,7 +269,6 @@ elif st.session_state.menu_atual == "SepararMatriz":
         st.markdown("---")
         st.write("### 🔍 Conferência / Bipagem no Galpão")
         
-        # Se houver uma divergência pendente de confirmação pelo operador
         if st.session_state.alerta_divergencia_pendente:
             div_info = st.session_state.alerta_divergencia_pendente
             st.warning(f"⚠️ **DIVERGÊNCIA DETECTADA:** {div_info['mensagem']}")
@@ -311,7 +309,7 @@ elif st.session_state.menu_atual == "SepararMatriz":
                             if tem_erro_safra or tem_erro_qtd:
                                 msgs = []
                                 if tem_erro_safra:
-                                    msgs.append(f"Safra informada ({vínho_safra := vinho_encontrado['safra']}) difere da solicitada ({item_pedido['safra']}).")
+                                    msgs.append(f"Safra informada ({vinho_encontrado['safra']}) difere da solicitada ({item_pedido['safra']}).")
                                 if tem_erro_qtd:
                                     msgs.append(f"Quantidade informada ({qtd_conferida} cx) difere da solicitada ({item_pedido['qtd']} cx).")
                                 
@@ -321,8 +319,7 @@ elif st.session_state.menu_atual == "SepararMatriz":
                                     "item_para_adicionar": {
                                         "nome": vinho_encontrado['nome'],
                                         "safra": vinho_encontrado['safra'],
-                                        "qtd_descida": int(qtd_conferida),
-                                        "local": vinho_encontrado['localizacao']
+                                        "qtd_descida": int(qtd_conferida)
                                     }
                                 }
                                 st.rerun()
@@ -331,8 +328,7 @@ elif st.session_state.menu_atual == "SepararMatriz":
                                 st.session_state.conferencia_itens.append({
                                     "nome": vinho_encontrado['nome'],
                                     "safra": vinho_encontrado['safra'],
-                                    "qtd_descida": int(qtd_conferida),
-                                    "local": vinho_encontrado['localizacao']
+                                    "qtd_descida": int(qtd_conferida)
                                 })
                                 salvar_sessao_conferencia(st.session_state.pedido_ativo, st.session_state.conferencia_itens)
                                 st.rerun()
@@ -343,7 +339,7 @@ elif st.session_state.menu_atual == "SepararMatriz":
             for idx_c, item_c in enumerate(list(st.session_state.conferencia_itens)):
                 col_c1, col_c2 = st.columns([4, 1])
                 with col_c1:
-                    st.write(f"- Vinho: **{item_c['nome']}** | Safra: {item_c['safra']} | Qtd Descida: {item_c['qtd_descida']} cx | Local: {item_c['local']}")
+                    st.write(f"- Vinho: **{item_c['nome']}** | Safra: {item_c['safra']} | Qtd Descida: {item_c['qtd_descida']} cx")
                 with col_c2:
                     if st.button("🗑️ Excluir", key=f"del_conf_{idx_c}"):
                         st.session_state.conferencia_itens.pop(idx_c)
@@ -356,7 +352,7 @@ elif st.session_state.menu_atual == "SepararMatriz":
                     hora_br_str = obter_hora_brasilia().strftime('%d/%m/%Y %H:%M')
                     texto_romaneio = f"=== ROMANEIO DE ENVIO - PREMIUM WINES ===\nData/Hora: {hora_br_str}\n\n"
                     for item in st.session_state.conferencia_itens:
-                        texto_romaneio += f"- Vinho: {item['nome']} | Safra: {item['safra']} | Qtd Descida: {item['qtd_descida']} cx | Local: {item['local']}\n"
+                        texto_romaneio += f"- Vinho: {item['nome']} | Safra: {item['safra']} | Qtd Descida: {item['qtd_descida']} cx\n"
                     texto_romaneio += "\nStatus: Conferido e validado com sucesso."
 
                     st.success("Romaneio gerado com sucesso!")
