@@ -1,13 +1,11 @@
 import streamlit as st
 import pandas as pd
-import json
-import os
 from datetime import datetime, timezone, timedelta
 
-# --- Configuração Inicial ---
+# --- Configuração ---
 st.set_page_config(page_title="Premium Wines - Galpão", layout="wide")
 
-# Simulação de base de dados (o seu layout original)
+# --- Dados Originais (Sua Estrutura) ---
 if "estoque" not in st.session_state:
     st.session_state.estoque = [
         {"nome": "la consulta malbec", "tipo": "Tinto", "safra": "2024", "localizacao": "Corredor 01 - Pallet Item 02", "lado": "Direito", "caixa": "Caixa com 12 garrafas", "foto": "", "codigo_barras": "None"},
@@ -19,37 +17,38 @@ if "estoque" not in st.session_state:
     ]
 
 # --- Navegação ---
-menu = st.sidebar.radio("Navegação", ["Home", "Cadastrar", "Separar Pedido"])
+st.sidebar.title("Navegação")
+menu = st.sidebar.radio("Ir para:", ["Home", "Cadastrar", "Separar Pedido"])
 
 if menu == "Home":
-    st.title("Estoque Disponível")
+    st.title("Estoque Atual")
+    # Exibe exatamente como na sua imagem
     st.table(pd.DataFrame(st.session_state.estoque))
 
 elif menu == "Cadastrar":
     st.title("Cadastrar Vinho")
-    # ... aqui você mantém o seu formulário original ...
-    st.write("Formulário de cadastro mantido.")
+    st.write("Funcionalidade de cadastro original.")
+    # (Adicione aqui seu formulário original se necessário)
 
 elif menu == "Separar Pedido":
     st.title("Separar Pedido")
     
-    # Lista de exemplo para conferência
-    if "pedido" not in st.session_state:
-        st.session_state.pedido = pd.DataFrame([
-            {"nome": "la consulta malbec", "qtd_esperada": 2, "qtd_descida": 0},
-            {"nome": "Vina Ane Autor", "qtd_esperada": 1, "qtd_descida": 0}
-        ])
-
-    st.write("Edite a coluna 'qtd_descida' abaixo:")
-    df_editado = st.data_editor(st.session_state.pedido)
+    # Lista para conferência
+    df_pedido = pd.DataFrame([
+        {"nome": "la consulta malbec", "qtd_pedido": 5, "caixas_descidas": 0},
+        {"nome": "Quereu Carmenere", "qtd_pedido": 2, "caixas_descidas": 0}
+    ])
+    
+    st.write("Confira as caixas descidas abaixo:")
+    df_conferencia = st.data_editor(df_pedido)
     
     if st.button("Gerar Romaneio"):
-        # Fuso de Brasília (GMT-3)
+        # Hora de Brasília (GMT-3)
         hora_br = datetime.now(timezone(timedelta(hours=-3))).strftime('%d/%m/%Y %H:%M')
         
         texto_romaneio = f"ROMANEIO - PREMIUM WINES\nData: {hora_br}\n\n"
-        for _, row in df_editado.iterrows():
-            texto_romaneio += f"Item: {row['nome']} | Pedido: {row['qtd_esperada']} | Descida: {row['qtd_descida']}\n"
+        for _, row in df_conferencia.iterrows():
+            texto_romaneio += f"Produto: {row['nome']} | Pedido: {row['qtd_pedido']} | Descidas: {row['caixas_descidas']}\n"
         
-        st.download_button("📥 Baixar Romaneio (.txt)", texto_romaneio, "romaneio.txt")
-        st.success(f"Romaneio gerado com hora de Brasília: {hora_br}")
+        st.download_button("📥 Baixar Romaneio (.txt)", texto_romaneio, "romaneio_final.txt")
+        st.success(f"Romaneio gerado: {hora_br}")
