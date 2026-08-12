@@ -114,8 +114,8 @@ def gerar_qr_code_api(texto):
 if "estoque" not in st.session_state: st.session_state.estoque = carregar_dados()
 if "usuarios" not in st.session_state: st.session_state.usuarios = carregar_usuarios()
 if "menu_atual" not in st.session_state: st.session_state.menu_atual = "🏠 Home"
+if "alerta_divergencia_pendente" not in st.session_state: st.session_state.alerta_divergencia_pendente = None
 
-# Carrega sessão salva automaticamente se cair a conexão ou fechar o app
 sessao_salva = carregar_sessao_conferencia()
 if "pedido_ativo" not in st.session_state: st.session_state.pedido_ativo = sessao_salva.get("pedido_ativo", [])
 if "conferencia_itens" not in st.session_state: st.session_state.conferencia_itens = sessao_salva.get("conferencia_itens", [])
@@ -238,10 +238,10 @@ elif st.session_state.menu_atual == "Filtros":
 
 elif st.session_state.menu_atual == "SepararMatriz":
     st.subheader("📦 Conferência e Separação de Pedido da Matriz")
-    st.info("O progresso é salvo automaticamente. Se o app fechar, seus dados continuam aqui.")
+    st.info("Gerencie a lista de pedidos, faça a leitura e confirme divergências se necessário. Tudo salvo automaticamente.")
 
     with st.form("form_pedido_matriz"):
-        st.write("### 1. Inserir Pedido da Matriz")
+        st.write("### 1. Inserir ou Gerenciar Itens do Pedido da Matriz")
         vinho_pedido = st.selectbox("Selecione o Vinho do Estoque:", [v['nome'] for v in st.session_state.estoque])
         safra_pedido = st.text_input("Safra Exigida pela Matriz:").strip()
         qtd_pedido = st.number_input("Quantidade Exigida de Caixas:", min_value=1, value=1)
@@ -255,43 +255,100 @@ elif st.session_state.menu_atual == "SepararMatriz":
     if st.session_state.pedido_ativo:
         st.markdown("---")
         st.write("### 📋 Itens Solicitados pela Matriz:")
-        st.dataframe(pd.DataFrame(st.session_state.pedido_ativo), use_container_width=True)
+        
+        # Exibir tabela com opção de exclusão individual
+        for idx_p, item_p in enumerate(list(st.session_state.pedido_ativo)):
+            col_p1, col_p2 = st.columns([4, 1])
+            with col_p1:
+                st.write(f"- **{item_p['nome']}** | Safra: {item_p['safra']} | Qtd: {item_p['qtd']} cx")
+            with col_p2:
+                if st.button("🗑️ Excluir", key=f"del_pedido_{idx_p}"):
+                    st.session_state.pedido_ativo.pop(idx_p)
+                    salvar_sessao_conferencia(st.session_state.pedido_ativo, st.session_state.conferencia_itens)
+                    st.rerun()
 
         st.markdown("---")
         st.write("### 🔍 Conferência / Bipagem no Galpão")
         
-        with st.form("form_conferencia"):
-            codigo_ou_nome = st.text_input("Escaneie o Código de Barras ou Digite o Nome do Vinho:").strip()
-            qtd_conferida = st.number_input("Quantidade de Caixas Descidas:", min_value=1, value=1)
-            btn_conf = st.form_submit_button("Validar e Conferir Item")
+        # Se houver uma divergência pendente de confirmação pelo operador
+        if st.session_state.alerta_divergencia_pendente:
+            div_info = st.session_state.alerta_divergencia_pendente
+            st.warning(f"⚠️ **DIVERGÊNCIA DETECTADA:** {div_info['mensagem']}")
             
-            if btn_conf:
-                vinho_encontrado = next((v for v in st.session_state.estoque if v.get('codigo_barras') == codigo_ou_nome or v.get('nome').lower() == codigo_ou_nome.lower()), None)
+            col_div1, col_div2 = st.columns(2)
+            with col_div1:
+                if st.button("✅ Estou ciente da divergência (Aceitar e Registrar)", use_container_width=True):
+                    st.session_state.conferencia_itens.append(div_info['item_para_adicionar'])
+                    salvar_sessao_conferencia(st.session_state.pedido_ativo, st.session_state.conferencia_itens)
+                    st.session_state.alerta_divergencia_pendente = None
+                    st.success("Item com divergência aceito e registrado!")
+                    st.rerun()
+            with col_div2:
+                if st.button("❌ Cancelar / Corrigir", use_container_width=True):
+                    st.session_state.alerta_divergencia_pendente = None
+                    st.info("Operação cancelada. Nenhuma alteração feita.")
+                    st.rerun()
+        else:
+            with st.form("form_conferencia"):
+                codigo_ou_nome = st.text_input("Escaneie o Código de Barras ou Digite o Nome do Vinho:").strip()
+                qtd_conferida = st.number_input("Quantidade de Caixas Descidas:", min_value=1, value=1)
+                btn_conf = st.form_submit_button("Validar e Conferir Item")
                 
-                if not vinho_encontrado:
-                    st.error("❌ ERRO: Vinho não cadastrado ou código de barras não reconhecido no sistema!")
-                else:
-                    item_pedido = next((p for p in st.session_state.pedido_ativo if p['nome'].lower() == vinho_encontrado['nome'].lower()), None)
+                if btn_conf:
+                    vinho_encontrado = next((v for v in st.session_state.estoque if v.get('codigo_barras') == codigo_ou_nome or v.get('nome').lower() == codigo_ou_nome.lower()), None)
                     
-                    if not item_pedido:
-                        st.error(f"❌ ATENÇÃO: O vinho '{vinho_encontrado['nome']}' NÃO FOI PEDIDO pela matriz!")
-                    elif item_pedido['safra'] != vinho_encontrado['safra']:
-                        st.error(f"⚠️ ERRO DE SAFRA! Você pegou a safra {vinho_encontrado['safra']}, mas a matriz pediu a safra {item_pedido['safra']}!")
-                    elif int(qtd_conferida) != int(item_pedido['qtd']):
-                        st.error(f"❌ ERRO DE QUANTIDADE! A matriz pediu exatamente {item_pedido['qtd']} caixas, mas você informou {qtd_conferida} caixas!")
+                    if not vinho_encontrado:
+                        st.error("❌ ERRO: Vinho não cadastrado ou código de barras não reconhecido no sistema!")
                     else:
-                        st.success(f"✅ CORRETO! {vinho_encontrado['nome']} (Safra {vinho_encontrado['safra']}) validado com {qtd_conferida} caixas!")
-                        st.session_state.conferencia_itens.append({
-                            "nome": vinho_encontrado['nome'],
-                            "safra": vinho_encontrado['safra'],
-                            "qtd_descida": int(qtd_conferida),
-                            "local": vinho_encontrado['localizacao']
-                        })
-                        salvar_sessao_conferencia(st.session_state.pedido_ativo, st.session_state.conferencia_itens)
+                        item_pedido = next((p for p in st.session_state.pedido_ativo if p['nome'].lower() == vinho_encontrado['nome'].lower()), None)
+                        
+                        if not item_pedido:
+                            st.error(f"❌ ATENÇÃO: O vinho '{vinho_encontrado['nome']}' NÃO FOI PEDIDO pela matriz!")
+                        else:
+                            tem_erro_safra = item_pedido['safra'] != vinho_encontrado['safra']
+                            tem_erro_qtd = int(qtd_conferida) != int(item_pedido['qtd'])
+                            
+                            if tem_erro_safra or tem_erro_qtd:
+                                msgs = []
+                                if tem_erro_safra:
+                                    msgs.append(f"Safra informada ({vínho_safra := vinho_encontrado['safra']}) difere da solicitada ({item_pedido['safra']}).")
+                                if tem_erro_qtd:
+                                    msgs.append(f"Quantidade informada ({qtd_conferida} cx) difere da solicitada ({item_pedido['qtd']} cx).")
+                                
+                                msg_completa = " ".join(msgs)
+                                st.session_state.alerta_divergencia_pendente = {
+                                    "mensagem": msg_completa,
+                                    "item_para_adicionar": {
+                                        "nome": vinho_encontrado['nome'],
+                                        "safra": vinho_encontrado['safra'],
+                                        "qtd_descida": int(qtd_conferida),
+                                        "local": vinho_encontrado['localizacao']
+                                    }
+                                }
+                                st.rerun()
+                            else:
+                                st.success(f"✅ CORRETO! {vinho_encontrado['nome']} (Safra {vinho_encontrado['safra']}) validado com sucesso!")
+                                st.session_state.conferencia_itens.append({
+                                    "nome": vinho_encontrado['nome'],
+                                    "safra": vinho_encontrado['safra'],
+                                    "qtd_descida": int(qtd_conferida),
+                                    "local": vinho_encontrado['localizacao']
+                                })
+                                salvar_sessao_conferencia(st.session_state.pedido_ativo, st.session_state.conferencia_itens)
+                                st.rerun()
 
         if st.session_state.conferencia_itens:
             st.write("### Itens já conferidos e separados:")
-            st.dataframe(pd.DataFrame(st.session_state.conferencia_itens), use_container_width=True)
+            
+            for idx_c, item_c in enumerate(list(st.session_state.conferencia_itens)):
+                col_c1, col_c2 = st.columns([4, 1])
+                with col_c1:
+                    st.write(f"- Vinho: **{item_c['nome']}** | Safra: {item_c['safra']} | Qtd Descida: {item_c['qtd_descida']} cx | Local: {item_c['local']}")
+                with col_c2:
+                    if st.button("🗑️ Excluir", key=f"del_conf_{idx_c}"):
+                        st.session_state.conferencia_itens.pop(idx_c)
+                        salvar_sessao_conferencia(st.session_state.pedido_ativo, st.session_state.conferencia_itens)
+                        st.rerun()
 
             c_acao1, c_acao2 = st.columns(2)
             with c_acao1:
@@ -314,6 +371,7 @@ elif st.session_state.menu_atual == "SepararMatriz":
                 if st.button("🗑️ Limpar / Reiniciar Conferência"):
                     st.session_state.pedido_ativo = []
                     st.session_state.conferencia_itens = []
+                    st.session_state.alerta_divergencia_pendente = None
                     if os.path.exists(ARQUIVO_SESSAO_CONFERENCIA):
                         os.remove(ARQUIVO_SESSAO_CONFERENCIA)
                     st.success("Sessão limpa com sucesso!")
