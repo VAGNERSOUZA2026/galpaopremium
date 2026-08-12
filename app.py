@@ -73,14 +73,18 @@ def realizar_backup(nome):
         shutil.copy(nome, os.path.join(PASTA_BACKUP, f"backup_{ts}_{nome}"))
 
 def carregar_dados():
+    estoque = []
     if os.path.exists(NOME_ARQUIVO):
         try:
-            with open(NOME_ARQUIVO, "r", encoding="utf-8") as f: return json.load(f)
+            with open(NOME_ARQUIVO, "r", encoding="utf-8") as f: estoque = json.load(f)
         except: pass
-    return [{"nome": "Château Margaux", "tipo": "Tinto", "safra": "2015", "localizacao": "Corredor 01 - Pallet Item 01", "lado": "Direito", "caixa": "Caixa com 12 garrafas", "foto": ""}]
+    if not estoque:
+        estoque = [{"nome": "Château Margaux", "tipo": "Tinto", "safra": "2015", "localizacao": "Corredor 01 - Pallet Item 01", "lado": "Direito", "caixa": "Caixa com 12 garrafas", "foto": ""}]
+    return sorted(estoque, key=lambda x: x.get("nome", "").lower())
 
 def salvar_dados(estoque):
-    with open(NOME_ARQUIVO, "w", encoding="utf-8") as f: json.dump(estoque, f, ensure_ascii=False, indent=4)
+    estoque_ordenado = sorted(estoque, key=lambda x: x.get("nome", "").lower())
+    with open(NOME_ARQUIVO, "w", encoding="utf-8") as f: json.dump(estoque_ordenado, f, ensure_ascii=False, indent=4)
     realizar_backup(NOME_ARQUIVO)
 
 def carregar_usuarios():
@@ -140,8 +144,10 @@ user_url = qp.get("user", None)
 cargo_url = qp.get("cargo", "Operador")
 
 if "usuario_logado" not in st.session_state or st.session_state.usuario_logado is None:
-    if user_url: st.session_state.usuario_logado = {"nome": user_url, "cargo": cargo_url}
-    else: st.session_state.usuario_logado = None
+    if user_url:
+        st.session_state.usuario_logado = {"nome": user_url, "cargo": cargo_url}
+    else:
+        st.session_state.usuario_logado = None
 
 if st.session_state.usuario_logado is None:
     st.write("")
@@ -184,7 +190,8 @@ if st.session_state.usuario_logado is None:
                 sp = st.text_input("Senha Mestra", type="password")
                 if st.form_submit_button("DEV", use_container_width=True):
                     if sp == SENHA_DEV:
-                        st.session_state.usuario_logado = {"nome": "Dev", "cargo": "Desenvolvedor"}
+                        dev_user = {"nome": "Dev", "cargo": "Desenvolvedor"}
+                        st.session_state.usuario_logado = dev_user
                         st.query_params["user"] = "Dev"
                         st.query_params["cargo"] = "Desenvolvedor"
                         st.rerun()
@@ -192,7 +199,7 @@ if st.session_state.usuario_logado is None:
     st.stop()
 
 ct1, ct2, ct3 = st.columns([3, 2, 1])
-with ct1: st.markdown(f"🍷 <b>PREMIUM WINES</b> | Usuário: {st.session_state.usuario_logado['nome']}", unsafe_allow_html=True)
+with ct1: st.markdown(f"🍷 <b>PREMIUM WINES</b> | Usuário: {st.session_state.usuario_logado['nome']} ({st.session_state.usuario_logado.get('cargo', 'Operador')})", unsafe_allow_html=True)
 with ct2:
     if st.session_state.menu_atual != "🏠 Home":
         if st.button("⬅️ Voltar ao Menu", use_container_width=True): st.session_state.menu_atual = "🏠 Home"; st.rerun()
@@ -251,7 +258,7 @@ elif st.session_state.menu_atual == "Filtros":
     if tp:
         res = [v for v in st.session_state.estoque if tp in v.get("nome", "").lower() or tp in v.get("localizacao", "").lower() or tp in v.get("lado", "").lower()]
         if res:
-            for v in res:
+            for v in sorted(res, key=lambda x: x.get("nome", "").lower()):
                 img_tag = f"<br><img src='app/static/{v.get('foto')}' width='100' style='border-radius: 8px; margin-top: 8px;'>" if v.get('foto') and os.path.exists(os.path.join(PASTA_FOTOS, v.get('foto'))) else ""
                 st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra')})</div><p>Tipo: <b>{v.get('tipo', 'N/A')}</b> | Caixa: <b>{v.get('caixa', 'N/A')}</b><br><span class='badge-pallet-grande'>📍 {v.get('localizacao')} - Lado: {v.get('lado', 'N/A')}</span>{img_tag}</p></div>", unsafe_allow_html=True)
         else:
@@ -278,7 +285,7 @@ elif st.session_state.menu_atual == "MapaSeparacao":
             
             if encontrados:
                 st.success(f"Foram encontrados {len(encontrados)} vinhos para separação:")
-                for v in encontrados:
+                for v in sorted(encontrados, key=lambda x: x.get("nome", "").lower()):
                     st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra', 'N/A')})</div><p>Tipo: <b>{v.get('tipo', 'N/A')}</b> | Caixa: <b>{v.get('caixa', 'N/A')}</b><br><span class='badge-pallet-grande'>📍 {v.get('localizacao', 'N/A')} - Lado: {v.get('lado', 'N/A')}</span></p></div>", unsafe_allow_html=True)
             else:
                 st.warning("Nenhum vinho do arquivo corresponde aos cadastrados no estoque. Verifique se os nomes batem com o cadastro.")
@@ -297,14 +304,15 @@ elif st.session_state.menu_atual == "Scanner":
             st.markdown("### 🍷 Vinhos neste local:")
             resultados = [v for v in st.session_state.estoque if termo_lido in (str(v.get('localizacao', '')).strip().lower() + " - lado: " + str(v.get('lado', '')).strip().lower())]
             if resultados:
-                for v in resultados:
+                for v in sorted(resultados, key=lambda x: x.get("nome", "").lower()):
                     st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra', 'N/A')})</div><p>Tipo: <b>{v.get('tipo', 'N/A')}</b> | Caixa: <b>{v.get('caixa', 'N/A')}</b><br>📍 Local: <b>{v.get('localizacao', 'N/A')}</b> (Lado: <b>{v.get('lado', 'N/A')}</b>)</p></div>", unsafe_allow_html=True)
             else: st.warning("Nenhum vinho encontrado neste local.")
         else: st.error("QR Code não detectado. Tente novamente.")
 
 elif st.session_state.menu_atual == "Estoque":
-    st.subheader("🍷 Estoque Completo")
-    for v in st.session_state.estoque:
+    st.subheader("🍷 Estoque Completo (Ordem Alfabética)")
+    estoque_ordenado = sorted(st.session_state.estoque, key=lambda x: x.get("nome", "").lower())
+    for v in estoque_ordenado:
         st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra')})</div><p>📍 <b>{v.get('localizacao')}</b> - Lado: <b>{v.get('lado', 'N/A')}</b></p></div>", unsafe_allow_html=True)
 
 elif st.session_state.menu_atual == "Cadastrar":
@@ -388,4 +396,214 @@ elif st.session_state.menu_atual == "Cadastrar":
                     importados += 1
             
             if importados > 0:
-                sal
+                salvar_dados(st.session_state.estoque)
+                registrar_log(st.session_state.usuario_logado['nome'], "Importação em Lote", f"{importados} vinhos importados via {ext.upper()}")
+                st.success(f"{importados} vinhos importados com sucesso!")
+                st.session_state.menu_atual = "🏠 Home"
+                st.rerun()
+            else:
+                st.warning("O arquivo parece estar vazio ou sem dados válidos.")
+
+elif st.session_state.menu_atual == "GerarQR":
+    st.subheader("📱 Gerar QR Code de Localização")
+    
+    aba_qr1, aba_qr2 = st.tabs(["Gerar Individual", "Gerar Lote para Impressão (Vários por Página)"])
+    
+    with aba_qr1:
+        c_corredor = st.selectbox("Corredor", LISTA_CORREDORES, key="ind_corredor")
+        c_tipo = st.selectbox("Tipo de Local", LISTA_LOCAIS_TIPO, key="ind_tipo")
+        c_numero = st.selectbox("Número do Item", LISTA_NUMEROS_LOCAL, key="ind_numero")
+        c_lado = st.selectbox("Lado", LISTA_LADOS, key="ind_lado")
+        
+        local_etiqueta = f"{c_corredor} - {c_tipo} {c_numero} - Lado: {c_lado}"
+        
+        if st.button("Gerar Etiqueta Individual"):
+            url_qr = gerar_qr_code_api(local_etiqueta)
+            st.image(url_qr, width=240, caption=local_etiqueta)
+            st.markdown(f"""
+                <div style="margin-top: 10px;">
+                    <a href="{url_qr}" target="_blank" download="qrcode_{local_etiqueta}.png" style="background-color: #7A1C2E; color: white; padding: 10px 16px; border-radius: 12px; text-decoration: none; font-weight: 600; text-align: center; display: inline-block;">📥 Baixar Imagem do QR Code</a>
+                </div>
+            """, unsafe_allow_html=True)
+
+    with aba_qr2:
+        st.markdown("### 🖨️ Gerador de Lote de Etiquetas")
+        st.markdown("Selecione o intervalo para gerar uma página organizada com vários QR Codes prontos para impressão em grade.")
+        
+        col_l1, col_l2 = st.columns(2)
+        with col_l1:
+            qtd_corredores = st.slider("Até qual corredor?", 1, 16, 16)
+        with col_l2:
+            qtd_itens = st.slider("Quantos pallets/itens por corredor?", 1, 25, 11)
+            
+        lados_lote = st.multiselect("Lados a incluir:", LISTA_LADOS, default=["Direito", "Esquerdo"])
+        
+        if st.button("Gerar Grade de Etiquetas para Impressão"):
+            lista_etiquetas = []
+            for c in range(1, qtd_corredores + 1):
+                corr_str = f"Corredor {c:02d}"
+                for i in range(1, qtd_itens + 1):
+                    item_str = f"Item {i:02d}"
+                    for lado in lados_lote:
+                        texto_loc = f"{corr_str} - Pallet {item_str} - Lado: {lado}"
+                        lista_etiquetas.append(texto_loc)
+            
+            st.session_state.lista_etiquetas_cache = lista_etiquetas
+            st.success(f"Foram geradas {len(lista_etiquetas)} etiquetas com base nos seus parâmetros!")
+
+        if "lista_etiquetas_cache" in st.session_state and st.session_state.lista_etiquetas_cache:
+            lista_etiquetas = st.session_state.lista_etiquetas_cache
+            
+            st.markdown("---")
+            st.markdown("#### 👁️ Impressão e Pré-visualização")
+            
+            html_grade_completo = """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <title>Impressão de Etiquetas - Premium Wines</title>
+                <style>
+                    body { font-family: sans-serif; background: white; margin: 20px; }
+                    .grid-container { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; }
+                    .etiqueta-card { border: 2px dashed #7A1C2E; border-radius: 8px; padding: 10px; width: 180px; text-align: center; background: white; page-break-inside: avoid; margin-bottom: 10px; }
+                    .etiqueta-card img { display: block; margin: 0 auto; width: 120px; }
+                    .etiqueta-texto { font-size: 10px; font-weight: bold; color: #1A1A1A; margin-top: 6px; line-height: 1.2; }
+                    .btn-imprimir { position: fixed; top: 20px; right: 20px; background-color: #7A1C2E; color: white; padding: 12px 20px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+                    .btn-imprimir:hover { background-color: #5c1322; }
+                    @media print { .btn-imprimir { display: none; } }
+                </style>
+            </head>
+            <body>
+                <button class="btn-imprimir" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
+                <div class="grid-container">
+            """
+            
+            for etiqueta in lista_etiquetas:
+                api_url = gerar_qr_code_api(etiqueta)
+                html_grade_completo += f"""
+                    <div class="etiqueta-card">
+                        <img src="{api_url}">
+                        <div class="etiqueta-texto">{etiqueta}</div>
+                    </div>
+                """
+            html_grade_completo += """
+                </div>
+            </body>
+            </html>
+            """
+            
+            st.download_button(
+                label="📥 Baixar Página de Etiquetas Pronta para Impressão (.html)",
+                data=html_grade_completo,
+                file_name="grade_etiquetas_galpao.html",
+                mime="text/html",
+                use_container_width=True
+            )
+            
+            st.markdown("Dica: Clique no botão acima para baixar o arquivo **grade_etiquetas_galpao.html**. Dê um duplo clique nele para abri-lo no seu navegador e clique no botão vermelho **🖨️ Imprimir / Salvar PDF** no canto superior direito.")
+            
+            html_preview = "<div style='display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; font-family: sans-serif;'>"
+            for etiqueta in lista_etiquetas:
+                api_url = gerar_qr_code_api(etiqueta)
+                html_preview += f"""
+                    <div style="border: 2px dashed #7A1C2E; border-radius: 8px; padding: 10px; width: 180px; text-align: center; background: white; margin-bottom: 10px;">
+                        <img src="{api_url}" width="120" style="display: block; margin: 0 auto;">
+                        <div style="font-size: 10px; font-weight: bold; color: #1A1A1A; margin-top: 6px; line-height: 1.2;">{etiqueta}</div>
+                    </div>
+                """
+            html_preview += "</div>"
+            components.html(html_preview, height=500, scrolling=True)
+
+elif st.session_state.menu_atual == "Historico":
+    st.subheader("📋 Histórico")
+    for l in carregar_logs():
+        st.markdown(f"- **{l['data_hora']}** | {l['usuario']} | {l['acao']}")
+
+elif st.session_state.menu_atual == "GerenciarUsuarios":
+    if st.session_state.usuario_logado.get('cargo') != "Desenvolvedor":
+        st.error("Acesso negado. Esta área é restrita ao Desenvolvedor.")
+        st.stop()
+        
+    st.subheader("⚙️ Gerenciar Usuários")
+    for u in st.session_state.usuarios:
+        st.write(f"👤 **{u['nome']}** (Cargo: {u.get('cargo', 'Operador')}) | Senha: `{u['senha']}`")
+
+elif st.session_state.menu_atual == "Editar":
+    st.subheader("✏️ Editar Vinho / Mudar de Pallet")
+    estoque_ordenado = sorted(st.session_state.estoque, key=lambda x: x.get("nome", "").lower())
+    nomes_vinhos = [f"{v.get('nome')} (Safra: {v.get('safra', 'N/A')} - Loc: {v.get('localizacao', 'N/A')})" for v in estoque_ordenado]
+    if nomes_vinhos:
+        vinho_sel = st.selectbox("Selecione o vinho para editar:", nomes_vinhos)
+        idx_sel = nomes_vinhos.index(vinho_sel)
+        v_atual = estoque_ordenado[idx_sel]
+        idx_real = st.session_state.estoque.index(v_atual)
+        
+        with st.form("edit_form"):
+            n = st.text_input("Nome do Vinho", value=v_atual.get('nome', '')).strip().title()
+            
+            tipos_disp = ["Tinto", "Branco", "Rosé", "Espumante"]
+            idx_tipo = tipos_disp.index(v_atual.get('tipo')) if v_atual.get('tipo') in tipos_disp else 0
+            t = st.selectbox("Tipo", tipos_disp, index=idx_tipo)
+            
+            s = st.text_input("Safra", value=v_atual.get('safra', ''))
+            
+            st.markdown("---")
+            st.markdown("📍 **Atualizar Localização Física (Pallet / Prateleira)**")
+            corredor = st.selectbox("Corredor", LISTA_CORREDORES)
+            tipo_loc = st.selectbox("Tipo Local", LISTA_LOCAIS_TIPO)
+            numero = st.selectbox("Número", LISTA_NUMEROS_LOCAL)
+            
+            idx_lado = LISTA_LADOS.index(v_atual.get('lado')) if v_atual.get('lado') in LISTA_LADOS else 0
+            lado = st.selectbox("Lado", LISTA_LADOS, index=idx_lado)
+            
+            idx_caixa = OPCOES_CAIXA.index(v_atual.get('caixa')) if v_atual.get('caixa') in OPCOES_CAIXA else 0
+            caixa = st.selectbox("Caixa", OPCOES_CAIXA, index=idx_caixa)
+            
+            foto_vinho = st.file_uploader("Alterar Foto (Opcional)", type=["jpg", "jpeg", "png"])
+            
+            if st.form_submit_button("Salvar Alterações"):
+                if n.strip():
+                    nome_foto = v_atual.get('foto', '')
+                    if foto_vinho is not None:
+                        nome_foto = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{foto_vinho.name}"
+                        caminho_foto = os.path.join(PASTA_FOTOS, nome_foto)
+                        with open(caminho_foto, "wb") as f:
+                            f.write(foto_vinho.getbuffer())
+                    
+                    st.session_state.estoque[idx_real] = {
+                        "nome": n.strip(),
+                        "tipo": t,
+                        "safra": s.strip(),
+                        "localizacao": f"{corredor} - {tipo_loc} {numero}",
+                        "lado": lado,
+                        "caixa": caixa,
+                        "foto": nome_foto
+                    }
+                    salvar_dados(st.session_state.estoque)
+                    registrar_log(st.session_state.usuario_logado['nome'], "Editar Vinho", f"Atualizado/Movido: {n}")
+                    st.success("Vinho atualizado e reposicionado com sucesso!")
+                    st.session_state.menu_atual = "🏠 Home"
+                    st.rerun()
+                else:
+                    st.error("O nome do vinho não pode ficar vazio.")
+    else:
+        st.info("Nenhum vinho para editar.")
+
+elif st.session_state.menu_atual == "Excluir":
+    st.subheader("🗑️ Excluir Vinho")
+    estoque_ordenado = sorted(st.session_state.estoque, key=lambda x: x.get("nome", "").lower())
+    nomes_vinhos = [f"{v.get('nome')} ({v.get('safra')})" for v in estoque_ordenado]
+    if nomes_vinhos:
+        vinho_sel = st.selectbox("Selecione para excluir:", nomes_vinhos)
+        if st.button("Confirmar Exclusão"):
+            idx_sel = nomes_vinhos.index(vinho_sel)
+            v_alvo = estoque_ordenado[idx_sel]
+            st.session_state.estoque.remove(v_alvo)
+            salvar_dados(st.session_state.estoque)
+            registrar_log(st.session_state.usuario_logado['nome'], "Excluir Vinho", f"Removido: {v_alvo.get('nome')}")
+            st.success("Vinho excluído com sucesso!")
+            st.session_state.menu_atual = "🏠 Home"
+            st.rerun()
+    else:
+        st.info("Nenhum vinho para excluir.")
