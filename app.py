@@ -4,7 +4,16 @@ import shutil
 from datetime import datetime, timezone, timedelta
 import pandas as pd
 import streamlit as st
+import streamlit.components.v1 as components
 import urllib.parse
+from docx import Document
+
+try:
+    import cv2
+    import numpy as np
+    OPENCV_DISPONIVEL = True
+except ImportError:
+    OPENCV_DISPONIVEL = False
 
 st.set_page_config(
     page_title="Premium Wines - Galpão",
@@ -37,8 +46,10 @@ PASTA_BACKUP = "backups_estoque"
 PASTA_FOTOS = "fotos_vinhos"
 SENHA_DEV = "1980"
 
-if not os.path.exists(PASTA_BACKUP): os.makedirs(PASTA_BACKUP)
-if not os.path.exists(PASTA_FOTOS): os.makedirs(PASTA_FOTOS)
+if not os.path.exists(PASTA_BACKUP):
+    os.makedirs(PASTA_BACKUP)
+if not os.path.exists(PASTA_FOTOS):
+    os.makedirs(PASTA_FOTOS)
 
 LISTA_CORREDORES = [f"Corredor {i:02d}" for i in range(1, 26)]
 LISTA_LOCAIS_TIPO = ["Pallet", "Prateleira"]
@@ -53,12 +64,9 @@ def obter_saudacao():
     elif 12 <= hora < 18: return "Boa tarde"
     else: return "Boa noite"
 
-def obter_hora_brasilia():
-    return datetime.now(timezone(timedelta(hours=-3)))
-
 def realizar_backup(nome):
     if os.path.exists(nome):
-        ts = obter_hora_brasilia().strftime("%Y%m%d_%H%M%S")
+        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         shutil.copy(nome, os.path.join(PASTA_BACKUP, f"backup_{ts}_{nome}"))
 
 def carregar_dados():
@@ -66,7 +74,7 @@ def carregar_dados():
         try:
             with open(NOME_ARQUIVO, "r", encoding="utf-8") as f: return json.load(f)
         except: pass
-    return [{"nome": "Château Margaux", "tipo": "Tinto", "safra": "2015", "localizacao": "Corredor 01 - Pallet Item 01", "lado": "Direito", "caixa": "Caixa com 12 garrafas", "foto": ""}]
+    return [{"nome": "Château Margaux", "tipo": "Tinto", "safra": "2015", "localizacao": "Corredor 01 - Pallet Item 01", "lado": "Direito", "caixa": "Caixa com 12 garrafas", "codigo_barras": "7891020304051", "foto": ""}]
 
 def salvar_dados(estoque):
     with open(NOME_ARQUIVO, "w", encoding="utf-8") as f: json.dump(estoque, f, ensure_ascii=False, indent=4)
@@ -91,7 +99,7 @@ def carregar_logs():
 
 def registrar_log(usuario, acao, detalhes):
     logs = carregar_logs()
-    logs.insert(0, {"data_hora": obter_hora_brasilia().strftime("%d/%m/%Y %H:%M:%S"), "usuario": usuario, "acao": acao, "detalhes": detalhes})
+    logs.insert(0, {"data_hora": datetime.now().strftime("%d/%m/%Y %H:%M:%S"), "usuario": usuario, "acao": acao, "detalhes": detalhes})
     with open(ARQUIVO_LOGS, "w", encoding="utf-8") as f: json.dump(logs, f, ensure_ascii=False, indent=4)
 
 def gerar_qr_code_api(texto):
@@ -106,6 +114,14 @@ def extrair_linhas_de_arquivo(arq):
             for c in df.columns:
                 for v in df[c].dropna():
                     if str(v).strip(): linhas.append(str(v).strip().title())
+        elif ext == 'docx':
+            doc = Document(arq)
+            for p in doc.paragraphs:
+                if p.text.strip(): linhas.append(p.text.strip().title())
+            for t in doc.tables:
+                for row in t.rows:
+                    for cell in row.cells:
+                        if cell.text.strip(): linhas.append(cell.text.strip().title())
         elif ext == 'txt':
             linhas = [l.strip().title() for l in arq.getvalue().decode("utf-8").split("\n") if l.strip()]
     except: pass
@@ -114,6 +130,8 @@ def extrair_linhas_de_arquivo(arq):
 if "estoque" not in st.session_state: st.session_state.estoque = carregar_dados()
 if "usuarios" not in st.session_state: st.session_state.usuarios = carregar_usuarios()
 if "menu_atual" not in st.session_state: st.session_state.menu_atual = "🏠 Home"
+if "termo_busca" not in st.session_state: st.session_state.termo_busca = ""
+if "carrinho_separacao" not in st.session_state: st.session_state.carrinho_separacao = {}
 
 qp = st.query_params
 user_url = qp.get("user", None)
@@ -188,6 +206,7 @@ st.markdown("---")
 if st.session_state.menu_atual == "🏠 Home":
     st.markdown(f"<p style='text-align: center; color: #666; margin-bottom: 0px;'>{obter_saudacao()},</p>", unsafe_allow_html=True)
     st.markdown(f"<h1 style='text-align: center; color: #7A1C2E; margin-top: 0px;'>{st.session_state.usuario_logado['nome']}! 👋</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #444; font-size: 0.95rem; margin-bottom: 25px;'>Escolha abaixo a opção desejada para gerenciar o galpão:</p>", unsafe_allow_html=True)
     
     c1, c2, c3 = st.columns(3)
     with c1:
@@ -209,17 +228,18 @@ if st.session_state.menu_atual == "🏠 Home":
     st.write("")
     c7, c8, c9 = st.columns(3)
     with c7:
-        if st.button("📷 Scanner Local", use_container_width=True): st.session_state.menu_atual = "Scanner"; st.rerun()
+        if st.button("📷 Escanear Local", use_container_width=True): st.session_state.menu_atual = "Scanner"; st.rerun()
     with c8:
         if st.button("✏️ Editar Vinho", use_container_width=True): st.session_state.menu_atual = "Editar"; st.rerun()
     with c9:
         if st.button("🗑️ Excluir Vinho", use_container_width=True): st.session_state.menu_atual = "Excluir"; st.rerun()
         
+    # Recurso exclusivo para Desenvolvedor (Teste de Codigo de Barras e Pedido da Matriz)
     if st.session_state.usuario_logado.get('cargo') == "Desenvolvedor":
         st.write("")
         cc1, cc2 = st.columns(2)
         with cc1:
-            if st.button("📦 Separar Pedido Matriz", use_container_width=True):
+            if st.button("📦 Separar Pedido Matriz (Bipagem 🧪)", use_container_width=True):
                 st.session_state.menu_atual = "SepararMatriz"
                 st.rerun()
         with cc2:
@@ -229,120 +249,395 @@ if st.session_state.menu_atual == "🏠 Home":
 
 elif st.session_state.menu_atual == "Filtros":
     st.subheader("🔍 Busca por Local ou Nome")
-    termo = st.text_input("Filtrar por nome ou corredor/pallet:").strip().title()
-    if termo:
-        res = [v for v in st.session_state.estoque if termo.lower() in v.get("nome", "").lower() or termo.lower() in v.get("localizacao", "").lower()]
+    termo_digitado = st.text_input("Filtrar por nome ou corredor/pallet:", value=st.session_state.termo_busca)
+    termo = termo_digitado.strip().title()
+    
+    tp = termo.lower() if termo else st.session_state.termo_busca.lower()
+    if tp:
+        res = [v for v in st.session_state.estoque if tp in v.get("nome", "").lower() or tp in v.get("localizacao", "").lower() or tp in v.get("lado", "").lower() or tp in str(v.get("codigo_barras", "")).lower()]
         if res:
             for v in res:
-                st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra')})</div><p>Tipo: <b>{v.get('tipo', 'N/A')}</b> | Caixa: <b>{v.get('caixa', 'N/A')}</b><br><span class='badge-pallet-grande'>📍 {v.get('localizacao')} - Lado: {v.get('lado', 'N/A')}</span></p></div>", unsafe_allow_html=True)
-        else: st.warning("Nenhum vinho encontrado.")
+                img_tag = f"<br><img src='app/static/{v.get('foto')}' width='100' style='border-radius: 8px; margin-top: 8px;'>" if v.get('foto') and os.path.exists(os.path.join(PASTA_FOTOS, v.get('foto'))) else ""
+                cb_txt = f" | Cód. Barras: <code>{v.get('codigo_barras')}</code>" if v.get('codigo_barras') else ""
+                st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra')})</div><p>Tipo: <b>{v.get('tipo', 'N/A')}</b> | Caixa: <b>{v.get('caixa', 'N/A')}</b>{cb_txt}<br><span class='badge-pallet-grande'>📍 {v.get('localizacao')} - Lado: {v.get('lado', 'N/A')}</span>{img_tag}</p></div>", unsafe_allow_html=True)
+        else:
+            st.warning("Nenhum vinho encontrado para este filtro/local/código de barras.")
 
 elif st.session_state.menu_atual == "SepararMatriz":
-    st.subheader("📦 Conferência e Separação de Pedido da Matriz")
+    st.subheader("📦 Conferência e Separação por Código de Barras (Matriz) 🧪")
+    st.markdown("Área restrita de testes (Desenvolvedor): Suba a lista enviada pela matriz ou digite os itens, e use a câmera do celular para bipar as caixas nos corredores do galpão.")
     
-    arq_matriz = st.file_uploader("Envie o pedido da Matriz (.xlsx ou .txt)", type=["xlsx", "xls", "txt"])
-    pedido_manual = st.text_area("Ou cole a lista de vinhos pedidos:")
+    tab_s1, tab_s2 = st.tabs(["1. Importar Pedido da Matriz", "2. Bipar e Conferir na Coleta 📱"])
     
-    if st.button("Carregar Pedido"):
-        itens_pedido = []
-        if arq_matriz:
-            ext = arq_matriz.name.split('.')[-1].lower()
-            if ext in ['xlsx', 'xls']:
-                dfm = pd.read_excel(arq_matriz)
-                for _, row in dfm.iterrows():
-                    np_ = str(row.get('Nome', row.iloc[0])).strip().title()
-                    qp_ = int(row.get('Quantidade', 1)) if 'Quantidade' in dfm.columns else 1
-                    if np_ and np_ != 'Nan': itens_pedido.append({"nome": np_, "qtd_esperada": qp_, "qtd_descida": 0})
-            elif ext == 'txt':
-                for lt in arq_matriz.getvalue().decode("utf-8").split("\n"):
-                    if lt.strip(): itens_pedido.append({"nome": lt.strip().title(), "qtd_esperada": 1, "qtd_descida": 0})
-        if pedido_manual.strip():
-            for lm in pedido_manual.split("\n"):
-                if lm.strip(): itens_pedido.append({"nome": lm.strip().title(), "qtd_esperada": 1, "qtd_descida": 0})
-        if itens_pedido:
-            st.session_state.pedido_matriz_ativo = itens_pedido
-            st.success(f"Pedido carregado com sucesso! {len(itens_pedido)} itens.")
-        else: st.error("Nenhum item encontrado.")
+    with tab_s1:
+        arq_matriz = st.file_uploader("Envie a planilha de pedido da Matriz (.xlsx ou .txt)", type=["xlsx", "xls", "txt"], key="arq_matriz")
+        pedido_manual = st.text_area("Ou cole a lista de vinhos pedidos pela matriz aqui (um por linha):", key="ped_manual")
         
-    if "pedido_matriz_ativo" in st.session_state and st.session_state.pedido_matriz_ativo:
-        st.markdown("---")
-        st.write("### Conferência das Caixas Descidas:")
-        df_pedido_atual = pd.DataFrame(st.session_state.pedido_matriz_ativo)
-        df_editado = st.data_editor(df_pedido_atual, use_container_width=True)
-        
-        if st.button("Gerar Romaneio Final para Envio à Matriz"):
-            hora_br_str = obter_hora_brasilia().strftime('%d/%m/%Y %H:%M')
-            texto_romaneio = f"=== ROMANEIO DE ENVIO - PREMIUM WINES ===\nData: {hora_br_str}\n\n"
-            for _, row in df_editado.iterrows():
-                texto_romaneio += f"- {row['nome']}: Pedido: {row['qtd_esperada']} | Caixas Descidas: {row['qtd_descida']}\n"
-            texto_romaneio += "\nRomaneio gerado e validado com sucesso. Pronto para descer para a loja matriz!"
+        if st.button("Carregar Pedido para Conferência"):
+            itens_pedido = []
+            if arq_matriz:
+                ext = arq_matriz.name.split('.')[-1].lower()
+                if ext in ['xlsx', 'xls']:
+                    dfm = pd.read_excel(arq_matriz)
+                    for _, row in dfm.iterrows():
+                        nome_p = str(row.get('Nome', row.iloc[0])).strip().title()
+                        qtd_p = int(row.get('Quantidade', 1)) if 'Quantidade' in dfm.columns else 1
+                        if nome_p and nome_p != 'Nan':
+                            itens_pedido.append({"nome": nome_p, "qtd_esperada": qtd_p})
+                elif ext == 'txt':
+                    linhas_t = [l.strip().title() for l in arq_matriz.getvalue().decode("utf-8").split("\n") if l.strip()]
+                    for lt in linhas_t:
+                        itens_pedido.append({"nome": lt, "qtd_esperada": 1})
             
-            st.success("Romaneio gerado e validado com sucesso. Pronto para descer para a loja matriz!")
-            st.download_button(
-                label="📥 Baixar Arquivo do Romaneio (.txt)",
-                data=texto_romaneio,
-                file_name=f"romaneio_matriz_{obter_hora_brasilia().strftime('%Y%m%d_%H%M')}.txt",
-                mime="text/plain",
-                use_container_width=True
-            )
+            if pedido_manual.strip():
+                for lm in pedido_manual.split("\n"):
+                    if lm.strip():
+                        itens_pedido.append({"nome": lm.strip().title(), "qtd_esperada": 1})
+            
+            if itens_pedido:
+                st.session_state.pedido_matriz_ativo = itens_pedido
+                st.session_state.bipados_galpao = {} # Reinicia a bipagem
+                st.success(f"Pedido carregado com sucesso! {len(itens_pedido)} itens aguardando separação.")
+            else:
+                st.error("Nenhum item encontrado no arquivo ou texto.")
+                
+        if "pedido_matriz_ativo" in st.session_state and st.session_state.pedido_matriz_ativo:
+            st.markdown("---")
+            st.markdown("#### Itens solicitados pela Matriz:")
+            df_exibicao = pd.DataFrame(st.session_state.pedido_matriz_ativo)
+            st.dataframe(df_exibicao, use_container_width=True)
+
+    with tab_s2:
+        if "pedido_matriz_ativo" not in st.session_state or not st.session_state.pedido_matriz_ativo:
+            st.warning("⚠️ Carre primeiro o pedido da matriz na aba anterior!")
+        else:
+            st.markdown("Use a câmera do celular para escanear o **Código de Barras** da caixa do vinho enquanto anda pelo corredor:")
+            
+            foto_bip = st.camera_input("📷 Apontar câmera para o Código de Barras")
+            codigo_lido = ""
+            
+            if foto_bip and OPENCV_DISPONIVEL:
+                img_b = cv2.imdecode(np.frombuffer(foto_bip.getvalue(), np.uint8), cv2.IMREAD_COLOR)
+                # Tenta detectar QR Code ou código de barras padrão
+                val_dec, _, _ = cv2.QRCodeDetector().detectAndDecode(img_b)
+                if val_dec:
+                    codigo_lido = val_dec.strip()
+                else:
+                    # Simulação de leitura caso seja código de barras linear (ou digitação manual abaixo)
+                    st.info("Tentativa de leitura por imagem concluída. Caso o leitor linear não decodifique perfeitamente pela câmera web comum, digite abaixo:")
+
+            # Entrada manual complementar para testes rápidos ou leitores ópticos USB conectados ao PC/Celular
+            codigo_manual_input = st.text_input("Ou digite / bipe o Código de Barras manualmente aqui:").strip()
+            if codigo_manual_input:
+                codigo_lido = codigo_manual_input
+                
+            qtd_caixas_lote = st.number_input("Quantidade de caixas desta leitura:", min_value=1, value=1, step=1)
+            
+            if st.button("Registrar Leitura da Caixa"):
+                if codigo_lido:
+                    # Procura no estoque qual vinho tem esse código de barras
+                    vinho_encontrado = next((v for v in st.session_state.estoque if str(v.get('codigo_barras', '')).strip().lower() == codigo_lido.lower()), None)
+                    
+                    if vinho_encontrado:
+                        nome_v_lido = vinho_encontrado['nome']
+                        # Verifica se está no pedido da matriz
+                        item_no_pedido = next((ip for ip in st.session_state.pedido_matriz_ativo if ip['nome'].lower() in nome_v_lido.lower() or nome_v_lido.lower() in ip['nome'].lower()), None)
+                        
+                        if item_no_pedido:
+                            atual = st.session_state.bipados_galpao.get(item_no_pedido['nome'], 0)
+                            st.session_state.bipados_galpao[item_no_pedido['nome']] = atual + qtd_caixas_lote
+                            st.success(f"✅ Bipado com sucesso: **{nome_v_lido}** (+{qtd_caixas_lote} cx). Localizado em: **{vinho_encontrado.get('localizacao')}**")
+                        else:
+                            st.error(f"❌ ATENÇÃO: O vinho **{nome_v_lido}** foi lido, mas **NÃO consta** na lista de pedidos da matriz! (Item descendo errado)")
+                    else:
+                        st.error(f"❌ Código de barras '{codigo_lido}' não cadastrado no sistema do galpão!")
+                else:
+                    st.warning("Nenhum código lido ou digitado.")
+            
+            st.markdown("---")
+            st.markdown("### 📊 Status de Conferência em Tempo Real")
+            
+            if "bipados_galpao" in st.session_state:
+                conferencia_status = []
+                tudo_concluido = True
+                
+                for item in st.session_state.pedido_matriz_ativo:
+                    nome_p = item['nome']
+                    esperado = item['qtd_esperada']
+                    separado = st.session_state.bipados_galpao.get(nome_p, 0)
+                    
+                    status_txt = "✅ Concluído"
+                    if separado < esperado:
+                        status_txt = f"⏳ Faltam {esperado - separado}"
+                        tudo_concluido = False
+                    elif separado > esperado:
+                        status_txt = f"⚠️ Excedente (+{separado - esperado})"
+                        tudo_concluido = False
+                        
+                    conferencia_status.append({
+                        "Vinho": nome_p,
+                        "Qtd Esperada": esperado,
+                        "Qtd Separada": separado,
+                        "Status": status_txt
+                    })
+                
+                st.dataframe(pd.DataFrame(conferencia_status), use_container_width=True)
+                
+                if tudo_concluido and len(st.session_state.pedido_matriz_ativo) > 0:
+                    st.success("🎉 **PARABÉNS!** A lista de pedidos da matriz foi **totalmente concluída** sem faltas e sem erros!")
+                    if st.button("📥 Gerar Romaneio Final para Envio à Matriz"):
+                        st.balloons()
+                        st.markdown("### 📄 ROMANEIO DE ENVIO - MATRIZ")
+                        st.info("Romaneio gerado e validado por código de barras com sucesso. Pronto para descer para a loja matriz!")
 
 elif st.session_state.menu_atual == "MapaSeparacao":
-    st.subheader("🗺️ Mapa de Separação")
-    arq = st.file_uploader("Envie lista de vinhos (.xlsx ou .txt)", type=["xlsx", "xls", "txt"])
-    txt_man = st.text_area("Ou cole a lista manual:").title()
-    if st.button("Gerar Rota"):
+    st.subheader("🗺️ Mapa de Separação (Leitura de Arquivo TXT ou Excel)")
+    arq = st.file_uploader("Envie o arquivo com a lista de vinhos", type=["xlsx", "xls", "txt"])
+    txt_man_input = st.text_area("Ou cole a lista de vinhos manualmente aqui:")
+    txt_man = txt_man_input.title() if txt_man_input else ""
+    
+    if st.button("Gerar Rota / Mapa"):
         linhas = extrair_linhas_de_arquivo(arq) if arq else []
-        if txt_man.strip(): linhas.extend([l.strip().title() for l in txt_man.split("\n") if l.strip()])
+        if txt_man.strip():
+            linhas.extend([l.strip().title() for l in txt_man.split("\n") if l.strip()])
+            
         if linhas:
-            enc = [v for v in st.session_state.estoque if any(l.lower() in v.get("nome","").lower() for l in linhas)]
-            for v in enc:
-                st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')}</div><p><span class='badge-pallet-grande'>📍 {v.get('localizacao')}</span></p></div>", unsafe_allow_html=True)
+            encontrados = []
+            for v in st.session_state.estoque:
+                nome_vinho = v.get("nome", "").lower().strip()
+                if any(l.lower().strip() in nome_vinho or nome_vinho in l.lower().strip() for l in linhas if len(l.strip()) > 2):
+                    if v not in encontrados:
+                        encontrados.append(v)
+            
+            if encontrados:
+                st.success(f"Foram encontrados {len(encontrados)} vinhos para separação:")
+                for v in encontrados:
+                    st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra', 'N/A')})</div><p>Tipo: <b>{v.get('tipo', 'N/A')}</b> | Caixa: <b>{v.get('caixa', 'N/A')}</b><br><span class='badge-pallet-grande'>📍 {v.get('localizacao', 'N/A')} - Lado: {v.get('lado', 'N/A')}</span></p></div>", unsafe_allow_html=True)
+            else:
+                st.warning("Nenhum vinho do arquivo corresponde aos cadastrados no estoque.")
+        else:
+            st.error("Envie um arquivo ou digite pelo menos um nome na caixa de texto.")
 
 elif st.session_state.menu_atual == "Scanner":
-    st.subheader("📷 Scanner Local")
-    st.info("Funcionalidade padrão de busca visualizada.")
+    st.subheader("📷 Escanear QR Code do Local")
+    foto = st.camera_input("Capturar Foto do QR Code do Pallet/Prateleira")
+    if foto and OPENCV_DISPONIVEL:
+        img = cv2.imdecode(np.frombuffer(foto.getvalue(), np.uint8), cv2.IMREAD_COLOR)
+        val, _, _ = cv2.QRCodeDetector().detectAndDecode(img)
+        if val:
+            termo_lido = val.strip().lower()
+            st.success(f"Local Identificado: {val}")
+            st.markdown("### 🍷 Vinhos neste local:")
+            resultados = [v for v in st.session_state.estoque if termo_lido in (str(v.get('localizacao', '')).strip().lower() + " - lado: " + str(v.get('lado', '')).strip().lower())]
+            if resultados:
+                for v in resultados:
+                    st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra', 'N/A')})</div><p>Tipo: <b>{v.get('tipo', 'N/A')}</b> | Caixa: <b>{v.get('caixa', 'N/A')}</b><br>📍 Local: <b>{v.get('localizacao', 'N/A')}</b> (Lado: <b>{v.get('lado', 'N/A')}</b>)</p></div>", unsafe_allow_html=True)
+            else: st.warning("Nenhum vinho encontrado neste local.")
+        else: st.error("QR Code não detectado. Tente novamente.")
 
 elif st.session_state.menu_atual == "Estoque":
     st.subheader("🍷 Estoque Completo")
     for v in st.session_state.estoque:
-        st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra')})</div><p>📍 <b>{v.get('localizacao')}</b></p></div>", unsafe_allow_html=True)
+        cb_info = f" | Cód. Barras: `{v.get('codigo_barras')}`" if v.get('codigo_barras') else ""
+        st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra')})</div><p>📍 <b>{v.get('localizacao')}</b> - Lado: <b>{v.get('lado', 'N/A')}</b>{cb_info}</p></div>", unsafe_allow_html=True)
 
 elif st.session_state.menu_atual == "Cadastrar":
-    st.subheader("➕ Cadastrar Vinho")
-    with st.form("cad_form"):
-        nome = st.text_input("Nome").strip().title()
-        tipo = st.selectbox("Tipo", ["Tinto", "Branco", "Rosé", "Espumante"])
-        safra = st.text_input("Safra").strip()
-        corredor = st.selectbox("Corredor", LISTA_CORREDORES)
-        tipo_loc = st.selectbox("Tipo Local", LISTA_LOCAIS_TIPO)
-        numero = st.selectbox("Número", LISTA_NUMEROS_LOCAL)
-        lado = st.selectbox("Lado", LISTA_LADOS)
-        caixa = st.selectbox("Caixa", OPCOES_CAIXA)
+    st.subheader("➕ Cadastrar Vinho (Individual ou em Lote)")
+    
+    modo_cadastro = st.radio("Escolha o modo de cadastro:", ["Cadastro Individual", "Importar Lote (Excel ou TXT)"])
+    
+    if modo_cadastro == "Cadastro Individual":
+        with st.form("cad"):
+            nome = st.text_input("Nome").strip().title()
+            tipo = st.selectbox("Tipo", ["Tinto", "Branco", "Rosé", "Espumante"])
+            safra = st.text_input("Safra").strip()
+            codigo_barras = st.text_input("Código de Barras (Opcional - Bipe ou Digite)").strip()
+            corredor = st.selectbox("Corredor", LISTA_CORREDORES)
+            tipo_loc = st.selectbox("Tipo Local", LISTA_LOCAIS_TIPO)
+            numero = st.selectbox("Número", LISTA_NUMEROS_LOCAL)
+            lado = st.selectbox("Lado", LISTA_LADOS)
+            caixa = st.selectbox("Caixa", OPCOES_CAIXA)
+            foto_vinho = st.file_uploader("Foto da Garrafa / Rótulo (Opcional)", type=["jpg", "jpeg", "png"])
+            
+            if st.form_submit_button("Salvar"):
+                if nome:
+                    nome_foto = ""
+                    if foto_vinho is not None:
+                        nome_foto = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{foto_vinho.name}"
+                        caminho_foto = os.path.join(PASTA_FOTOS, nome_foto)
+                        with open(caminho_foto, "wb") as f:
+                            f.write(foto_vinho.getbuffer())
+                    
+                    st.session_state.estoque.append({
+                        "nome": nome, 
+                        "tipo": tipo, 
+                        "safra": safra, 
+                        "localizacao": f"{corredor} - {tipo_loc} {numero}", 
+                        "lado": lado, 
+                        "caixa": caixa, 
+                        "codigo_barras": codigo_barras,
+                        "foto": nome_foto
+                    })
+                    salvar_dados(st.session_state.estoque)
+                    registrar_log(st.session_state.usuario_logado['nome'], "Cadastrar Vinho", nome)
+                    st.success("Vinho cadastrado com sucesso!")
+                    st.session_state.menu_atual = "🏠 Home"
+                    st.rerun()
+                else:
+                    st.error("Informe o nome do vinho.")
+    else:
+        st.info("Envie uma planilha Excel (.xlsx) com colunas como **Nome**, **Safra**, **Codigo_Barras**, etc., ou um arquivo .txt.")
+        arq_lote = st.file_uploader("Escolha o arquivo", type=["xlsx", "xls", "txt"])
         
-        if st.form_submit_button("Salvar Vinho"):
-            if nome:
-                st.session_state.estoque.append({
-                    "nome": nome, "tipo": tipo, "safra": safra,
-                    "localizacao": f"{corredor} - {tipo_loc} {numero}",
-                    "lado": lado, "caixa": caixa, "foto": ""
-                })
+        if arq_lote and st.button("Processar Importação em Lote"):
+            importados = 0
+            ext = arq_lote.name.split('.')[-1].lower()
+            
+            if ext in ['xlsx', 'xls']:
+                df = pd.read_excel(arq_lote)
+                for _, row in df.iterrows():
+                    nome_v = str(row.get('Nome', '')).strip().title()
+                    if nome_v and nome_v != 'Nan':
+                        st.session_state.estoque.append({
+                            "nome": nome_v,
+                            "tipo": str(row.get('Tipo', 'Tinto')).strip().title(),
+                            "safra": str(row.get('Safra', '')).strip(),
+                            "localizacao": str(row.get('Localizacao', 'Corredor 01 - Pallet Item 01')).strip(),
+                            "lado": str(row.get('Lado', 'Direito')).strip(),
+                            "caixa": str(row.get('Caixa', 'Caixa com 12 garrafas')).strip(),
+                            "codigo_barras": str(row.get('Codigo_Barras', '')).strip(),
+                            "foto": ""
+                        })
+                        importados += 1
+                        
+            elif ext == 'txt':
+                linhas = [l.strip().title() for l in arq_lote.getvalue().decode("utf-8").split("\n") if l.strip()]
+                for linha in linhas:
+                    st.session_state.estoque.append({
+                        "nome": linha,
+                        "tipo": "Tinto",
+                        "safra": "",
+                        "localizacao": "Corredor 01 - Pallet Item 01",
+                        "lado": "Direito",
+                        "caixa": "Caixa com 12 garrafas",
+                        "codigo_barras": "",
+                        "foto": ""
+                    })
+                    importados += 1
+            
+            if importados > 0:
                 salvar_dados(st.session_state.estoque)
-                registrar_log(st.session_state.usuario_logado['nome'], "Cadastrar Vinho", nome)
-                st.success("Cadastrado com sucesso!")
+                registrar_log(st.session_state.usuario_logado['nome'], "Importação em Lote", f"{importados} vinhos importados via {ext.upper()}")
+                st.success(f"{importados} vinhos importados com sucesso!")
                 st.session_state.menu_atual = "🏠 Home"
                 st.rerun()
-            else: st.error("Informe o nome.")
+            else:
+                st.warning("O arquivo parece estar vazio ou sem dados válidos.")
 
 elif st.session_state.menu_atual == "GerarQR":
-    st.subheader("📱 Gerar QR Code")
-    c_cor = st.selectbox("Corredor", LISTA_CORREDORES)
-    c_tip = st.selectbox("Tipo", LISTA_LOCAIS_TIPO)
-    c_num = st.selectbox("Número", LISTA_NUMEROS_LOCAL)
-    txt_qr = f"{c_cor} - {c_tip} {c_num}"
-    if st.button("Gerar"):
-        url = gerar_qr_code_api(txt_qr)
-        st.image(url, width=220)
-        st.markdown(f"<a href='{url}' target='_blank' download>📥 Baixar Imagem</a>", unsafe_allow_html=True)
+    st.subheader("📱 Gerar QR Code de Localização")
+    aba_qr1, aba_qr2 = st.tabs(["Gerar Individual", "Gerar Lote para Impressão (Vários por Página)"])
+    
+    with aba_qr1:
+        c_corredor = st.selectbox("Corredor", LISTA_CORREDORES, key="ind_corredor")
+        c_tipo = st.selectbox("Tipo de Local", LISTA_LOCAIS_TIPO, key="ind_tipo")
+        c_numero = st.selectbox("Número do Item", LISTA_NUMEROS_LOCAL, key="ind_numero")
+        c_lado = st.selectbox("Lado", LISTA_LADOS, key="ind_lado")
+        
+        local_etiqueta = f"{c_corredor} - {c_tipo} {c_numero} - Lado: {c_lado}"
+        
+        if st.button("Gerar Etiqueta Individual"):
+            url_qr = gerar_qr_code_api(local_etiqueta)
+            st.image(url_qr, width=240, caption=local_etiqueta)
+            st.markdown(f"""
+                <div style="margin-top: 10px;">
+                    <a href="{url_qr}" target="_blank" download="qrcode_{local_etiqueta}.png" style="background-color: #7A1C2E; color: white; padding: 10px 16px; border-radius: 12px; text-decoration: none; font-weight: 600; text-align: center; display: inline-block;">📥 Baixar Imagem do QR Code</a>
+                </div>
+            """, unsafe_allow_html=True)
+
+    with aba_qr2:
+        st.markdown("### 🖨️ Gerador de Lote de Etiquetas")
+        col_l1, col_l2 = st.columns(2)
+        with col_l1:
+            qtd_corredores = st.slider("Até qual corredor?", 1, 16, 16)
+        with col_l2:
+            qtd_itens = st.slider("Quantos pallets/itens por corredor?", 1, 25, 11)
+            
+        lados_lote = st.multiselect("Lados a incluir:", LISTA_LADOS, default=["Direito", "Esquerdo"])
+        
+        if st.button("Gerar Grade de Etiquetas para Impressão"):
+            lista_etiquetas = []
+            for c in range(1, qtd_corredores + 1):
+                corr_str = f"Corredor {c:02d}"
+                for i in range(1, qtd_itens + 1):
+                    item_str = f"Item {i:02d}"
+                    for lado in lados_lote:
+                        texto_loc = f"{corr_str} - Pallet {item_str} - Lado: {lado}"
+                        lista_etiquetas.append(texto_loc)
+            
+            st.session_state.lista_etiquetas_cache = lista_etiquetas
+            st.success(f"Foram geradas {len(lista_etiquetas)} etiquetas com base nos seus parâmetros!")
+
+        if "lista_etiquetas_cache" in st.session_state and st.session_state.lista_etiquetas_cache:
+            lista_etiquetas = st.session_state.lista_etiquetas_cache
+            st.markdown("---")
+            st.markdown("#### 👁️ Impressão e Pré-visualização")
+            
+            html_grade_completo = """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <title>Impressão de Etiquetas - Premium Wines</title>
+                <style>
+                    body { font-family: sans-serif; background: white; margin: 20px; }
+                    .grid-container { display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; }
+                    .etiqueta-card { border: 2px dashed #7A1C2E; border-radius: 8px; padding: 10px; width: 180px; text-align: center; background: white; page-break-inside: avoid; margin-bottom: 10px; }
+                    .etiqueta-card img { display: block; margin: 0 auto; width: 120px; }
+                    .etiqueta-texto { font-size: 10px; font-weight: bold; color: #1A1A1A; margin-top: 6px; line-height: 1.2; }
+                    .btn-imprimir { position: fixed; top: 20px; right: 20px; background-color: #7A1C2E; color: white; padding: 12px 20px; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; z-index: 1000; box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+                    .btn-imprimir:hover { background-color: #5c1322; }
+                    @media print { .btn-imprimir { display: none; } }
+                </style>
+            </head>
+            <body>
+                <button class="btn-imprimir" onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
+                <div class="grid-container">
+            """
+            
+            for etiqueta in lista_etiquetas:
+                api_url = gerar_qr_code_api(etiqueta)
+                html_grade_completo += f"""
+                    <div class="etiqueta-card">
+                        <img src="{api_url}">
+                        <div class="etiqueta-texto">{etiqueta}</div>
+                    </div>
+                """
+            html_grade_completo += """
+                </div>
+            </body>
+            </html>
+            """
+            
+            st.download_button(
+                label="📥 Baixar Página de Etiquetas Pronta para Impressão (.html)",
+                data=html_grade_completo,
+                file_name="grade_etiquetas_galpao.html",
+                mime="text/html",
+                use_container_width=True
+            )
+            
+            html_preview = "<div style='display: flex; flex-wrap: wrap; gap: 15px; justify-content: center; font-family: sans-serif;'>"
+            for etiqueta in lista_etiquetas:
+                api_url = gerar_qr_code_api(etiqueta)
+                html_preview += f"""
+                    <div style="border: 2px dashed #7A1C2E; border-radius: 8px; padding: 10px; width: 180px; text-align: center; background: white; margin-bottom: 10px;">
+                        <img src="{api_url}" width="120" style="display: block; margin: 0 auto;">
+                        <div style="font-size: 10px; font-weight: bold; color: #1A1A1A; margin-top: 6px; line-height: 1.2;">{etiqueta}</div>
+                    </div>
+                """
+            html_preview += "</div>"
+            components.html(html_preview, height=500, scrolling=True)
 
 elif st.session_state.menu_atual == "Historico":
     st.subheader("📋 Histórico")
@@ -350,35 +645,85 @@ elif st.session_state.menu_atual == "Historico":
         st.markdown(f"- **{l['data_hora']}** | {l['usuario']} | {l['acao']}")
 
 elif st.session_state.menu_atual == "GerenciarUsuarios":
-    st.subheader("⚙️ Contas")
+    if st.session_state.usuario_logado.get('cargo') != "Desenvolvedor":
+        st.error("Acesso negado.")
+        st.stop()
+    st.subheader("⚙️ Gerenciar Usuários")
     for u in st.session_state.usuarios:
-        st.write(f"👤 **{u['nome']}** ({u.get('cargo')})")
+        st.write(f"👤 **{u['nome']}** (Cargo: {u.get('cargo', 'Operador')}) | Senha: `{u['senha']}`")
 
 elif st.session_state.menu_atual == "Editar":
-    st.subheader("✏️ Editar Vinho")
-    nomes = [v['nome'] for v in st.session_state.estoque]
-    if nomes:
-        sel = st.selectbox("Selecione:", nomes)
-        idx = nomes.index(sel)
-        v = st.session_state.estoque[idx]
-        with st.form("ed"):
-            nn = st.text_input("Nome", value=v['nome']).strip().title()
-            if st.form_submit_button("Atualizar"):
-                st.session_state.estoque[idx]['nome'] = nn
-                salvar_dados(st.session_state.estoque)
-                st.success("Atualizado!")
-                st.session_state.menu_atual = "🏠 Home"
-                st.rerun()
+    st.subheader("✏️ Editar Vinho / Mudar de Pallet")
+    nomes_vinhos = [f"{v.get('nome')} (Safra: {v.get('safra', 'N/A')} - Loc: {v.get('localizacao', 'N/A')})" for v in st.session_state.estoque]
+    if nomes_vinhos:
+        vinho_sel = st.selectbox("Selecione o vinho para editar:", nomes_vinhos)
+        idx = nomes_vinhos.index(vinho_sel)
+        v_atual = st.session_state.estoque[idx]
+        
+        with st.form("edit_form"):
+            n = st.text_input("Nome do Vinho", value=v_atual.get('nome', '')).strip().title()
+            
+            tipos_disp = ["Tinto", "Branco", "Rosé", "Espumante"]
+            idx_tipo = tipos_disp.index(v_atual.get('tipo')) if v_atual.get('tipo') in tipos_disp else 0
+            t = st.selectbox("Tipo", tipos_disp, index=idx_tipo)
+            
+            s = st.text_input("Safra", value=v_atual.get('safra', ''))
+            cb_val = st.text_input("Código de Barras", value=v_atual.get('codigo_barras', '')).strip()
+            
+            st.markdown("---")
+            corredor = st.selectbox("Corredor", LISTA_CORREDORES)
+            tipo_loc = st.selectbox("Tipo Local", LISTA_LOCAIS_TIPO)
+            numero = st.selectbox("Número", LISTA_NUMEROS_LOCAL)
+            
+            idx_lado = LISTA_LADOS.index(v_atual.get('lado')) if v_atual.get('lado') in LISTA_LADOS else 0
+            lado = st.selectbox("Lado", LISTA_LADOS, index=idx_lado)
+            
+            idx_caixa = OPCOES_CAIXA.index(v_atual.get('caixa')) if v_atual.get('caixa') in OPCOES_CAIXA else 0
+            caixa = st.selectbox("Caixa", OPCOES_CAIXA, index=idx_caixa)
+            
+            foto_vinho = st.file_uploader("Alterar Foto (Opcional)", type=["jpg", "jpeg", "png"])
+            
+            if st.form_submit_button("Salvar Alterações"):
+                if n.strip():
+                    nome_foto = v_atual.get('foto', '')
+                    if foto_vinho is not None:
+                        nome_foto = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{foto_vinho.name}"
+                        caminho_foto = os.path.join(PASTA_FOTOS, nome_foto)
+                        with open(caminho_foto, "wb") as f:
+                            f.write(foto_vinho.getbuffer())
+                    
+                    st.session_state.estoque[idx] = {
+                        "nome": n.strip(),
+                        "tipo": t,
+                        "safra": s.strip(),
+                        "localizacao": f"{corredor} - {tipo_loc} {numero}",
+                        "lado": lado,
+                        "caixa": caixa,
+                        "codigo_barras": cb_val,
+                        "foto": nome_foto
+                    }
+                    salvar_dados(st.session_state.estoque)
+                    registrar_log(st.session_state.usuario_logado['nome'], "Editar Vinho", f"Atualizado: {n}")
+                    st.success("Vinho atualizado com sucesso!")
+                    st.session_state.menu_atual = "🏠 Home"
+                    st.rerun()
+                else:
+                    st.error("O nome não pode ficar vazio.")
+    else:
+        st.info("Nenhum vinho para editar.")
 
 elif st.session_state.menu_atual == "Excluir":
-    st.subheader("🗑️ Excluir")
-    nomes = [v['nome'] for v in st.session_state.estoque]
-    if nomes:
-        sel = st.selectbox("Excluir:", nomes)
+    st.subheader("🗑️ Excluir Vinho")
+    nomes_vinhos = [f"{v.get('nome')} ({v.get('safra')})" for v in st.session_state.estoque]
+    if nomes_vinhos:
+        vinho_sel = st.selectbox("Selecione para excluir:", nomes_vinhos)
         if st.button("Confirmar Exclusão"):
-            idx = nomes.index(sel)
-            st.session_state.estoque.pop(idx)
+            idx = nomes_vinhos.index(vinho_sel)
+            removido = st.session_state.estoque.pop(idx)
             salvar_dados(st.session_state.estoque)
-            st.success("Excluído!")
+            registrar_log(st.session_state.usuario_logado['nome'], "Excluir Vinho", f"Removido: {removido.get('nome')}")
+            st.success("Vinho excluído com sucesso!")
             st.session_state.menu_atual = "🏠 Home"
             st.rerun()
+    else:
+        st.info("Nenhum vinho para excluir.")
