@@ -33,6 +33,7 @@ st.markdown(
 NOME_ARQUIVO = "estoque_galpao_pro.json"
 ARQUIVO_USUARIOS = "usuarios_galpao.json"
 ARQUIVO_LOGS = "logs_auditoria.json"
+ARQUIVO_SESSAO_CONFERENCIA = "sessao_conferencia_atual.json"
 PASTA_BACKUP = "backups_estoque"
 PASTA_FOTOS = "fotos_vinhos"
 SENHA_DEV = "1980"
@@ -66,7 +67,7 @@ def carregar_dados():
         try:
             with open(NOME_ARQUIVO, "r", encoding="utf-8") as f: return json.load(f)
         except: pass
-    return [{"nome": "La Consulta Malbec", "tipo": "Tinto", "safra": "2024", "localizacao": "Corredor 01 - Pallet Item 02", "lado": "Direito", "caixa": "Caixa com 12 garrafas", "foto": "", "codigo_barras": "7891000000001"}]
+    return [{"nome": "Falernia Carmenere", "tipo": "Tinto", "safra": "2022", "localizacao": "Corredor 03 - Pallet Item 03", "lado": "Direito", "caixa": "Caixa com 12 garrafas", "foto": "", "codigo_barras": "7891000000003"}]
 
 def salvar_dados(estoque):
     with open(NOME_ARQUIVO, "w", encoding="utf-8") as f: json.dump(estoque, f, ensure_ascii=False, indent=4)
@@ -94,12 +95,30 @@ def registrar_log(usuario, acao, detalhes):
     logs.insert(0, {"data_hora": obter_hora_brasilia().strftime("%d/%m/%Y %H:%M:%S"), "usuario": usuario, "acao": acao, "detalhes": detalhes})
     with open(ARQUIVO_LOGS, "w", encoding="utf-8") as f: json.dump(logs, f, ensure_ascii=False, indent=4)
 
+def salvar_sessao_conferencia(pedido, itens_conf):
+    dados_sessao = {"pedido_ativo": pedido, "conferencia_itens": itens_conf}
+    with open(ARQUIVO_SESSAO_CONFERENCIA, "w", encoding="utf-8") as f:
+        json.dump(dados_sessao, f, ensure_ascii=False, indent=4)
+
+def carregar_sessao_conferencia():
+    if os.path.exists(ARQUIVO_SESSAO_CONFERENCIA):
+        try:
+            with open(ARQUIVO_SESSAO_CONFERENCIA, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except: pass
+    return {"pedido_ativo": [], "conferencia_itens": []}
+
 def gerar_qr_code_api(texto):
     return f"https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={urllib.parse.quote(texto)}"
 
 if "estoque" not in st.session_state: st.session_state.estoque = carregar_dados()
 if "usuarios" not in st.session_state: st.session_state.usuarios = carregar_usuarios()
 if "menu_atual" not in st.session_state: st.session_state.menu_atual = "🏠 Home"
+
+# Carrega sessão salva automaticamente se cair a conexão ou fechar o app
+sessao_salva = carregar_sessao_conferencia()
+if "pedido_ativo" not in st.session_state: st.session_state.pedido_ativo = sessao_salva.get("pedido_ativo", [])
+if "conferencia_itens" not in st.session_state: st.session_state.conferencia_itens = sessao_salva.get("conferencia_itens", [])
 
 qp = st.query_params
 user_url = qp.get("user", None)
@@ -219,23 +238,18 @@ elif st.session_state.menu_atual == "Filtros":
 
 elif st.session_state.menu_atual == "SepararMatriz":
     st.subheader("📦 Conferência e Separação de Pedido da Matriz")
-    st.info("Aqui você define o que a matriz pediu e vai conferindo item por item (ou escaneando código de barras/nome) para o sistema validar se a safra e o vinho estão corretos.")
-
-    # Inicializa o estado do pedido ativo se não existir
-    if "pedido_ativo" not in st.session_state:
-        st.session_state.pedido_ativo = []
-    if "conferencia_itens" not in st.session_state:
-        st.session_state.conferencia_itens = []
+    st.info("O progresso é salvo automaticamente. Se o app fechar, seus dados continuam aqui.")
 
     with st.form("form_pedido_matriz"):
         st.write("### 1. Inserir Pedido da Matriz")
-        vinho_pedido = st.selectbox("Selecione o Vinho do Estoque para adicionar ao pedido:", [v['nome'] for v in st.session_state.estoque])
+        vinho_pedido = st.selectbox("Selecione o Vinho do Estoque:", [v['nome'] for v in st.session_state.estoque])
         safra_pedido = st.text_input("Safra Exigida pela Matriz:").strip()
-        qtd_pedido = st.number_input("Quantidade de Caixas:", min_value=1, value=1)
+        qtd_pedido = st.number_input("Quantidade Exigida de Caixas:", min_value=1, value=1)
         
         btn_add = st.form_submit_button("Adicionar ao Pedido")
         if btn_add:
-            st.session_state.pedido_ativo.append({"nome": vinho_pedido, "safra": safra_pedido, "qtd": qtd_pedido})
+            st.session_state.pedido_ativo.append({"nome": vinho_pedido, "safra": safra_pedido, "qtd": int(qtd_pedido)})
+            salvar_sessao_conferencia(st.session_state.pedido_ativo, st.session_state.conferencia_itens)
             st.success(f"Adicionado: {vinho_pedido} ({safra_pedido}) - {qtd_pedido} cx")
 
     if st.session_state.pedido_ativo:
@@ -247,53 +261,63 @@ elif st.session_state.menu_atual == "SepararMatriz":
         st.write("### 🔍 Conferência / Bipagem no Galpão")
         
         with st.form("form_conferencia"):
-            # O operador digita ou usa o leitor do celular no campo de código de barras ou nome
-            codigo_ou_nome = st.text_input("Escaneie o Código de Barras ou Digite o Nome do Vinho que pegou:").strip()
-            qtd_conferida = st.number_input("Quantidade Descida:", min_value=1, value=1)
+            codigo_ou_nome = st.text_input("Escaneie o Código de Barras ou Digite o Nome do Vinho:").strip()
+            qtd_conferida = st.number_input("Quantidade de Caixas Descidas:", min_value=1, value=1)
             btn_conf = st.form_submit_button("Validar e Conferir Item")
             
             if btn_conf:
-                # Busca no estoque pelo código de barras ou pelo nome
                 vinho_encontrado = next((v for v in st.session_state.estoque if v.get('codigo_barras') == codigo_ou_nome or v.get('nome').lower() == codigo_ou_nome.lower()), None)
                 
                 if not vinho_encontrado:
                     st.error("❌ ERRO: Vinho não cadastrado ou código de barras não reconhecido no sistema!")
                 else:
-                    # Verifica se este vinho consta no pedido da matriz
                     item_pedido = next((p for p in st.session_state.pedido_ativo if p['nome'].lower() == vinho_encontrado['nome'].lower()), None)
                     
                     if not item_pedido:
                         st.error(f"❌ ATENÇÃO: O vinho '{vinho_encontrado['nome']}' NÃO FOI PEDIDO pela matriz!")
                     elif item_pedido['safra'] != vinho_encontrado['safra']:
                         st.error(f"⚠️ ERRO DE SAFRA! Você pegou a safra {vinho_encontrado['safra']}, mas a matriz pediu a safra {item_pedido['safra']}!")
+                    elif int(qtd_conferida) != int(item_pedido['qtd']):
+                        st.error(f"❌ ERRO DE QUANTIDADE! A matriz pediu exatamente {item_pedido['qtd']} caixas, mas você informou {qtd_conferida} caixas!")
                     else:
-                        st.success(f"✅ CORRETO! {vinho_encontrado['nome']} (Safra {vinho_encontrado['safra']}) validado com sucesso!")
+                        st.success(f"✅ CORRETO! {vinho_encontrado['nome']} (Safra {vinho_encontrado['safra']}) validado com {qtd_conferida} caixas!")
                         st.session_state.conferencia_itens.append({
                             "nome": vinho_encontrado['nome'],
                             "safra": vinho_encontrado['safra'],
-                            "qtd_descida": qtd_conferida,
+                            "qtd_descida": int(qtd_conferida),
                             "local": vinho_encontrado['localizacao']
                         })
+                        salvar_sessao_conferencia(st.session_state.pedido_ativo, st.session_state.conferencia_itens)
 
         if st.session_state.conferencia_itens:
             st.write("### Itens já conferidos e separados:")
             st.dataframe(pd.DataFrame(st.session_state.conferencia_itens), use_container_width=True)
 
-            if st.button("Gerar Romaneio Final e Salvar (.txt)"):
-                hora_br_str = obter_hora_brasilia().strftime('%d/%m/%Y %H:%M')
-                texto_romaneio = f"=== ROMANEIO DE ENVIO - PREMIUM WINES ===\nData/Hora: {hora_br_str}\n\n"
-                for item in st.session_state.conferencia_itens:
-                    texto_romaneio += f"- Vinho: {item['nome']} | Safra: {item['safra']} | Qtd Descida: {item['qtd_descida']} cx | Local: {item['local']}\n"
-                texto_romaneio += "\nStatus: Conferido e validado pelo sistema do galpão."
+            c_acao1, c_acao2 = st.columns(2)
+            with c_acao1:
+                if st.button("Gerar Romaneio Final e Salvar (.txt)"):
+                    hora_br_str = obter_hora_brasilia().strftime('%d/%m/%Y %H:%M')
+                    texto_romaneio = f"=== ROMANEIO DE ENVIO - PREMIUM WINES ===\nData/Hora: {hora_br_str}\n\n"
+                    for item in st.session_state.conferencia_itens:
+                        texto_romaneio += f"- Vinho: {item['nome']} | Safra: {item['safra']} | Qtd Descida: {item['qtd_descida']} cx | Local: {item['local']}\n"
+                    texto_romaneio += "\nStatus: Conferido e validado com sucesso."
 
-                st.success("Romaneio gerado com sucesso!")
-                st.download_button(
-                    label="📥 Baixar Arquivo do Romaneio (.txt)",
-                    data=texto_romaneio,
-                    file_name=f"romaneio_matriz_{obter_hora_brasilia().strftime('%Y%m%d_%H%M')}.txt",
-                    mime="text/plain",
-                    use_container_width=True
-                )
+                    st.success("Romaneio gerado com sucesso!")
+                    st.download_button(
+                        label="📥 Baixar Arquivo do Romaneio (.txt)",
+                        data=texto_romaneio,
+                        file_name=f"romaneio_matriz_{obter_hora_brasilia().strftime('%Y%m%d_%H%M')}.txt",
+                        mime="text/plain",
+                        use_container_width=True
+                    )
+            with c_acao2:
+                if st.button("🗑️ Limpar / Reiniciar Conferência"):
+                    st.session_state.pedido_ativo = []
+                    st.session_state.conferencia_itens = []
+                    if os.path.exists(ARQUIVO_SESSAO_CONFERENCIA):
+                        os.remove(ARQUIVO_SESSAO_CONFERENCIA)
+                    st.success("Sessão limpa com sucesso!")
+                    st.rerun()
 
 elif st.session_state.menu_atual == "MapaSeparacao":
     st.subheader("🗺️ Mapa de Separação")
