@@ -370,6 +370,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
     
     with aba_ped1:
         st.markdown("Envie a lista enviada pela matriz (Excel ou TXT) ou digite livremente.")
+        st.info("ℹ️ Os pedidos salvos ficam guardados automaticamente no arquivo **pedidos_matriz.json** na pasta do sistema.")
         
         with st.form("form_novo_pedido"):
             id_pedido = st.text_input("Identificação do Pedido / Loja", value=f"Pedido #{datetime.now().strftime('%d/%m %H:%M')}")
@@ -495,7 +496,6 @@ elif st.session_state.menu_atual == "PedidosMatriz":
 
             st.markdown("---")
             if todos_separados:
-                st.balloons()
                 st.success("🎉 Pedido 100% separado e conferido!")
                 
                 if st.button("💾 Finalizar e Arquivar Pedido", use_container_width=True, key="btn_finalizar_pedido_ok"):
