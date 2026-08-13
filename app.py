@@ -1,4 +1,4 @@
-import json
+\import json
 import os
 import shutil
 from datetime import datetime, timezone, timedelta
@@ -634,4 +634,170 @@ elif st.session_state.menu_atual == "Scanner":
             termo_lido = val.strip().lower()
             st.success(f"Local Identificado: {val}")
             st.markdown("### 🍷 Vinhos neste local:")
-            resultados = [v for v in st.
+            resultados = [v for v in st.session_state.estoque if termo_lido in v.get("localizacao", "").lower()]
+            if resultados:
+                for v in sorted(resultados, key=lambda x: x.get("nome", "").lower()):
+                    st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra', 'N/A')})</div><p>Tipo: <b>{v.get('tipo', 'N/A')}</b> | Caixa: <b>{v.get('caixa', 'N/A')}</b><br><span class='badge-pallet-grande'>📍 {v.get('localizacao', 'N/A')} - Lado: {v.get('lado', 'N/A')}</span></p></div>", unsafe_allow_html=True)
+            else:
+                st.warning("Nenhum vinho cadastrado neste exato local.")
+        else:
+            st.warning("Nenhum QR Code detectado na imagem. Tente novamente.")
+    elif not OPENCV_DISPONIVEL:
+        st.error("A biblioteca OpenCV não está disponível para leitura de QR Code por câmera neste ambiente.")
+
+elif st.session_state.menu_atual == "Estoque":
+    st.subheader("🍷 Estoque Completo do Galpão")
+    if st.session_state.estoque:
+        col_exp1, col_exp2 = st.columns(2)
+        with col_exp1:
+            df_estoque = pd.DataFrame(st.session_state.estoque)
+            csv = df_estoque.to_csv(index=False).encode('utf-8')
+            st.download_button("📥 Baixar CSV do Estoque", data=csv, file_name="estoque_galpao.csv", mime="text/csv", use_container_width=True)
+        with col_exp2:
+            if st.button("🗑️ Apagar Todo o Estoque (Cuidado)", use_container_width=True):
+                if st.session_state.usuario_logado.get('cargo') in ["Administrador", "Desenvolvedor"]:
+                    st.session_state.estoque = []
+                    salvar_dados([])
+                    registrar_log(st.session_state.usuario_logado['nome'], "Apagar Estoque", "Limpeza total do estoque")
+                    st.success("Estoque limpo com sucesso!")
+                    st.rerun()
+                else:
+                    st.error("Apenas administradores podem apagar o estoque.")
+
+        st.markdown("---")
+        for v in st.session_state.estoque:
+            st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra')})</div><p>Tipo: <b>{v.get('tipo')}</b> | Caixa: <b>{v.get('caixa')}</b><br><span class='badge-pallet-grande'>📍 {v.get('localizacao')} - Lado: {v.get('lado')}</span> | C. Barras: <code>{v.get('codigo_barras', 'N/A')}</code></p></div>", unsafe_allow_html=True)
+    else:
+        st.info("Nenhum vinho cadastrado no estoque.")
+
+elif st.session_state.menu_atual == "Cadastrar":
+    st.subheader("➕ Cadastrar Novo Vinho")
+    with st.form("form_cadastro_vinho"):
+        nome_cad = st.text_input("Nome do Vinho *").strip().title()
+        tipo_cad = st.selectbox("Tipo de Vinho", ["Tinto", "Branco", "Rosé", "Espumante", "Fortificado / Doce"])
+        safra_cad = st.text_input("Safra (Ano)").strip()
+        
+        c_corredor = st.selectbox("Corredor", LISTA_CORREDORES)
+        c_tipo_local = st.selectbox("Tipo de Local", LISTA_LOCAIS_TIPO)
+        c_num_local = st.selectbox("Número do Local", LISTA_NUMEROS_LOCAL)
+        localizacao_cad = f"{c_corredor} - {c_tipo_local} {c_num_local}"
+        
+        lado_cad = st.selectbox("Lado do Corredor", LISTA_LADOS)
+        caixa_cad = st.selectbox("Embalagem", OPCOES_CAIXA)
+        
+        codigo_barras_cad = st.text_input("Código de Barras da Caixa (Bipe ou Digite)", value=st.session_state.codigo_capturado_cadastro).strip()
+        
+        if st.form_submit_button("Salvar Novo Vinho"):
+            if nome_cad:
+                novo_vinho = {
+                    "nome": nome_cad,
+                    "tipo": tipo_cad,
+                    "safra": safra_cad,
+                    "localizacao": localizacao_cad,
+                    "lado": lado_cad,
+                    "caixa": caixa_cad,
+                    "codigo_barras": codigo_barras_cad,
+                    "foto": ""
+                }
+                st.session_state.estoque.append(novo_vinho)
+                salvar_dados(st.session_state.estoque)
+                registrar_log(st.session_state.usuario_logado['nome'], "Cadastrar Vinho", f"{nome_cad} ({safra_cad}) em {localizacao_cad}")
+                st.session_state.codigo_capturado_cadastro = ""
+                st.success("Vinho cadastrado com sucesso!")
+                st.rerun()
+            else:
+                st.error("O campo 'Nome do Vinho' é obrigatório.")
+
+    st.markdown("---")
+    st.markdown("📷 **Leitor de Código de Barras para Cadastro:**")
+    componente_leitor_barcode("cad_barcode")
+
+elif st.session_state.menu_atual == "GerarQR":
+    st.subheader("📱 Gerar QR Code para Impressão")
+    tipo_qr = st.radio("O que deseja gerar?", ["Localização (Corredor/Pallet)", "Vinho Específico"], horizontal=True)
+    
+    if "Local" in tipo_qr:
+        c_qr_corr = st.selectbox("Corredor", LISTA_CORREDORES, key="qr_corr")
+        c_qr_tipo = st.selectbox("Tipo", LISTA_LOCAIS_TIPO, key="qr_tipo")
+        c_qr_num = st.selectbox("Número", LISTA_NUMEROS_LOCAL, key="qr_num")
+        texto_gerar = f"{c_qr_corr} - {c_qr_tipo} {c_qr_num}"
+    else:
+        if st.session_state.estoque:
+            nomes_v = [f"{v['nome']} ({v.get('safra', '')}) - {v.get('localizacao', '')}" for v in st.session_state.estoque]
+            escolha_v_qr = st.selectbox("Selecione o Vinho:", nomes_v)
+            texto_gerar = escolha_v_qr
+        else:
+            texto_gerar = "Nenhum vinho"
+            
+    st.markdown(f"### QR Code para: `{texto_gerar}`")
+    url_img = gerar_qr_code_api(texto_gerar)
+    st.image(url_img, width=250)
+    st.markdown(f"[🔗 Abrir imagem do QR Code em nova aba]({url_img})", unsafe_allow_html=True)
+
+elif st.session_state.menu_atual == "Editar":
+    st.subheader("✏️ Editar ou Excluir Vinho")
+    if st.session_state.estoque:
+        nomes_estoque = [f"{v['nome']} ({v.get('safra', 'N/A')}) - 📍 {v.get('localizacao', 'N/A')}" for v in st.session_state.estoque]
+        vinho_escolhido_str = st.selectbox("Selecione o vinho para editar:", nomes_estoque)
+        idx_vinho = nomes_estoque.index(vinho_escolhido_str)
+        v_atual = st.session_state.estoque[idx_vinho]
+        
+        with st.form("form_edicao_vinho"):
+            n_nome = st.text_input("Nome do Vinho", value=v_atual.get('nome', '')).strip().title()
+            n_tipo = st.selectbox("Tipo", ["Tinto", "Branco", "Rosé", "Espumante", "Fortificado / Doce"], index=["Tinto", "Branco", "Rosé", "Espumante", "Fortificado / Doce"].index(v_atual.get('tipo', 'Tinto')) if v_atual.get('tipo') in ["Tinto", "Branco", "Rosé", "Espumante", "Fortificado / Doce"] else 0)
+            n_safra = st.text_input("Safra", value=v_atual.get('safra', '')).strip()
+            n_local = st.text_input("Localização", value=v_atual.get('localizacao', '')).strip()
+            n_lado = st.selectbox("Lado", LISTA_LADOS, index=LISTA_LADOS.index(v_atual.get('lado', 'Direito')) if v_atual.get('lado') in LISTA_LADOS else 0)
+            n_caixa = st.selectbox("Embalagem", OPCOES_CAIXA, index=OPCOES_CAIXA.index(v_atual.get('caixa', OPCOES_CAIXA[0])) if v_atual.get('caixa') in OPCOES_CAIXA else 0)
+            n_cb = st.text_input("Código de Barras", value=v_atual.get('codigo_barras', '')).strip()
+            
+            col_b1, col_b2 = st.columns(2)
+            with col_b1:
+                salvar_edicao = st.form_submit_button("💾 Salvar Alterações", use_container_width=True)
+            with col_b2:
+                excluir_vinho = st.form_submit_button("🗑️ Excluir Vinho", use_container_width=True)
+                
+            if salvar_edicao:
+                st.session_state.estoque[idx_vinho] = {
+                    "nome": n_nome,
+                    "tipo": n_tipo,
+                    "safra": n_safra,
+                    "localizacao": n_local,
+                    "lado": n_lado,
+                    "caixa": n_caixa,
+                    "codigo_barras": n_cb,
+                    "foto": v_atual.get('foto', '')
+                }
+                salvar_dados(st.session_state.estoque)
+                registrar_log(st.session_state.usuario_logado['nome'], "Editar Vinho", f"{n_nome} ({n_safra})")
+                st.success("Alterações salvas com sucesso!")
+                st.rerun()
+                
+            if excluir_vinho:
+                vinho_removido = st.session_state.estoque.pop(idx_vinho)
+                salvar_dados(st.session_state.estoque)
+                registrar_log(st.session_state.usuario_logado['nome'], "Excluir Vinho", f"{vinho_removido.get('nome')}")
+                st.success("Vinho excluído com sucesso!")
+                st.rerun()
+    else:
+        st.info("Nenhum vinho cadastrado para editar.")
+
+elif st.session_state.menu_atual == "Historico":
+    st.subheader("📋 Histórico de Auditoria e Atividades")
+    logs = carregar_logs()
+    if logs:
+        for l in logs[:50]:
+            st.markdown(f"<div class='wine-card'><p><b>🕒 {l.get('data_hora')}</b> | Usuário: <b>{l.get('usuario')}</b><br>Ação: <b>{l.get('acao')}</b> | Detalhes: {l.get('detalhes')}</p></div>", unsafe_allow_html=True)
+    else:
+        st.info("Nenhum registro no histórico.")
+
+elif st.session_state.menu_atual == "GerenciarUsuarios":
+    st.subheader("⚙️ Gerenciamento de Contas de Usuários")
+    if st.session_state.usuario_logado.get('cargo') == "Desenvolvedor":
+        if st.session_state.usuarios:
+            for i, u in enumerate(st.session_state.usuarios):
+                st.markdown(f"<div class='wine-card'><p>👤 Nome: <b>{u.get('nome')}</b> | Cargo: <b>{u.get('cargo', 'Operador')}</b></p></div>", unsafe_allow_html=True)
+        else:
+            st.info("Nenhum usuário cadastrado.")
+    else:
+        st.error("Acesso restrito ao desenvolvedor.")
