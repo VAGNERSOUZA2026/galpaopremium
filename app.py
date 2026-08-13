@@ -7,6 +7,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 import urllib.parse
 from docx import Document
+import re
 
 try:
     import cv2
@@ -79,7 +80,7 @@ def carregar_dados():
             with open(NOME_ARQUIVO, "r", encoding="utf-8") as f: estoque = json.load(f)
         except: pass
     if not estoque:
-        estoque = [{"nome": "Château Margaux", "tipo": "Tinto", "safra": "2015", "localizacao": "Corredor 01 - Pallet Item 01", "lado": "Direito", "caixa": "Caixa com 12 garrafas", "codigo_barras": "7891029384756", "foto": ""}]
+        estoque = [{"nome": "Campana Merlot", "tipo": "Tinto", "safra": "2024", "localizacao": "Corredor 01 - Pallet Item 01", "lado": "Direito", "caixa": "Caixa com 12 garrafas", "codigo_barras": "7891008116632", "foto": ""}]
     return sorted(estoque, key=lambda x: x.get("nome", "").lower())
 
 def salvar_dados(estoque):
@@ -122,6 +123,40 @@ def salvar_pedidos(pedidos):
 def gerar_qr_code_api(texto):
     return f"https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={urllib.parse.quote(texto)}"
 
+def interpretar_linha_pedido(texto_linha):
+    """
+    Analisa frases como: 'Campana Merlot 2024 /05 Caixas' ou 'Campana Merlot | 2024 | 5' 
+    e separa inteligentemente em: nome, safra e quantidade.
+    """
+    texto = texto_linha.strip()
+    safra = ""
+    quantidade = 1
+    
+    # Tenta achar ano de safra (ex: 2020 a 2030)
+    anos = re.findall(r'\b(20\d{2})\b', texto)
+    if anos:
+        safra = anos[0]
+        # Remove a safra do texto do nome para não duplicar
+        texto_limpo = texto.replace(safra, "")
+    else:
+        texto_limpo = texto
+
+    # Tenta achar quantidade (ex: '/05', '5 caixas', 'qtd 5')
+    match_qtd = re.search(r'(?:/|\bcaixas?|\bqt[d]?\.?)\s*(\d+)', texto_limpo, re.IGNORECASE)
+    if match_qtd:
+        quantidade = int(match_qtd.group(1))
+        texto_limpo = texto_limpo.replace(match_qtd.group(0), "")
+    else:
+        # Procura qualquer número solto no final se não achou padrão de caixa explícito
+        numeros_soltos = re.findall(r'\b(\d+)\b', texto_limpo)
+        if numeros_soltos and numeros_soltos[-1] != safra:
+            quantidade = int(numeros_soltos[-1])
+            texto_limpo = texto_limpo.replace(numeros_soltos[-1], "")
+
+    # Limpa caracteres residuais de separação como '/', '|', '-'
+    nome = re.sub(r'[/\|\-\–]+', '', texto_limpo).strip().title()
+    return {"nome": nome, "safra": safra, "quantidade": quantidade, "separado": False, "qtd_separada": 0}
+
 def extrair_pedidos_de_arquivo(arq):
     itens = []
     ext = arq.name.split('.')[-1].lower()
@@ -129,20 +164,32 @@ def extrair_pedidos_de_arquivo(arq):
         if ext in ['xlsx', 'xls']:
             df = pd.read_excel(arq)
             for _, row in df.iterrows():
-                nome = str(row.get('Nome', row.iloc[0] if len(row) > 0 else '')).strip().title()
-                safra = str(row.get('Safra', row.iloc[1] if len(row) > 1 else '')).strip()
-                qtd = int(row.get('Quantidade', row.iloc[2] if len(row) > 2 else 1) or 1)
-                if nome and nome != 'Nan':
-                    itens.append({"nome": nome, "safra": safra if safra != 'Nan' else '', "quantidade": qtd, "separado": False, "qtd_separada": 0})
+                nome_bruto = str(row.get('Nome', row.iloc[0] if len(row) > 0 else '')).strip()
+                if nome_bruto and nome_bruto != 'Nan':
+                    safra_col = str(row.get('Safra', row.iloc[1] if len(row) > 1 else '')).strip()
+                    qtd_col = row.get('Quantidade', row.iloc[2] if len(row) > 2 else 1)
+                    try: qtd = int(qtd_col) if pd.notnull(qtd_col) else 1
+                    except: qtd = 1
+                    
+                    itens.append({
+                        "nome": nome_bruto.title(), 
+                        "safra": safra_col if safra_col != 'Nan' else '', 
+                        "quantidade": qtd, 
+                        "separado": False, 
+                        "qtd_separada": 0
+                    })
         elif ext == 'txt':
             linhas = [l.strip() for l in arq.getvalue().decode("utf-8").split("\n") if l.strip()]
             for l in linhas:
-                partes = l.split(';')
-                nome = partes[0].strip().title()
-                safra = partes[1].strip() if len(partes) > 1 else ''
-                qtd = int(partes[2].strip()) if len(partes) > 2 and partes[2].strip().isdigit() else 1
-                if nome:
-                    itens.append({"nome": nome, "safra": safra, "quantidade": qtd, "separado": False, "qtd_separada": 0})
+                if '|' in l or '/' in l:
+                    itens.append(interpretar_linha_pedido(l))
+                else:
+                    partes = l.split(';')
+                    nome = partes[0].strip().title()
+                    safra = partes[1].strip() if len(partes) > 1 else ''
+                    qtd = int(partes[2].strip()) if len(partes) > 2 and partes[2].strip().isdigit() else 1
+                    if nome:
+                        itens.append({"nome": nome, "safra": safra, "quantidade": qtd, "separado": False, "qtd_separada": 0})
     except: pass
     return itens
 
@@ -169,7 +216,6 @@ def extrair_linhas_de_arquivo(arq):
     return linhas
 
 def extrair_numero_corredor(localizacao):
-    import re
     nums = re.findall(r'\d+', localizacao)
     if nums:
         return int(nums[0])
@@ -298,14 +344,14 @@ elif st.session_state.menu_atual == "PedidosMatriz":
     aba_ped1, aba_ped2 = st.tabs(["📋 Enviar/Novo Pedido", "🔍 Roteiro e Leitor de Caixa (Antierros)"])
     
     with aba_ped1:
-        st.markdown("Envie a lista enviada pela matriz (Excel ou TXT) ou cadastre manualmente.")
+        st.markdown("Envie a lista enviada pela matriz (Excel ou TXT) ou digite livremente (ex: *Campana Merlot 2024 /05 Caixas*).")
         
         with st.form("form_novo_pedido"):
             id_pedido = st.text_input("Identificação do Pedido / Loja", value=f"Pedido #{datetime.now().strftime('%d/%m %H:%M')}")
             arq_pedido = st.file_uploader("Arquivo de Pedido (Excel ou TXT)", type=["xlsx", "xls", "txt"])
             
-            st.markdown("Ou digite os itens manualmente (`Nome | Safra | Quantidade`):")
-            texto_manual_pedido = st.text_area("Itens Manuais:")
+            st.markdown("Ou digite os itens linha a linha (o sistema lê automaticamente a safra e a quantidade):")
+            texto_manual_pedido = st.text_area("Ex: Campana Merlot 2024 /05 Caixas", placeholder="Campana Merlot 2024 / 05 Caixas\nLa Consulta Malbec 2023 / 2")
             
             if st.form_submit_button("Cadastrar Pedido para Separação"):
                 itens_novos = []
@@ -314,12 +360,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 if texto_manual_pedido.strip():
                     for linha in texto_manual_pedido.split("\n"):
                         if linha.strip():
-                            partes = linha.split('|')
-                            nome = partes[0].strip().title()
-                            safra = partes[1].strip() if len(partes) > 1 else ''
-                            qtd = int(partes[2].strip()) if len(partes) > 2 and partes[2].strip().isdigit() else 1
-                            if nome:
-                                itens_novos.append({"nome": nome, "safra": safra, "quantidade": qtd, "separado": False, "qtd_separada": 0})
+                            itens_novos.append(interpretar_linha_pedido(linha))
                 
                 if itens_novos:
                     novo_registro_pedido = {
@@ -351,8 +392,28 @@ elif st.session_state.menu_atual == "PedidosMatriz":
             
             itens_com_local = []
             for item in pedido_atual['itens']:
-                nome_procurado = item['nome'].lower()
-                vinho_encontrado = next((v for v in st.session_state.estoque if nome_procurado in v.get('nome', '').lower()), None)
+                nome_pedido_limpo = item['nome'].lower()
+                safra_pedido = str(item.get('safra', '')).strip()
+                
+                # Busca inteligente no estoque por aproximação de nome e safra
+                vinho_encontrado = None
+                for v in st.session_state.estoque:
+                    v_nome = v.get('nome', '').lower()
+                    v_safra = str(v.get('safra', '')).strip()
+                    
+                    # Se o nome do estoque está contido no digitado ou vice-versa
+                    if v_nome in nome_pedido_limpo or nome_pedido_limpo in v_nome:
+                        if safra_pedido and v_safra:
+                            if safra_pedido == v_safra:
+                                vinho_encontrado = v
+                                break
+                        else:
+                            vinho_encontrado = v
+                            break
+                            
+                # Se ainda não achou por safra exata, pega pelo menos pelo nome do vinho
+                if not vinho_encontrado:
+                    vinho_encontrado = next((v for v in st.session_state.estoque if v.get('nome', '').lower() in nome_pedido_limpo or nome_pedido_limpo in v.get('nome', '').lower()), None)
                 
                 loc = vinho_encontrado.get('localizacao', 'Corredor 01 - Pallet Item 01') if vinho_encontrado else 'Não cadastrado'
                 corr_num = extrair_numero_corredor(loc)
@@ -378,7 +439,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 status_cor = "🟢" if item.get('separado') else "⏳"
                 if not item.get('separado'): todos_separados = False
                 
-                with st.expander(f"{status_cor} {item['nome']} | Safra: {item.get('safra', 'Qualquer')} | Qtd Solicitada: {item['quantidade']} | 📍 {loc}"):
+                with st.expander(f"{status_cor} {item['nome']} {item.get('safra', '')} | Qtd: {item['quantidade']} caixas | 📍 {loc}"):
                     if vinho_est:
                         st.markdown(f"**Estoque:** Safra no Galpão: **{vinho_est.get('safra')}** | Local: **{vinho_est.get('localizacao')} - Lado: {vinho_est.get('lado')}** | C. Barras Cadastrado: `{vinho_est.get('codigo_barras', 'Não cadastrado')}`")
                         
@@ -386,14 +447,14 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         safra_galpao = str(vinho_est.get('safra', '')).strip()
                         
                         if safra_matriz and safra_galpao and safra_matriz != safra_galpao:
-                            st.warning(f"⚠️ **Alerta de Safra Divergente!** Matriz pediu `{safra_matriz}`, mas no galpão é `{safra_galpao}`.")
+                            st.warning(f"⚠️ **Alerta de Safra Divergente!** Pedido pediu safra `{safra_matriz}`, mas no galpão é `{safra_galpao}`.")
                         
                         st.markdown("---")
                         st.markdown("📲 **Conferência Física:**")
                         qtd_informada = st.number_input("Quantidade que está levando:", min_value=1, value=item.get('quantidade', 1), key=f"qtd_inf_{idx_ped}_{i}")
                         
                         if qtd_informada != item['quantidade']:
-                            st.error(f"❌ **Divergência de Quantidade!** A matriz pediu **{item['quantidade']}**, mas você informou **{qtd_informada}**.")
+                            st.error(f"❌ **Divergência de Quantidade!** O pedido pedia **{item['quantidade']}**, mas você informou **{qtd_informada}**.")
                         else:
                             st.success("✅ Quantidade confere com o pedido.")
                             
@@ -408,7 +469,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         
                         if st.button(f"✅ Confirmar Separação do Item #{i+1}", key=f"btn_sep_{idx_ped}_{i}"):
                             if qtd_informada != item['quantidade']:
-                                st.error("Não é possível concluir: a quantidade informada diverge do pedido da matriz.")
+                                st.error("Não é possível concluir: a quantidade informada diverge do pedido.")
                             else:
                                 item['separado'] = True
                                 item['qtd_separada'] = qtd_informada
@@ -540,7 +601,6 @@ elif st.session_state.menu_atual == "Cadastrar":
                 else:
                     st.error("Informe o nome do vinho.")
                     
-        # Botão opcional de leitura por câmera para capturar o código de barras no cadastro
         st.markdown("---")
         st.markdown("📷 **Ou use a câmera do celular para ler o código de barras da caixa:**")
         foto_cb = st.camera_input("Fotografar código de barras")
@@ -552,7 +612,6 @@ elif st.session_state.menu_atual == "Cadastrar":
                 st.success(f"Código capturado com sucesso: {val_cb}. Clique em salvar acima!")
                 st.rerun()
             else:
-                # Tenta ler com detector de barcode do opencv se disponível, senão avisa
                 st.warning("Código de barras não decodificado automaticamente pela foto. Use o leitor USB ou digite no campo.")
 
     else:
