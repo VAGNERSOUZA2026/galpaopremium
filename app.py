@@ -7,6 +7,7 @@ import streamlit as st
 import urllib.parse
 from docx import Document
 import re
+import streamlit.components.v1 as components
 
 try:
     import cv2
@@ -204,6 +205,48 @@ def extrair_numero_corredor(localizacao):
         return int(nums[0])
     return 999
 
+# Componente HTML/JS para leitura contínua de código de barras por câmera (estilo app de banco)
+def componente_leitor_barcode(chave_sessao):
+    codigo_atual = st.session_state.get(chave_sessao, "")
+    
+    html_code = f"""
+    <div style="text-align: center;">
+        <div id="reader_{chave_sessao}" style="width: 100%; max-width: 400px; margin: auto; border-radius: 12px; overflow: hidden;"></div>
+        <p id="resultado_{chave_sessao}" style="font-weight: bold; color: #7A1C2E; margin-top: 8px;"></p>
+    </div>
+    
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script>
+      function onScanSuccess(decodedText, decodedResult) {{
+        document.getElementById("resultado_{chave_sessao}").innerText = "Lido com sucesso: " + decodedText;
+        
+        // Envia o dado para o Streamlit através da URL simulada ou recarga limpa
+        const url = new URL(window.parent.location.href);
+        url.searchParams.set('scanned_{chave_sessao}', decodedText);
+        window.parent.history.replaceState({{}}, '', url);
+        
+        // Dispara evento de mudança para atualizar a página no Streamlit
+        const triggerRerun = new Event('input', {{ bubbles: true }});
+        
+        // Para a câmera após a leitura bem-sucedida
+        if (window.html5QrCode_{chave_sessao}) {{
+            window.html5QrCode_{chave_sessao}.stop().catch(err => {{}});
+        }}
+      }}
+
+      try {{
+          const html5QrCode = new Html5Qrcode("reader_{chave_sessao}");
+          window.html5QrCode_{chave_sessao} = html5QrCode;
+          
+          const config = {{ fps: 10, qrbox: {{ width: 250, height: 150 }} }};
+          html5QrCode.start({{ facingMode: "environment" }}, config, onScanSuccess).catch(err => {{
+              document.getElementById("resultado_{chave_sessao}").innerText = "Erro ao acessar câmera: verifique permissões.";
+          }});
+      }} catch (e) {{}}
+    </script>
+    """
+    components.html(html_code, height=320)
+
 if "usuarios" not in st.session_state:
     st.session_state.usuarios = carregar_usuarios()
 
@@ -216,6 +259,19 @@ if "codigo_capturado_cadastro" not in st.session_state: st.session_state.codigo_
 if "codigos_bipados_conferencia" not in st.session_state: st.session_state.codigos_bipados_conferencia = {}
 
 qp = st.query_params
+
+# Captura leituras passadas pelo JavaScript da câmera
+for key, val in qp.items():
+    if key.startswith("scanned_"):
+        sess_key = key.replace("scanned_", "")
+        if sess_key == "cad_barcode":
+            st.session_state.codigo_capturado_cadastro = val
+        else:
+            st.session_state.codigos_bipados_conferencia[sess_key] = val
+        # Limpa o parâmetro da URL para evitar loops
+        del st.query_params[key]
+        st.rerun()
+
 user_url = qp.get("user", None)
 cargo_url = qp.get("cargo", "Operador")
 
@@ -460,24 +516,13 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         else:
                             st.success("✅ Quantidade confere com o pedido.")
                             
-                        # Campo de texto do código de barras alimentado pelo estado
+                        # Campo preenchido via leitor contínuo
                         bip_caixa = st.text_input("Código de barras da caixa (ou escaneie abaixo):", value=st.session_state.codigos_bipados_conferencia[key_bip_state], key=f"bip_txt_{idx_ped}_{i}")
                         if bip_caixa != st.session_state.codigos_bipados_conferencia[key_bip_state]:
                             st.session_state.codigos_bipados_conferencia[key_bip_state] = bip_caixa
 
-                        # Leitor por câmera para a conferência
-                        if OPENCV_DISPONIVEL:
-                            st.markdown("📷 **Ou use a câmera para ler o código da caixa:**")
-                            foto_bip_cam = st.camera_input("Fotografar código para conferência", key=f"cam_bip_{idx_ped}_{i}")
-                            if foto_bip_cam:
-                                img_bip = cv2.imdecode(np.frombuffer(foto_bip_cam.getvalue(), np.uint8), cv2.IMREAD_COLOR)
-                                val_bip, _, _ = cv2.QRCodeDetector().detectAndDecode(img_bip)
-                                if val_bip:
-                                    st.session_state.codigos_bipados_conferencia[key_bip_state] = val_bip.strip()
-                                    st.success(f"Código escaneado com sucesso: {val_bip.strip()}")
-                                    st.rerun()
-                                else:
-                                    st.warning("Não foi possível decodificar o código na foto. Tente novamente.")
+                        st.markdown("📷 **Leitor contínuo (Estilo App de Banco):**")
+                        componente_leitor_barcode(key_bip_state)
 
                         # Validação do código digitado/escaneado
                         codigo_atual_conferido = st.session_state.codigos_bipados_conferencia[key_bip_state]
@@ -623,17 +668,8 @@ elif st.session_state.menu_atual == "Cadastrar":
                     st.error("Informe o nome do vinho.")
                     
         st.markdown("---")
-        st.markdown("📷 **Ou use a câmera do celular para ler o código de barras da caixa:**")
-        foto_cb = st.camera_input("Fotografar código de barras")
-        if foto_cb and OPENCV_DISPONIVEL:
-            img_cb = cv2.imdecode(np.frombuffer(foto_cb.getvalue(), np.uint8), cv2.IMREAD_COLOR)
-            val_cb, _, _ = cv2.QRCodeDetector().detectAndDecode(img_cb)
-            if val_cb:
-                st.session_state.codigo_capturado_cadastro = val_cb.strip()
-                st.success(f"Código capturado com sucesso: {val_cb}. Clique em salvar acima!")
-                st.rerun()
-            else:
-                st.warning("Código de barras não decodificado automaticamente pela foto. Use o leitor USB ou digite no campo.")
+        st.markdown("📷 **Leitor de Código de Barras (Em tempo real - Estilo App de Banco):**")
+        componente_leitor_barcode("cad_barcode")
 
     else:
         st.info("Envie uma planilha Excel (.xlsx) com a coluna **Nome**, **Safra**, **Codigo_Barras** ou um arquivo de texto.")
