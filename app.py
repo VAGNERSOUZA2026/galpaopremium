@@ -213,6 +213,7 @@ st.session_state.pedidos = carregar_pedidos()
 if "menu_atual" not in st.session_state: st.session_state.menu_atual = "🏠 Home"
 if "termo_busca" not in st.session_state: st.session_state.termo_busca = ""
 if "codigo_capturado_cadastro" not in st.session_state: st.session_state.codigo_capturado_cadastro = ""
+if "codigos_bipados_conferencia" not in st.session_state: st.session_state.codigos_bipados_conferencia = {}
 
 qp = st.query_params
 user_url = qp.get("user", None)
@@ -436,6 +437,10 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 status_cor = "🟢" if item.get('separado') else "⏳"
                 if not item.get('separado'): todos_separados = False
                 
+                key_bip_state = f"bip_val_{idx_ped}_{i}"
+                if key_bip_state not in st.session_state.codigos_bipados_conferencia:
+                    st.session_state.codigos_bipados_conferencia[key_bip_state] = ""
+
                 with st.expander(f"{status_cor} {item['nome']} {item.get('safra', '')} | Qtd: {item['quantidade']} caixas | 📍 {loc}"):
                     if vinho_est:
                         st.markdown(f"**Estoque:** Safra no Galpão: **{vinho_est.get('safra')}** | Local: **{vinho_est.get('localizacao')} - Lado: {vinho_est.get('lado')}** | C. Barras Cadastrado: `{vinho_est.get('codigo_barras', 'Não cadastrado')}`")
@@ -455,14 +460,33 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         else:
                             st.success("✅ Quantidade confere com o pedido.")
                             
-                        bip_caixa = st.text_input("Bipar código de barras da caixa com o leitor / celular:", key=f"bip_{idx_ped}_{i}")
-                        
-                        if bip_caixa:
+                        # Campo de texto do código de barras alimentado pelo estado
+                        bip_caixa = st.text_input("Código de barras da caixa (ou escaneie abaixo):", value=st.session_state.codigos_bipados_conferencia[key_bip_state], key=f"bip_txt_{idx_ped}_{i}")
+                        if bip_caixa != st.session_state.codigos_bipados_conferencia[key_bip_state]:
+                            st.session_state.codigos_bipados_conferencia[key_bip_state] = bip_caixa
+
+                        # Leitor por câmera para a conferência
+                        if OPENCV_DISPONIVEL:
+                            st.markdown("📷 **Ou use a câmera para ler o código da caixa:**")
+                            foto_bip_cam = st.camera_input("Fotografar código para conferência", key=f"cam_bip_{idx_ped}_{i}")
+                            if foto_bip_cam:
+                                img_bip = cv2.imdecode(np.frombuffer(foto_bip_cam.getvalue(), np.uint8), cv2.IMREAD_COLOR)
+                                val_bip, _, _ = cv2.QRCodeDetector().detectAndDecode(img_bip)
+                                if val_bip:
+                                    st.session_state.codigos_bipados_conferencia[key_bip_state] = val_bip.strip()
+                                    st.success(f"Código escaneado com sucesso: {val_bip.strip()}")
+                                    st.rerun()
+                                else:
+                                    st.warning("Não foi possível decodificar o código na foto. Tente novamente.")
+
+                        # Validação do código digitado/escaneado
+                        codigo_atual_conferido = st.session_state.codigos_bipados_conferencia[key_bip_state]
+                        if codigo_atual_conferido:
                             cb_cadastrado = str(vinho_est.get('codigo_barras', '')).strip()
-                            if cb_cadastrado and bip_caixa.strip() == cb_cadastrado:
+                            if cb_cadastrado and codigo_atual_conferido.strip() == cb_cadastrado:
                                 st.success("✅ Código de barras conferido e validado com sucesso!")
                             else:
-                                st.error("❌ O código de barras bipado não corresponde a este vinho! Cuidado, produto incorreto.")
+                                st.error("❌ O código de barras não corresponde ao cadastrado para este vinho!")
                         
                         if st.button(f"✅ Confirmar Separação do Item #{i+1}", key=f"btn_sep_{idx_ped}_{i}"):
                             if qtd_informada != item['quantidade']:
