@@ -4,7 +4,6 @@ import shutil
 from datetime import datetime, timezone, timedelta
 import pandas as pd
 import streamlit as st
-import streamlit.components.v1 as components
 import urllib.parse
 from docx import Document
 import re
@@ -205,23 +204,15 @@ def extrair_numero_corredor(localizacao):
         return int(nums[0])
     return 999
 
+if "usuarios" not in st.session_state:
+    st.session_state.usuarios = carregar_usuarios()
+
 st.session_state.estoque = carregar_dados()
 st.session_state.pedidos = carregar_pedidos()
 
 if "menu_atual" not in st.session_state: st.session_state.menu_atual = "🏠 Home"
 if "termo_busca" not in st.session_state: st.session_state.termo_busca = ""
 if "codigo_capturado_cadastro" not in st.session_state: st.session_state.codigo_capturado_cadastro = ""
-
-components.html(
-    """
-    <script>
-        setTimeout(function(){
-            window.parent.location.reload();
-        }, 8000);
-    </script>
-    """,
-    height=0,
-)
 
 qp = st.query_params
 user_url = qp.get("user", None)
