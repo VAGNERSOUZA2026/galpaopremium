@@ -180,6 +180,7 @@ if "usuarios" not in st.session_state: st.session_state.usuarios = carregar_usua
 if "pedidos" not in st.session_state: st.session_state.pedidos = carregar_pedidos()
 if "menu_atual" not in st.session_state: st.session_state.menu_atual = "🏠 Home"
 if "termo_busca" not in st.session_state: st.session_state.termo_busca = ""
+if "codigo_capturado_cadastro" not in st.session_state: st.session_state.codigo_capturado_cadastro = ""
 
 qp = st.query_params
 user_url = qp.get("user", None)
@@ -396,7 +397,6 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         else:
                             st.success("✅ Quantidade confere com o pedido.")
                             
-                        # Simulação de bipe de código de barras ou validação rápida
                         bip_caixa = st.text_input("Bipar código de barras da caixa com o leitor / celular:", key=f"bip_{idx_ped}_{i}")
                         
                         if bip_caixa:
@@ -503,7 +503,7 @@ elif st.session_state.menu_atual == "Cadastrar":
             nome = st.text_input("Nome").strip().title()
             tipo = st.selectbox("Tipo", ["Tinto", "Branco", "Rosé", "Espumante"])
             safra = st.text_input("Safra").strip()
-            codigo_barras = st.text_input("Código de Barras da Caixa/Garrafa").strip()
+            codigo_barras = st.text_input("Código de Barras da Caixa/Garrafa", value=st.session_state.codigo_capturado_cadastro).strip()
             corredor = st.selectbox("Corredor", LISTA_CORREDORES)
             tipo_loc = st.selectbox("Tipo Local", LISTA_LOCAIS_TIPO)
             numero = st.selectbox("Número", LISTA_NUMEROS_LOCAL)
@@ -511,7 +511,8 @@ elif st.session_state.menu_atual == "Cadastrar":
             caixa = st.selectbox("Caixa", OPCOES_CAIXA)
             foto_vinho = st.file_uploader("Foto da Garrafa / Rótulo (Opcional)", type=["jpg", "jpeg", "png"])
             
-            if st.form_submit_button("Salvar"):
+            submitted = st.form_submit_button("Salvar")
+            if submitted:
                 if nome:
                     nome_foto = ""
                     if foto_vinho is not None:
@@ -531,12 +532,29 @@ elif st.session_state.menu_atual == "Cadastrar":
                         "foto": nome_foto
                     })
                     salvar_dados(st.session_state.estoque)
+                    st.session_state.codigo_capturado_cadastro = ""
                     registrar_log(st.session_state.usuario_logado['nome'], "Cadastrar Vinho", nome)
                     st.success("Vinho cadastrado com sucesso!")
                     st.session_state.menu_atual = "🏠 Home"
                     st.rerun()
                 else:
                     st.error("Informe o nome do vinho.")
+                    
+        # Botão opcional de leitura por câmera para capturar o código de barras no cadastro
+        st.markdown("---")
+        st.markdown("📷 **Ou use a câmera do celular para ler o código de barras da caixa:**")
+        foto_cb = st.camera_input("Fotografar código de barras")
+        if foto_cb and OPENCV_DISPONIVEL:
+            img_cb = cv2.imdecode(np.frombuffer(foto_cb.getvalue(), np.uint8), cv2.IMREAD_COLOR)
+            val_cb, _, _ = cv2.QRCodeDetector().detectAndDecode(img_cb)
+            if val_cb:
+                st.session_state.codigo_capturado_cadastro = val_cb.strip()
+                st.success(f"Código capturado com sucesso: {val_cb}. Clique em salvar acima!")
+                st.rerun()
+            else:
+                # Tenta ler com detector de barcode do opencv se disponível, senão avisa
+                st.warning("Código de barras não decodificado automaticamente pela foto. Use o leitor USB ou digite no campo.")
+
     else:
         st.info("Envie uma planilha Excel (.xlsx) com a coluna **Nome**, **Safra**, **Codigo_Barras** ou um arquivo de texto.")
         arq_lote = st.file_uploader("Escolha o arquivo", type=["xlsx", "xls", "txt"])
