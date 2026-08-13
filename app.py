@@ -546,25 +546,23 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 st.balloons()
                 st.success("🎉 Pedido 100% separado e conferido sem divergências!")
                 
-                col_fin1, col_fin2 = st.columns(2)
-                with col_fin1:
-                    if st.button("💾 Finalizar e Arquivar Pedido", use_container_width=True):
-                        pedido_atual['status'] = "Concluído"
-                        salvar_pedidos(st.session_state.pedidos)
-                        registrar_log(st.session_state.usuario_logado['nome'], "Concluir Pedido", pedido_atual['id'])
-                        st.success("Pedido finalizado com sucesso!")
-                        st.rerun()
+                if st.button("💾 Finalizar e Arquivar Pedido", use_container_width=True):
+                    pedido_atual['status'] = "Concluído"
+                    salvar_pedidos(st.session_state.pedidos)
+                    registrar_log(st.session_state.usuario_logado['nome'], "Concluir Pedido", pedido_atual['id'])
+                    st.success("Pedido finalizado com sucesso!")
+                    st.rerun()
                 
-                with col_fin2:
-                    texto_resumo = f"📦 *Relatório de Separação - {pedido_atual['id']}*\nStatus: Concluído ✅\nSeparado por: {st.session_state.usuario_logado['nome']}\n\n*Itens Conferidos:*\n"
-                    for obj in itens_ordenados:
-                        it = obj['item_original']
-                        texto_resumo += f"- {it['nome']} ({it.get('safra','')}) | Qtd: {it['quantidade']} | 📍 {obj['localizacao']}\n"
-                    
-                    url_wapp = f"https://wa.me/?text={urllib.parse.quote(texto_resumo)}"
-                    
-                    st.markdown(f"""
-                        <a href="{url_wapp}" target="_blank" rel="noopener noreferrer" style="
+                texto_resumo = f"📦 *Relatório de Separação - {pedido_atual['id']}*\nStatus: Concluído ✅\nSeparado por: {st.session_state.usuario_logado['nome']}\n\n*Itens Conferidos:*\n"
+                for obj in itens_ordenados:
+                    it = obj['item_original']
+                    texto_resumo += f"- {it['nome']} ({it.get('safra','')}) | Qtd: {it['quantidade']} | 📍 {obj['localizacao']}\n"
+                
+                url_wapp = f"https://api.whatsapp.com/send?text={urllib.parse.quote(texto_resumo)}"
+                
+                st.markdown(f"""
+                    <div style="margin-top: 10px;">
+                        <a href="{url_wapp}" target="_blank" style="
                             background-color: #25D366; 
                             color: white; 
                             padding: 12px 16px; 
@@ -579,7 +577,8 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                             box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
                             📤 Compartilhar via WhatsApp
                         </a>
-                    """, unsafe_allow_html=True)
+                    </div>
+                """, unsafe_allow_html=True)
 
 elif st.session_state.menu_atual == "Filtros":
     st.subheader("🔍 Busca por Local ou Nome")
