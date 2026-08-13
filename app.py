@@ -205,7 +205,6 @@ def extrair_numero_corredor(localizacao):
         return int(nums[0])
     return 999
 
-# Componente HTML/JS para leitura contínua de código de barras por câmera (estilo app de banco)
 def componente_leitor_barcode(chave_sessao):
     codigo_atual = st.session_state.get(chave_sessao, "")
     
@@ -220,15 +219,12 @@ def componente_leitor_barcode(chave_sessao):
       function onScanSuccess(decodedText, decodedResult) {{
         document.getElementById("resultado_{chave_sessao}").innerText = "Lido com sucesso: " + decodedText;
         
-        // Envia o dado para o Streamlit através da URL simulada ou recarga limpa
         const url = new URL(window.parent.location.href);
         url.searchParams.set('scanned_{chave_sessao}', decodedText);
         window.parent.history.replaceState({{}}, '', url);
         
-        // Dispara evento de mudança para atualizar a página no Streamlit
         const triggerRerun = new Event('input', {{ bubbles: true }});
         
-        // Para a câmera após a leitura bem-sucedida
         if (window.html5QrCode_{chave_sessao}) {{
             window.html5QrCode_{chave_sessao}.stop().catch(err => {{}});
         }}
@@ -260,7 +256,6 @@ if "codigos_bipados_conferencia" not in st.session_state: st.session_state.codig
 
 qp = st.query_params
 
-# Captura leituras passadas pelo JavaScript da câmera
 for key, val in qp.items():
     if key.startswith("scanned_"):
         sess_key = key.replace("scanned_", "")
@@ -268,7 +263,6 @@ for key, val in qp.items():
             st.session_state.codigo_capturado_cadastro = val
         else:
             st.session_state.codigos_bipados_conferencia[sess_key] = val
-        # Limpa o parâmetro da URL para evitar loops
         del st.query_params[key]
         st.rerun()
 
@@ -424,7 +418,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
         if not st.session_state.pedidos:
             st.info("Nenhum pedido cadastrado.")
         else:
-            pedidos_nomes = [f"{p['id']} ({p['data']}) - {len(p['itens'])} itens" for p in st.session_state.pedidos]
+            pedidos_nomes = [f"{p['id']} ({p['data']}) - Status: {p.get('status', 'Pendente')}" for p in st.session_state.pedidos]
             escolha_ped_str = st.selectbox("Selecione o Pedido:", pedidos_nomes)
             idx_ped = pedidos_nomes.index(escolha_ped_str)
             pedido_atual = st.session_state.pedidos[idx_ped]
@@ -516,7 +510,6 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         else:
                             st.success("✅ Quantidade confere com o pedido.")
                             
-                        # Campo preenchido via leitor contínuo
                         bip_caixa = st.text_input("Código de barras da caixa (ou escaneie abaixo):", value=st.session_state.codigos_bipados_conferencia[key_bip_state], key=f"bip_txt_{idx_ped}_{i}")
                         if bip_caixa != st.session_state.codigos_bipados_conferencia[key_bip_state]:
                             st.session_state.codigos_bipados_conferencia[key_bip_state] = bip_caixa
@@ -524,17 +517,19 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         st.markdown("📷 **Leitor contínuo (Estilo App de Banco):**")
                         componente_leitor_barcode(key_bip_state)
 
-                        # Validação do código digitado/escaneado
                         codigo_atual_conferido = st.session_state.codigos_bipados_conferencia[key_bip_state]
                         if codigo_atual_conferido:
                             cb_cadastrado = str(vinho_est.get('codigo_barras', '')).strip()
                             if cb_cadastrado and codigo_atual_conferido.strip() == cb_cadastrado:
                                 st.success("✅ Código de barras conferido e validado com sucesso!")
                             else:
-                                st.error("❌ O código de barras não corresponde ao cadastrado para este vinho!")
+                                st.error("❌ **Erro:** Este código de barras NÃO corresponde ao vinho da lista!")
                         
                         if st.button(f"✅ Confirmar Separação do Item #{i+1}", key=f"btn_sep_{idx_ped}_{i}"):
-                            if qtd_informada != item['quantidade']:
+                            cb_cadastrado = str(vinho_est.get('codigo_barras', '')).strip()
+                            if codigo_atual_conferido.strip() != cb_cadastrado:
+                                st.error("Não é possível concluir: o código de barras bipado está incorreto ou diverge do vinho!")
+                            elif qtd_informada != item['quantidade']:
                                 st.error("Não é possível concluir: a quantidade informada diverge do pedido.")
                             else:
                                 item['separado'] = True
@@ -546,13 +541,28 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     else:
                         st.error("❌ Vinho não encontrado no estoque do galpão.")
 
+            st.markdown("---")
             if todos_separados:
                 st.balloons()
                 st.success("🎉 Pedido 100% separado e conferido sem divergências!")
-                if st.button("Finalizar e Arquivar Pedido"):
-                    pedido_atual['status'] = "Concluído"
-                    salvar_pedidos(st.session_state.pedidos)
-                    st.rerun()
+                
+                col_fin1, col_fin2 = st.columns(2)
+                with col_fin1:
+                    if st.button("💾 Finalizar e Arquivar Pedido", use_container_width=True):
+                        pedido_atual['status'] = "Concluído"
+                        salvar_pedidos(st.session_state.pedidos)
+                        registrar_log(st.session_state.usuario_logado['nome'], "Concluir Pedido", pedido_atual['id'])
+                        st.success("Pedido finalizado com sucesso!")
+                        st.rerun()
+                
+                with col_fin2:
+                    texto_resumo = f"📦 *Relatório de Separação - {pedido_atual['id']}*\nStatus: Concluído ✅\nSeparado por: {st.session_state.usuario_logado['nome']}\n\n*Itens Conferidos:*\n"
+                    for obj in itens_ordenados:
+                        it = obj['item_original']
+                        texto_resumo += f"- {it['nome']} ({it.get('safra','')}) | Qtd: {it['quantidade']} | 📍 {obj['localizacao']}\n"
+                    
+                    url_wapp = f"https://api.whatsapp.com/send?text={urllib.parse.quote(texto_resumo)}"
+                    st.markdown(f"<a href='{url_wapp}' target='_blank'><button style='background-color: #25D366; color: white; padding: 10px; border-radius: 12px; border: none; font-weight: bold; width: 100%; text-align: center; text-decoration: none; display: inline-block;'>📤 Compartilhar via WhatsApp</button></a>", unsafe_allow_html=True)
 
 elif st.session_state.menu_atual == "Filtros":
     st.subheader("🔍 Busca por Local ou Nome")
