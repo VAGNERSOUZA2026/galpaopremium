@@ -493,12 +493,18 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     if vinho_est:
                         st.markdown(f"**Galpão:** Safra: **{vinho_est.get('safra')}** | Local: **{vinho_est.get('localizacao')}** | C. Barras: `{vinho_est.get('codigo_barras', 'N/A')}`")
                         
-                        qtd_informada = st.number_input("Quantidade que está levando:", min_value=1, value=item.get('quantidade', 1), key=f"qtd_inf_{idx_ped}_{i}")
+                        # LEITOR DE CÓDIGO DE BARRAS EM PRIMEIRA LINHA
+                        st.markdown("---")
+                        st.markdown("📷 **1º Passo: Bipe o código de barras da caixa**")
                         bip_caixa = st.text_input("Código de barras da caixa:", value=st.session_state.codigos_bipados_conferencia[key_bip_state], key=f"bip_txt_{idx_ped}_{i}")
                         if bip_caixa != st.session_state.codigos_bipados_conferencia[key_bip_state]:
                             st.session_state.codigos_bipados_conferencia[key_bip_state] = bip_caixa
 
                         componente_leitor_barcode(key_bip_state)
+
+                        st.markdown("---")
+                        st.markdown("📦 **2º Passo: Confirme a quantidade e finalize o item**")
+                        qtd_informada = st.number_input("Quantidade que está levando:", min_value=1, value=item.get('quantidade', 1), key=f"qtd_inf_{idx_ped}_{i}")
 
                         if st.button(f"✅ Confirmar Item #{i+1}", key=f"btn_sep_{idx_ped}_{i}"):
                             item['separado'] = True
