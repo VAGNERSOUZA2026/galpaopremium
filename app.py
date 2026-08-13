@@ -63,7 +63,6 @@ LISTA_LADOS = ["Direito", "Esquerdo", "Centro / Único"]
 OPCOES_CAIXA = ["Caixa com 12 garrafas", "Caixa com 6 garrafas", "Caixa com 3 garrafas", "Caixa com 2 garrafas", "Garrafa Avulsa (1 un)", "Outra quantidade"]
 
 def obter_horario_brasilia():
-    # Força o fuso horário de Brasília (UTC-3) independentemente do servidor
     fuso_brasilia = timezone(timedelta(hours=-3))
     return datetime.now(fuso_brasilia)
 
@@ -524,7 +523,10 @@ elif st.session_state.menu_atual == "PedidosMatriz":
 
                 with st.expander(f"{status_cor} {item['nome']} {item.get('safra', '')} | Qtd: {item['quantidade']} | 📍 {loc}"):
                     if vinho_est:
-                        st.markdown(f"**Galpão:** Safra: **{vinho_est.get('safra')}** | Local: **{vinho_est.get('localizacao')}** | C. Barras: `{vinho_est.get('codigo_barras', 'N/A')}`")
+                        codigo_cadastrado_sistema = str(vinho_est.get('codigo_barras', '')).strip()
+                        
+                        st.markdown(f"**Galpão:** Safra: **{vinho_est.get('safra')}** | Local: **{vinho_est.get('localizacao')}**")
+                        st.markdown(f"C. Barras Oficial Cadastrado: `{codigo_cadastrado_sistema if codigo_cadastrado_sistema else 'NÃO CADASTRADO'}`")
                         
                         st.markdown("---")
                         st.markdown("📷 **1º Passo: Bipe o código de barras da caixa**")
@@ -538,13 +540,24 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         st.markdown("📦 **2º Passo: Confirme a quantidade e finalize o item**")
                         qtd_informada = st.number_input("Quantidade que está levando:", min_value=1, value=item.get('quantidade', 1), key=f"qtd_inf_{idx_ped}_{i}")
 
+                        pode_avancar = True
+                        if not codigo_cadastrado_sistema:
+                            st.warning("⚠️ Este vinho não possui código de barras cadastrado no sistema. A conferência será feita apenas por validação visual/manual.")
+                        elif bip_caixa.strip() != codigo_cadastrado_sistema:
+                            pode_avancar = False
+                            if bip_caixa.strip():
+                                st.error(f"❌ **ERRO DE CONFERÊNCIA!** O código bipado (`{bip_caixa}`) NÃO corresponde ao cadastro deste vinho (`{codigo_cadastrado_sistema}`).")
+
                         if st.button(f"✅ Confirmar Item #{i+1}", key=f"btn_sep_{idx_ped}_{i}"):
-                            item['separado'] = True
-                            item['qtd_separada'] = qtd_informada
-                            salvar_pedidos(st.session_state.pedidos)
-                            registrar_log(st.session_state.usuario_logado['nome'], "Separar Item Pedido", f"{item['nome']}")
-                            st.success("Item confirmado!")
-                            st.rerun()
+                            if not pode_avancar:
+                                st.error("❌ Impossível confirmar: O código de barras bipado está incorreto!")
+                            else:
+                                item['separado'] = True
+                                item['qtd_separada'] = qtd_informada
+                                salvar_pedidos(st.session_state.pedidos)
+                                registrar_log(st.session_state.usuario_logado['nome'], "Separar Item Pedido", f"{item['nome']}")
+                                st.success("Item confirmado com sucesso!")
+                                st.rerun()
                     else:
                         st.error("❌ Vinho não encontrado no estoque.")
 
@@ -624,8 +637,27 @@ elif st.session_state.menu_atual == "Cadastrar":
                 st.rerun()
 
 elif st.session_state.menu_atual == "GerarQR":
-    st.subheader("📱 Gerar QR Code")
-    texto_gerar = st.text_input("Texto do QR Code", value="Corredor 01 - Pallet Item 01")
+    st.subheader("📱 Gerar QR Code de Localização ou Vinho")
+    
+    tipo_qr = st.radio("O que deseja transformar em QR Code?", ["Localização do Galpão", "Nome / Dados do Vinho"], horizontal=True)
+    
+    if tipo_qr == "Localização do Galpão":
+        locais_unicos = sorted(list(set(v.get('localizacao', '') for v in st.session_state.estoque if v.get('localizacao'))))
+        if not locais_unicos:
+            locais_unicos = ["Corredor 01 - Pallet Item 01"]
+        
+        escolha_local = st.selectbox("Selecione a Localização:", locais_unicos)
+        texto_gerar = escolha_local
+    else:
+        vinhos_nomes = sorted([f"{v.get('nome')} ({v.get('safra', 'N/A')}) - {v.get('localizacao', '')}" for v in st.session_state.estoque])
+        if not vinhos_nomes:
+            st.warning("Nenhum vinho cadastrado.")
+            texto_gerar = "Erro: Sem vinhos"
+        else:
+            escolha_vinho = st.selectbox("Selecione o Vinho:", vinhos_nomes)
+            texto_gerar = escolha_vinho
+
+    st.markdown(f"**Conteúdo codificado:** `{texto_gerar}`")
     st.image(gerar_qr_code_api(texto_gerar), width=250)
 
 elif st.session_state.menu_atual == "Editar":
