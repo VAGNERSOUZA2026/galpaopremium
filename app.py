@@ -377,8 +377,6 @@ elif st.session_state.menu_atual == "PedidosMatriz":
             arq_pedido = st.file_uploader("Arquivo de Pedido (Excel ou TXT)", type=["xlsx", "xls", "txt"])
             texto_manual_pedido = st.text_area("Ex: Campana Merlot 2024 /05 Caixas", placeholder="Campana Merlot 2024 / 05 Caixas")
             
-            col_b_salvar, col_b_baixar = st.columns(2)
-            
             cadastrar_clicado = st.form_submit_button("💾 Salvar Pedido no Sistema")
             
             if cadastrar_clicado:
@@ -604,9 +602,6 @@ elif st.session_state.menu_atual == "Editar":
                 salvar_dados(st.session_state.estoque)
                 st.success("Atualizado!")
                 st.rerun()
-
-elif st.session_state.menu_atual -> "Historico": # type: ignore
-    pass
 
 elif st.session_state.menu_atual == "Historico":
     st.subheader("📋 Histórico")
