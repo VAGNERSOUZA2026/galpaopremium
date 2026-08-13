@@ -370,14 +370,18 @@ elif st.session_state.menu_atual == "PedidosMatriz":
     
     with aba_ped1:
         st.markdown("Envie a lista enviada pela matriz (Excel ou TXT) ou digite livremente.")
-        st.info("ℹ️ Os pedidos salvos ficam guardados automaticamente no arquivo **pedidos_matriz.json** na pasta do sistema.")
+        st.info("ℹ️ Os pedidos salvos ficam guardados automaticamente no arquivo **pedidos_matriz.json** na pasta do sistema no computador.")
         
         with st.form("form_novo_pedido"):
             id_pedido = st.text_input("Identificação do Pedido / Loja", value=f"Pedido #{datetime.now().strftime('%d/%m %H:%M')}")
             arq_pedido = st.file_uploader("Arquivo de Pedido (Excel ou TXT)", type=["xlsx", "xls", "txt"])
             texto_manual_pedido = st.text_area("Ex: Campana Merlot 2024 /05 Caixas", placeholder="Campana Merlot 2024 / 05 Caixas")
             
-            if st.form_submit_button("Cadastrar Pedido para Separação"):
+            col_b_salvar, col_b_baixar = st.columns(2)
+            
+            cadastrar_clicado = st.form_submit_button("💾 Salvar Pedido no Sistema")
+            
+            if cadastrar_clicado:
                 itens_novos = []
                 if arq_pedido is not None:
                     itens_novos = extrair_pedidos_de_arquivo(arq_pedido)
@@ -396,10 +400,24 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     st.session_state.pedidos.append(novo_registro_pedido)
                     salvar_pedidos(st.session_state.pedidos)
                     registrar_log(st.session_state.usuario_logado['nome'], "Novo Pedido Matriz", id_pedido)
-                    st.success("Pedido cadastrado com sucesso!")
+                    st.success("Pedido salvo com sucesso no computador!")
                     st.rerun()
                 else:
                     st.error("Adicione itens por arquivo ou texto.")
+        
+        if st.session_state.pedidos:
+            st.markdown("---")
+            st.markdown("### 📥 Baixar Pedido no Aparelho (Celular ou Computador)")
+            st.markdown("Se você estiver abrindo pelo **celular** ou quiser uma cópia direta no seu dispositivo, baixe o arquivo JSON abaixo:")
+            
+            dados_json_str = json.dumps(st.session_state.pedidos, ensure_ascii=False, indent=4)
+            st.download_button(
+                label="📥 Baixar arquivo de pedidos (.json)",
+                data=dados_json_str,
+                file_name=f"pedidos_matriz_{datetime.now().strftime('%Y%m%d_%H%M')}.json",
+                mime="application/json",
+                use_container_width=True
+            )
                     
     with aba_ped2:
         if not st.session_state.pedidos:
@@ -586,6 +604,9 @@ elif st.session_state.menu_atual == "Editar":
                 salvar_dados(st.session_state.estoque)
                 st.success("Atualizado!")
                 st.rerun()
+
+elif st.session_state.menu_atual -> "Historico": # type: ignore
+    pass
 
 elif st.session_state.menu_atual == "Historico":
     st.subheader("📋 Histórico")
