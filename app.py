@@ -269,10 +269,16 @@ qp = st.query_params
 for key, val in list(qp.items()):
     if key.startswith("scanned_"):
         sess_key = key.replace("scanned_", "")
+        valor_limpo = str(val).strip()
+        
         if sess_key == "cad_barcode":
-            st.session_state.codigo_capturado_cadastro = val
+            st.session_state.codigo_capturado_cadastro = valor_limpo
+        elif sess_key == "scanner_geral":
+            st.session_state.termo_busca = valor_limpo
+            st.session_state.menu_atual = "Filtros"
         else:
-            st.session_state.codigos_bipados_conferencia[sess_key] = val
+            st.session_state.codigos_bipados_conferencia[sess_key] = valor_limpo
+            
         del st.query_params[key]
         st.rerun()
 
@@ -577,10 +583,10 @@ elif st.session_state.menu_atual == "Filtros":
     termo_digitado = st.text_input("Filtrar por nome ou corredor/pallet:", value=st.session_state.termo_busca)
     tp = termo_digitado.strip().lower()
     if tp:
-        res = [v for v in st.session_state.estoque if tp in v.get("nome", "").lower() or tp in v.get("localizacao", "").lower()]
+        res = [v for v in st.session_state.estoque if tp in v.get("nome", "").lower() or tp in v.get("localizacao", "").lower() or tp in str(v.get("codigo_barras", "")).lower()]
         if res:
             for v in sorted(res, key=lambda x: x.get("nome", "").lower()):
-                st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra')})</div><p>Tipo: <b>{v.get('tipo', 'N/A')}</b><br><span class='badge-pallet-grande'>📍 {v.get('localizacao')}</span></p></div>", unsafe_allow_html=True)
+                st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra')})</div><p>Tipo: <b>{v.get('tipo', 'N/A')}</b><br>C. Barras: <code>{v.get('codigo_barras', 'S/N')}</code><br><span class='badge-pallet-grande'>📍 {v.get('localizacao')}</span></p></div>", unsafe_allow_html=True)
         else:
             st.warning("Nenhum vinho encontrado.")
 
@@ -598,13 +604,56 @@ elif st.session_state.menu_atual == "MapaSeparacao":
                 st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra')})</div><span class='badge-pallet-grande'>📍 {v.get('localizacao')}</span></div>", unsafe_allow_html=True)
 
 elif st.session_state.menu_atual == "Scanner":
-    st.subheader("📷 Escanear QR Code do Local")
-    foto = st.camera_input("Capturar Foto")
-    if foto and OPENCV_DISPONIVEL:
-        img = cv2.imdecode(np.frombuffer(foto.getvalue(), np.uint8), cv2.IMREAD_COLOR)
-        val, _, _ = cv2.QRCodeDetector().detectAndDecode(img)
-        if val:
-            st.success(f"Local: {val}")
+    st.subheader("📷 Escanear Código de Barras ou QR Code")
+    
+    aba_scan1, aba_scan2 = st.tabs(["📱 Leitor com Câmera", "🖼️ Enviar Foto com QR Code"])
+    
+    with aba_scan1:
+        st.markdown("Aponte a câmera para o código de barras da caixa ou QR Code do local:")
+        componente_leitor_barcode("scanner_geral")
+        
+        if st.session_state.get("termo_busca"):
+            termo = st.session_state.termo_busca
+            st.info(f"🔍 Resultado da leitura: **{termo}**")
+            
+            resultados = [
+                v for v in st.session_state.estoque 
+                if termo.lower() in str(v.get("codigo_barras", "")).lower() 
+                or termo.lower() in str(v.get("localizacao", "")).lower()
+                or termo.lower() in str(v.get("nome", "")).lower()
+            ]
+            
+            if resultados:
+                st.success(f"Encontrado(s) {len(resultados)} registro(s)!")
+                for v in resultados:
+                    st.markdown(
+                        f"<div class='wine-card'>"
+                        f"<div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra')})</div>"
+                        f"<p>Tipo: <b>{v.get('tipo', 'N/A')}</b><br>"
+                        f"C. Barras: <code>{v.get('codigo_barras', 'Não cadastrado')}</code><br>"
+                        f"<span class='badge-pallet-grande'>📍 {v.get('localizacao')}</span></p>"
+                        f"</div>", 
+                        unsafe_allow_html=True
+                    )
+            else:
+                st.warning("⚠️ Nenhum vinho ou local encontrado com este código exato.")
+                
+            if st.button("Limpar Busca"):
+                st.session_state.termo_busca = ""
+                st.rerun()
+
+    with aba_scan2:
+        foto = st.camera_input("Tirar foto de um QR Code impresso")
+        if foto and OPENCV_DISPONIVEL:
+            img = cv2.imdecode(np.frombuffer(foto.getvalue(), np.uint8), cv2.IMREAD_COLOR)
+            val, _, _ = cv2.QRCodeDetector().detectAndDecode(img)
+            if val:
+                st.success(f"Código Lido: {val}")
+                res = [v for v in st.session_state.estoque if val.lower() in str(v.get("localizacao", "")).lower() or val.lower() in str(v.get("codigo_barras", "")).lower() or val.lower() in str(v.get("nome", "")).lower()]
+                for v in res:
+                    st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')}</div><span class='badge-pallet-grande'>📍 {v.get('localizacao')}</span></div>", unsafe_allow_html=True)
+            else:
+                st.error("Não foi possível detectar um QR Code na foto.")
 
 elif st.session_state.menu_atual == "Estoque":
     st.subheader("🍷 Estoque Completo")
@@ -643,42 +692,22 @@ elif st.session_state.menu_atual == "GerarQR":
     
     if tipo_qr == "Localização do Galpão":
         locais_unicos = sorted(list(set(v.get('localizacao', '') for v in st.session_state.estoque if v.get('localizacao'))))
-        if not locais_unicos:
-            locais_unicos = ["Corredor 01 - Pallet Item 01"]
-        
-        escolha_local = st.selectbox("Selecione a Localização:", locais_unicos)
-        texto_gerar = escolha_local
-    else:
-        vinhos_nomes = sorted([f"{v.get('nome')} ({v.get('safra', 'N/A')}) - {v.get('localizacao', '')}" for v in st.session_state.estoque])
-        if not vinhos_nomes:
-            st.warning("Nenhum vinho cadastrado.")
-            texto_gerar = "Erro: Sem vinhos"
+        if locais_unicos:
+            loc_escolhido = st.selectbox("Selecione o Local:", locais_unicos)
+            url_qr = gerar_qr_code_api(loc_escolhido)
+            st.markdown(f"<div style='text-align: center;'><img src='{url_qr}' width='250'><p><b>{loc_escolhido}</b></p></div>", unsafe_allow_html=True)
         else:
-            escolha_vinho = st.selectbox("Selecione o Vinho:", vinhos_nomes)
-            texto_gerar = escolha_vinho
-
-    st.markdown(f"**Conteúdo codificado:** `{texto_gerar}`")
-    st.image(gerar_qr_code_api(texto_gerar), width=250)
-
-elif st.session_state.menu_atual == "Editar":
-    st.subheader("✏️ Editar")
-    if st.session_state.estoque:
-        escolha = st.selectbox("Vinho", [v['nome'] for v in st.session_state.estoque])
-        v_atual = next(v for v in st.session_state.estoque if v['nome'] == escolha)
-        with st.form("form_ed"):
-            nn = st.text_input("Nome", value=v_atual['nome'])
-            if st.form_submit_button("Atualizar"):
-                v_atual['nome'] = nn
-                salvar_dados(st.session_state.estoque)
-                st.success("Atualizado!")
-                st.rerun()
-
-elif st.session_state.menu_atual == "Historico":
-    st.subheader("📋 Histórico")
-    for l in carregar_logs()[:30]:
-        st.write(f"🕒 {l.get('data_hora')} - {l.get('usuario')}: {l.get('acao')}")
-
-elif st.session_state.menu_atual == "GerenciarUsuarios":
-    st.subheader("⚙️ Contas")
-    for u in st.session_state.usuarios:
-        st.write(f"👤 {u.get('nome')} ({u.get('cargo')})")
+            st.info("Nenhuma localização cadastrada.")
+    else:
+        vinhos_nomes = [f"{v.get('nome')} ({v.get('safra', 'N/A')}) - C.Barras: {v.get('codigo_barras', 'S/N')}" for v in st.session_state.estoque]
+        if vinhos_nomes:
+            v_escolhido_str = st.selectbox("Selecione o Vinho:", vinhos_nomes)
+            idx_v = vinhos_nomes.index(v_escolhido_str)
+            vinho_alvo = st.session_state.estoque[idx_v]
+            
+            texto_payload = vinho_alvo.get('codigo_barras') if vinho_alvo.get('codigo_barras') else vinho_alvo.get('nome')
+            url_qr = gerar_qr_code_api(texto_payload)
+            
+            st.markdown(f"<div style='text-align: center;'><img src='{url_qr}' width='250'><p><b>{vinho_alvo.get('nome')}</b><br>Payload: {texto_payload}</p></div>", unsafe_allow_html=True)
+        else:
+            st.info("Nenhum vinho cadastrado.")
