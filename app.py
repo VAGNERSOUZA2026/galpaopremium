@@ -124,36 +124,28 @@ def gerar_qr_code_api(texto):
     return f"https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={urllib.parse.quote(texto)}"
 
 def interpretar_linha_pedido(texto_linha):
-    """
-    Analisa frases como: 'Campana Merlot 2024 /05 Caixas' ou 'Campana Merlot | 2024 | 5' 
-    e separa inteligentemente em: nome, safra e quantidade.
-    """
     texto = texto_linha.strip()
     safra = ""
     quantidade = 1
     
-    # Tenta achar ano de safra (ex: 2020 a 2030)
     anos = re.findall(r'\b(20\d{2})\b', texto)
     if anos:
         safra = anos[0]
-        # Remove a safra do texto do nome para não duplicar
         texto_limpo = texto.replace(safra, "")
     else:
         texto_limpo = texto
 
-    # Tenta achar quantidade (ex: '/05', '5 caixas', 'qtd 5')
     match_qtd = re.search(r'(?:/|\bcaixas?|\bqt[d]?\.?)\s*(\d+)', texto_limpo, re.IGNORECASE)
     if match_qtd:
         quantidade = int(match_qtd.group(1))
         texto_limpo = texto_limpo.replace(match_qtd.group(0), "")
     else:
-        # Procura qualquer número solto no final se não achou padrão de caixa explícito
         numeros_soltos = re.findall(r'\b(\d+)\b', texto_limpo)
         if numeros_soltos and numeros_soltos[-1] != safra:
             quantidade = int(numeros_soltos[-1])
             texto_limpo = texto_limpo.replace(numeros_soltos[-1], "")
 
-    # Limpa caracteres residuais de separação como '/', '|', '-'
+    texto_limpo = re.sub(r'\bcaixas?\b', '', texto_limpo, flags=re.IGNORECASE)
     nome = re.sub(r'[/\|\-\–]+', '', texto_limpo).strip().title()
     return {"nome": nome, "safra": safra, "quantidade": quantidade, "separado": False, "qtd_separada": 0}
 
@@ -181,15 +173,7 @@ def extrair_pedidos_de_arquivo(arq):
         elif ext == 'txt':
             linhas = [l.strip() for l in arq.getvalue().decode("utf-8").split("\n") if l.strip()]
             for l in linhas:
-                if '|' in l or '/' in l:
-                    itens.append(interpretar_linha_pedido(l))
-                else:
-                    partes = l.split(';')
-                    nome = partes[0].strip().title()
-                    safra = partes[1].strip() if len(partes) > 1 else ''
-                    qtd = int(partes[2].strip()) if len(partes) > 2 and partes[2].strip().isdigit() else 1
-                    if nome:
-                        itens.append({"nome": nome, "safra": safra, "quantidade": qtd, "separado": False, "qtd_separada": 0})
+                itens.append(interpretar_linha_pedido(l))
     except: pass
     return itens
 
@@ -221,12 +205,23 @@ def extrair_numero_corredor(localizacao):
         return int(nums[0])
     return 999
 
-if "estoque" not in st.session_state: st.session_state.estoque = carregar_dados()
-if "usuarios" not in st.session_state: st.session_state.usuarios = carregar_usuarios()
-if "pedidos" not in st.session_state: st.session_state.pedidos = carregar_pedidos()
+st.session_state.estoque = carregar_dados()
+st.session_state.pedidos = carregar_pedidos()
+
 if "menu_atual" not in st.session_state: st.session_state.menu_atual = "🏠 Home"
 if "termo_busca" not in st.session_state: st.session_state.termo_busca = ""
 if "codigo_capturado_cadastro" not in st.session_state: st.session_state.codigo_capturado_cadastro = ""
+
+components.html(
+    """
+    <script>
+        setTimeout(function(){
+            window.parent.location.reload();
+        }, 8000);
+    </script>
+    """,
+    height=0,
+)
 
 qp = st.query_params
 user_url = qp.get("user", None)
@@ -373,6 +368,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     salvar_pedidos(st.session_state.pedidos)
                     registrar_log(st.session_state.usuario_logado['nome'], "Novo Pedido Matriz", id_pedido)
                     st.success("Pedido cadastrado com sucesso!")
+                    st.rerun()
                 else:
                     st.error("Adicione itens por arquivo ou texto.")
                     
@@ -385,7 +381,17 @@ elif st.session_state.menu_atual == "PedidosMatriz":
             idx_ped = pedidos_nomes.index(escolha_ped_str)
             pedido_atual = st.session_state.pedidos[idx_ped]
             
-            st.markdown(f"### Pedido: {pedido_atual['id']}")
+            col_info_ped, col_del_ped = st.columns([3, 1])
+            with col_info_ped:
+                st.markdown(f"### Pedido: {pedido_atual['id']}")
+            with col_del_ped:
+                if st.button("🗑️ Excluir Pedido", use_container_width=True):
+                    id_removido = pedido_atual['id']
+                    st.session_state.pedidos.pop(idx_ped)
+                    salvar_pedidos(st.session_state.pedidos)
+                    registrar_log(st.session_state.usuario_logado['nome'], "Excluir Pedido", id_removido)
+                    st.success("Pedido excluído com sucesso!")
+                    st.rerun()
             
             ordem_separacao = st.radio("Direção da Rota pelos Corredores:", ["Crescente (Corredor 01 ao 25)", "Decrescente (Corredor 25 ao 01)"], horizontal=True)
             reversa = True if "Decrescente" in ordem_separacao else False
@@ -395,14 +401,15 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 nome_pedido_limpo = item['nome'].lower()
                 safra_pedido = str(item.get('safra', '')).strip()
                 
-                # Busca inteligente no estoque por aproximação de nome e safra
                 vinho_encontrado = None
                 for v in st.session_state.estoque:
                     v_nome = v.get('nome', '').lower()
                     v_safra = str(v.get('safra', '')).strip()
                     
-                    # Se o nome do estoque está contido no digitado ou vice-versa
-                    if v_nome in nome_pedido_limpo or nome_pedido_limpo in v_nome:
+                    palavras_pedido = [p for p in nome_pedido_limpo.split() if len(p) > 2]
+                    match_parcial = any(p in v_nome for p in palavras_pedido) if palavras_pedido else False
+                    
+                    if v_nome in nome_pedido_limpo or nome_pedido_limpo in v_nome or match_parcial:
                         if safra_pedido and v_safra:
                             if safra_pedido == v_safra:
                                 vinho_encontrado = v
@@ -411,7 +418,6 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                             vinho_encontrado = v
                             break
                             
-                # Se ainda não achou por safra exata, pega pelo menos pelo nome do vinho
                 if not vinho_encontrado:
                     vinho_encontrado = next((v for v in st.session_state.estoque if v.get('nome', '').lower() in nome_pedido_limpo or nome_pedido_limpo in v.get('nome', '').lower()), None)
                 
