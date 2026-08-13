@@ -561,8 +561,25 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         it = obj['item_original']
                         texto_resumo += f"- {it['nome']} ({it.get('safra','')}) | Qtd: {it['quantidade']} | 📍 {obj['localizacao']}\n"
                     
-                    url_wapp = f"https://api.whatsapp.com/send?text={urllib.parse.quote(texto_resumo)}"
-                    st.markdown(f"<a href='{url_wapp}' target='_blank'><button style='background-color: #25D366; color: white; padding: 10px; border-radius: 12px; border: none; font-weight: bold; width: 100%; text-align: center; text-decoration: none; display: inline-block;'>📤 Compartilhar via WhatsApp</button></a>", unsafe_allow_html=True)
+                    url_wapp = f"https://wa.me/?text={urllib.parse.quote(texto_resumo)}"
+                    
+                    st.markdown(f"""
+                        <a href="{url_wapp}" target="_blank" rel="noopener noreferrer" style="
+                            background-color: #25D366; 
+                            color: white; 
+                            padding: 12px 16px; 
+                            border-radius: 12px; 
+                            text-decoration: none; 
+                            font-weight: 600; 
+                            width: 100%; 
+                            display: block; 
+                            text-align: center; 
+                            font-family: 'Poppins', sans-serif; 
+                            font-size: 1rem;
+                            box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                            📤 Compartilhar via WhatsApp
+                        </a>
+                    """, unsafe_allow_html=True)
 
 elif st.session_state.menu_atual == "Filtros":
     st.subheader("🔍 Busca por Local ou Nome")
@@ -617,155 +634,4 @@ elif st.session_state.menu_atual == "Scanner":
             termo_lido = val.strip().lower()
             st.success(f"Local Identificado: {val}")
             st.markdown("### 🍷 Vinhos neste local:")
-            resultados = [v for v in st.session_state.estoque if termo_lido in (str(v.get('localizacao', '')).strip().lower() + " - lado: " + str(v.get('lado', '')).strip().lower())]
-            if resultados:
-                for v in sorted(resultados, key=lambda x: x.get("nome", "").lower()):
-                    st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra', 'N/A')})</div><p>Tipo: <b>{v.get('tipo', 'N/A')}</b> | Caixa: <b>{v.get('caixa', 'N/A')}</b><br>📍 Local: <b>{v.get('localizacao', 'N/A')}</b> (Lado: <b>{v.get('lado', 'N/A')}</b>)</p></div>", unsafe_allow_html=True)
-            else: st.warning("Nenhum vinho encontrado neste local.")
-        else: st.error("QR Code não detectado. Tente novamente.")
-
-elif st.session_state.menu_atual == "Estoque":
-    st.subheader("🍷 Estoque Completo (Ordem Alfabética)")
-    estoque_ordenado = sorted(st.session_state.estoque, key=lambda x: x.get("nome", "").lower())
-    for v in estoque_ordenado:
-        st.markdown(f"<div class='wine-card'><div class='wine-title'>🍷 {v.get('nome')} ({v.get('safra')})</div><p>📍 <b>{v.get('localizacao')}</b> - Lado: <b>{v.get('lado', 'N/A')}</b> | C. Barras: `{v.get('codigo_barras', 'N/A')}`</p></div>", unsafe_allow_html=True)
-
-elif st.session_state.menu_atual == "Cadastrar":
-    st.subheader("➕ Cadastrar Vinho")
-    
-    modo_cadastro = st.radio("Escolha o modo de cadastro:", ["Cadastro Individual", "Importar Lote (Excel ou TXT)"])
-    
-    if modo_cadastro == "Cadastro Individual":
-        with st.form("cad"):
-            nome = st.text_input("Nome").strip().title()
-            tipo = st.selectbox("Tipo", ["Tinto", "Branco", "Rosé", "Espumante"])
-            safra = st.text_input("Safra").strip()
-            codigo_barras = st.text_input("Código de Barras da Caixa/Garrafa", value=st.session_state.codigo_capturado_cadastro).strip()
-            corredor = st.selectbox("Corredor", LISTA_CORREDORES)
-            tipo_loc = st.selectbox("Tipo Local", LISTA_LOCAIS_TIPO)
-            numero = st.selectbox("Número", LISTA_NUMEROS_LOCAL)
-            lado = st.selectbox("Lado", LISTA_LADOS)
-            caixa = st.selectbox("Caixa", OPCOES_CAIXA)
-            foto_vinho = st.file_uploader("Foto da Garrafa / Rótulo (Opcional)", type=["jpg", "jpeg", "png"])
-            
-            submitted = st.form_submit_button("Salvar")
-            if submitted:
-                if nome:
-                    nome_foto = ""
-                    if foto_vinho is not None:
-                        nome_foto = f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_{foto_vinho.name}"
-                        caminho_foto = os.path.join(PASTA_FOTOS, nome_foto)
-                        with open(caminho_foto, "wb") as f:
-                            f.write(foto_vinho.getbuffer())
-                    
-                    st.session_state.estoque.append({
-                        "nome": nome, 
-                        "tipo": tipo, 
-                        "safra": safra, 
-                        "codigo_barras": codigo_barras,
-                        "localizacao": f"{corredor} - {tipo_loc} {numero}", 
-                        "lado": lado, 
-                        "caixa": caixa, 
-                        "foto": nome_foto
-                    })
-                    salvar_dados(st.session_state.estoque)
-                    st.session_state.codigo_capturado_cadastro = ""
-                    registrar_log(st.session_state.usuario_logado['nome'], "Cadastrar Vinho", nome)
-                    st.success("Vinho cadastrado com sucesso!")
-                    st.session_state.menu_atual = "🏠 Home"
-                    st.rerun()
-                else:
-                    st.error("Informe o nome do vinho.")
-                    
-        st.markdown("---")
-        st.markdown("📷 **Leitor de Código de Barras (Em tempo real - Estilo App de Banco):**")
-        componente_leitor_barcode("cad_barcode")
-
-    else:
-        st.info("Envie uma planilha Excel (.xlsx) com a coluna **Nome**, **Safra**, **Codigo_Barras** ou um arquivo de texto.")
-        arq_lote = st.file_uploader("Escolha o arquivo", type=["xlsx", "xls", "txt"])
-        
-        if arq_lote and st.button("Processar Importação em Lote"):
-            importados = 0
-            ext = arq_lote.name.split('.')[-1].lower()
-            
-            if ext in ['xlsx', 'xls']:
-                df = pd.read_excel(arq_lote)
-                for _, row in df.iterrows():
-                    nome_v = str(row.get('Nome', '')).strip().title()
-                    if nome_v and nome_v != 'Nan':
-                        st.session_state.estoque.append({
-                            "nome": nome_v,
-                            "tipo": str(row.get('Tipo', 'Tinto')).strip().title(),
-                            "safra": str(row.get('Safra', '')).strip(),
-                            "codigo_barras": str(row.get('Codigo_Barras', '')).strip(),
-                            "localizacao": str(row.get('Localizacao', 'Corredor 01 - Pallet Item 01')).strip(),
-                            "lado": str(row.get('Lado', 'Direito')).strip(),
-                            "caixa": str(row.get('Caixa', 'Caixa com 12 garrafas')).strip(),
-                            "foto": ""
-                        })
-                        importados += 1
-            
-            if importados > 0:
-                salvar_dados(st.session_state.estoque)
-                st.success(f"{importados} vinhos importados com sucesso!")
-                st.session_state.menu_atual = "🏠 Home"
-                st.rerun()
-            else:
-                st.warning("O arquivo parece estar vazio ou sem dados válidos.")
-
-elif st.session_state.menu_atual == "GerarQR":
-    st.subheader("📱 Gerar QR Code de Localização")
-    c_corredor = st.selectbox("Corredor", LISTA_CORREDORES)
-    c_tipo = st.selectbox("Tipo de Local", LISTA_LOCAIS_TIPO)
-    c_numero = st.selectbox("Número do Item", LISTA_NUMEROS_LOCAL)
-    c_lado = st.selectbox("Lado", LISTA_LADOS)
-    
-    local_etiqueta = f"{c_corredor} - {c_tipo} {c_numero} - Lado: {c_lado}"
-    url_qr = gerar_qr_code_api(local_etiqueta)
-    st.image(url_qr, width=240, caption=local_etiqueta)
-
-elif st.session_state.menu_atual == "Historico":
-    st.subheader("📋 Histórico")
-    for l in carregar_logs():
-        st.markdown(f"- **{l['data_hora']}** | {l['usuario']} | {l['acao']}")
-
-elif st.session_state.menu_atual == "GerenciarUsuarios":
-    if st.session_state.usuario_logado.get('cargo') != "Desenvolvedor":
-        st.error("Acesso negado.")
-        st.stop()
-    st.subheader("⚙️ Gerenciar Usuários")
-    for u in st.session_state.usuarios:
-        st.write(f"👤 **{u['nome']}** (Cargo: {u.get('cargo', 'Operador')})")
-
-elif st.session_state.menu_atual == "Editar":
-    st.subheader("✏️ Editar Vinho")
-    estoque_ordenado = sorted(st.session_state.estoque, key=lambda x: x.get("nome", "").lower())
-    nomes_vinhos = [f"{v.get('nome')} (Safra: {v.get('safra', 'N/A')} - Loc: {v.get('localizacao', 'N/A')})" for v in estoque_ordenado]
-    if nomes_vinhos:
-        vinho_sel = st.selectbox("Selecione o vinho:", nomes_vinhos)
-        idx_sel = nomes_vinhos.index(vinho_sel)
-        v_atual = estoque_ordenado[idx_sel]
-        idx_real = st.session_state.estoque.index(v_atual)
-        
-        with st.form("edit_form"):
-            n = st.text_input("Nome", value=v_atual.get('nome', '')).strip().title()
-            s = st.text_input("Safra", value=v_atual.get('safra', ''))
-            cb = st.text_input("Código de Barras", value=v_atual.get('codigo_barras', '')).strip()
-            corredor = st.selectbox("Corredor", LISTA_CORREDORES)
-            tipo_loc = st.selectbox("Tipo Local", LISTA_LOCAIS_TIPO)
-            numero = st.selectbox("Número", LISTA_NUMEROS_LOCAL)
-            lado = st.selectbox("Lado", LISTA_LADOS)
-            
-            if st.form_submit_button("Salvar Alterações"):
-                st.session_state.estoque[idx_real].update({
-                    "nome": n,
-                    "safra": s,
-                    "codigo_barras": cb,
-                    "localizacao": f"{corredor} - {tipo_loc} {numero}",
-                    "lado": lado
-                })
-                salvar_dados(st.session_state.estoque)
-                st.success("Atualizado com sucesso!")
-                st.session_state.menu_atual = "🏠 Home"
-                st.rerun()
+            resultados = [v for v in st.
