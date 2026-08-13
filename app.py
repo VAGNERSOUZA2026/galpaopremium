@@ -7,6 +7,7 @@ import streamlit as st
 import urllib.parse
 from docx import Document
 import re
+import io
 import streamlit.components.v1 as components
 
 try:
@@ -204,6 +205,24 @@ def extrair_numero_corredor(localizacao):
     if nums:
         return int(nums[0])
     return 999
+
+def criar_documento_word_pedido(pedido):
+    doc = Document()
+    doc.add_heading(f"Relatório de Conferência de Pedido", level=1)
+    doc.add_paragraph(f"Identificação: {pedido['id']}")
+    doc.add_paragraph(f"Data de Criação: {pedido['data']}")
+    doc.add_paragraph(f"Status Atual: {pedido.get('status', 'Pendente')}")
+    doc.add_heading("Itens do Pedido:", level=2)
+    
+    for i, item in enumerate(pedido['itens'], 1):
+        status_txt = "SEPARADO" if item.get('separado') else "PENDENTE"
+        p_text = f"{i}. {item['nome']} (Safra: {item.get('safra', 'N/A')}) - Qtd Pedida: {item['quantidade']} | Qtd Separada: {item.get('qtd_separada', 0)} [{status_txt}]"
+        doc.add_paragraph(p_text)
+        
+    f_stream = io.BytesIO()
+    doc.save(f_stream)
+    f_stream.seek(0)
+    return f_stream
 
 def componente_leitor_barcode(chave_sessao):
     html_code = f"""
@@ -437,6 +456,17 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     registrar_log(st.session_state.usuario_logado['nome'], "Excluir Pedido", id_removido)
                     st.success("Pedido excluído com sucesso!")
                     st.rerun()
+            
+            # BOTÃO PARA IMPRIMIR / BAIXAR O PEDIDO EM WORD
+            st.markdown("---")
+            docx_stream = criar_documento_word_pedido(pedido_atual)
+            st.download_button(
+                label="🖨️ Baixar Pedido em Word (.docx) para Imprimir ou Enviar",
+                data=docx_stream,
+                file_name=f"pedido_{re.sub(r'[^a-zA-Z0-9]', '_', pedido_atual['id'])}.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                use_container_width=True
+            )
             
             ordem_separacao = st.radio("Direção da Rota pelos Corredores:", ["Crescente (Corredor 01 ao 25)", "Decrescente (Corredor 25 ao 01)"], horizontal=True)
             reversa = True if "Decrescente" in ordem_separacao else False
