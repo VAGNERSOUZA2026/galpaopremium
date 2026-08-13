@@ -62,16 +62,20 @@ LISTA_NUMEROS_LOCAL = [f"Item {i:02d}" for i in range(1, 26)]
 LISTA_LADOS = ["Direito", "Esquerdo", "Centro / Único"]
 OPCOES_CAIXA = ["Caixa com 12 garrafas", "Caixa com 6 garrafas", "Caixa com 3 garrafas", "Caixa com 2 garrafas", "Garrafa Avulsa (1 un)", "Outra quantidade"]
 
+def obter_horario_brasilia():
+    # Força o fuso horário de Brasília (UTC-3) independentemente do servidor
+    fuso_brasilia = timezone(timedelta(hours=-3))
+    return datetime.now(fuso_brasilia)
+
 def obter_saudacao():
-    fuso = timezone(timedelta(hours=-3))
-    hora = datetime.now(fuso).hour
+    hora = obter_horario_brasilia().hour
     if 0 <= hora < 12: return "Bom dia"
     elif 12 <= hora < 18: return "Boa tarde"
     else: return "Boa noite"
 
 def realizar_backup(nome):
     if os.path.exists(nome):
-        ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+        ts = obter_horario_brasilia().strftime("%Y%m%d_%H%M%S")
         shutil.copy(nome, os.path.join(PASTA_BACKUP, f"backup_{ts}_{nome}"))
 
 def carregar_dados():
@@ -108,7 +112,7 @@ def carregar_logs():
 
 def registrar_log(usuario, acao, detalhes):
     logs = carregar_logs()
-    logs.insert(0, {"data_hora": datetime.now().strftime("%d/%m/%Y %H:%M:%S"), "usuario": usuario, "acao": acao, "detalhes": detalhes})
+    logs.insert(0, {"data_hora": obter_horario_brasilia().strftime("%d/%m/%Y %H:%M:%S"), "usuario": usuario, "acao": acao, "detalhes": detalhes})
     with open(ARQUIVO_LOGS, "w", encoding="utf-8") as f: json.dump(logs, f, ensure_ascii=False, indent=4)
 
 def carregar_pedidos():
@@ -392,7 +396,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
         st.info("ℹ️ Os pedidos salvos ficam guardados automaticamente no arquivo **pedidos_matriz.json** na pasta do sistema no computador.")
         
         with st.form("form_novo_pedido"):
-            id_pedido = st.text_input("Identificação do Pedido / Loja", value=f"Pedido #{datetime.now().strftime('%d/%m %H:%M')}")
+            id_pedido = st.text_input("Identificação do Pedido / Loja", value=f"Pedido #{obter_horario_brasilia().strftime('%d/%m %H:%M')}")
             arq_pedido = st.file_uploader("Arquivo de Pedido (Excel ou TXT)", type=["xlsx", "xls", "txt"])
             texto_manual_pedido = st.text_area("Ex: Campana Merlot 2024 /05 Caixas", placeholder="Campana Merlot 2024 / 05 Caixas")
             
@@ -410,7 +414,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 if itens_novos:
                     novo_registro_pedido = {
                         "id": id_pedido,
-                        "data": datetime.now().strftime("%d/%m/%Y %H:%M"),
+                        "data": obter_horario_brasilia().strftime("%d/%m/%Y %H:%M"),
                         "itens": itens_novos,
                         "status": "Pendente"
                     }
@@ -431,7 +435,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
             st.download_button(
                 label="📥 Baixar arquivo de pedidos (.json)",
                 data=dados_json_str,
-                file_name=f"pedidos_matriz_{datetime.now().strftime('%Y%m%d_%H%M')}.json",
+                file_name=f"pedidos_matriz_{obter_horario_brasilia().strftime('%Y%m%d_%H%M')}.json",
                 mime="application/json",
                 use_container_width=True
             )
@@ -457,7 +461,6 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     st.success("Pedido excluído com sucesso!")
                     st.rerun()
             
-            # BOTÃO PARA IMPRIMIR / BAIXAR O PEDIDO EM WORD
             st.markdown("---")
             docx_stream = criar_documento_word_pedido(pedido_atual)
             st.download_button(
@@ -523,7 +526,6 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     if vinho_est:
                         st.markdown(f"**Galpão:** Safra: **{vinho_est.get('safra')}** | Local: **{vinho_est.get('localizacao')}** | C. Barras: `{vinho_est.get('codigo_barras', 'N/A')}`")
                         
-                        # LEITOR DE CÓDIGO DE BARRAS EM PRIMEIRA LINHA
                         st.markdown("---")
                         st.markdown("📷 **1º Passo: Bipe o código de barras da caixa**")
                         bip_caixa = st.text_input("Código de barras da caixa:", value=st.session_state.codigos_bipados_conferencia[key_bip_state], key=f"bip_txt_{idx_ped}_{i}")
