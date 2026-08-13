@@ -502,34 +502,8 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     pedido_atual['status'] = "Concluído"
                     salvar_pedidos(st.session_state.pedidos)
                     registrar_log(st.session_state.usuario_logado['nome'], "Concluir Pedido", pedido_atual['id'])
-                    st.success("Pedido finalizado com sucesso!")
+                    st.success("Pedido finalizado e salvo com sucesso!")
                     st.rerun()
-                
-                texto_resumo = f"📦 *Relatório - {pedido_atual['id']}*\nStatus: Concluído ✅\nSeparado por: {st.session_state.usuario_logado['nome']}\n"
-                for obj in itens_ordenados:
-                    it = obj['item_original']
-                    texto_resumo += f"- {it['nome']} ({it.get('safra','')}) | Qtd: {it['quantidade']} | 📍 {obj['localizacao']}\n"
-                
-                url_wapp = f"https://api.whatsapp.com/send?text={urllib.parse.quote(texto_resumo)}"
-                
-                st.markdown(f"""
-                    <div style="margin-top: 15px;">
-                        <a href="{url_wapp}" target="_blank" style="
-                            background-color: #25D366; 
-                            color: white; 
-                            padding: 14px 20px; 
-                            border-radius: 12px; 
-                            text-decoration: none; 
-                            font-weight: bold; 
-                            width: 100%; 
-                            display: block; 
-                            text-align: center; 
-                            font-size: 1.1rem;
-                            box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-                            📤 Compartilhar via WhatsApp
-                        </a>
-                    </div>
-                """, unsafe_allow_html=True)
 
 elif st.session_state.menu_atual == "Filtros":
     st.subheader("🔍 Busca por Local ou Nome")
