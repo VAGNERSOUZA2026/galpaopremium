@@ -5,9 +5,7 @@ from datetime import datetime, timezone, timedelta
 import pandas as pd
 import streamlit as st
 import urllib.parse
-from docx import Document
 import re
-import io
 import streamlit.components.v1 as components
 
 try:
@@ -118,11 +116,28 @@ def registrar_log(usuario, acao, detalhes):
     with open(ARQUIVO_LOGS, "w", encoding="utf-8") as f: json.dump(logs, f, ensure_ascii=False, indent=4)
 
 def carregar_pedidos():
+    pedidos = []
     if os.path.exists(ARQUIVO_PEDIDOS):
         try:
-            with open(ARQUIVO_PEDIDOS, "r", encoding="utf-8") as f: return json.load(f)
-        except: pass
-    return []
+            with open(ARQUIVO_PEDIDOS, "r", encoding="utf-8") as f: 
+                pedidos = json.load(f)
+        except: 
+            pass
+    for p in pedidos:
+        if "itens" in p:
+            for item in p["itens"]:
+                if "qtd_separada" not in item:
+                    item["qtd_separada"] = 0
+                if p.get("status") == "Concluído / Expedido":
+                    item["separado"] = True
+                    if item["qtd_separada"] < item["quantidade"]:
+                        item["qtd_separada"] = item["quantidade"]
+                else:
+                    if item["qtd_separada"] >= item["quantidade"]:
+                        item["separado"] = True
+                    else:
+                        item["separado"] = False
+    return pedidos
 
 def salvar_pedidos(pedidos):
     with open(ARQUIVO_PEDIDOS, "w", encoding="utf-8") as f: json.dump(pedidos, f, ensure_ascii=False, indent=4)
@@ -227,8 +242,8 @@ for key, val in list(qp.items()):
     if key.startswith("scanned_"):
         sess_key = key.replace("scanned_", "")
         valor_limpo = str(val).strip()
-        if sess_key == "wms_camera":
-            st.session_state.codigo_bipado_wms = valor_limpo
+        if sess_key == "checkout_camera":
+            st.session_state.codigo_bipado_checkout = valor_limpo
         del st.query_params[key]
         st.rerun()
 
@@ -248,7 +263,7 @@ if st.session_state.usuario_logado is None:
         if os.path.exists("imagem premium.jpeg"):
             _, ci, _ = st.columns([1, 1.8, 1])
             with ci: st.image("imagem premium.jpeg", width=190)
-        st.markdown("<h1 style='text-align: center; color: #7A1C2E; font-size: 1.6rem;'>PREMIUM WINES GALPÃO</h1>", unsafe_allow_html=True)
+        st.markdown("<h1 style='text-align: center; color: #7A1C2E; font-size: 1.6rem;'>SEPARAÇÃO DE VINHO GALPÃO</h1>", unsafe_allow_html=True)
         
         tab1, tab2, tab3 = st.tabs(["🔑 Entrar", "👤 Criar Conta", "⚙️ Dev"])
         with tab1:
@@ -307,11 +322,11 @@ st.markdown("---")
 if st.session_state.menu_atual == "🏠 Home":
     st.markdown(f"<p style='text-align: center; color: #666; margin-bottom: 0px;'>{obter_saudacao()},</p>", unsafe_allow_html=True)
     st.markdown(f"<h1 style='text-align: center; color: #7A1C2E; margin-top: 0px;'>{st.session_state.usuario_logado['nome']}! 👋</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #444; font-size: 0.95rem; margin-bottom: 25px;'>Escolha abaixo a opção desejada para gerenciar o galpão:</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #444; font-size: 0.95rem; margin-bottom: 25px;'>Separação de Vinho Galpão - Escolha a opção abaixo:</p>", unsafe_allow_html=True)
     
     c1, c2, c3 = st.columns(3)
     with c1:
-        if st.button("📦 Checkout / Pedidos (WMS)", use_container_width=True): st.session_state.menu_atual = "PedidosMatriz"; st.rerun()
+        if st.button("📦 Checkout de Expedição", use_container_width=True): st.session_state.menu_atual = "PedidosMatriz"; st.rerun()
     with c2:
         if st.button("🔍 Buscar / Filtros", use_container_width=True): st.session_state.menu_atual = "Filtros"; st.rerun()
     with c3:
@@ -339,17 +354,17 @@ if st.session_state.menu_atual == "🏠 Home":
                 st.rerun()
 
 elif st.session_state.menu_atual == "PedidosMatriz":
-    st.subheader("📦 Checkout de Expedição e Mapa de Separação (WMS)")
+    st.subheader("📦 Checkout de Expedição - Separação de Vinho Galpão")
     
-    aba_ped1, aba_ped2 = st.tabs(["📋 Enviar/Novo Pedido", "🔍 Conferência WMS (Checkout)"])
+    aba_ped1, aba_ped2 = st.tabs(["📋 Enviar / Cadastrar / Excluir Pedidos", "🔍 Conferência (Checkout de Expedição)"])
     
     with aba_ped1:
-        st.markdown("Envie a lista enviada pela matriz (Excel ou TXT) ou cadastre o mapa manualmente.")
+        st.markdown("Cadastre o mapa de separação enviado pela matriz (via arquivo Excel, TXT ou digitação manual).")
         proximo_numero = len(st.session_state.pedidos) + 1
         id_sugerido = f"123{proximo_numero:03d}"
         
         with st.form("form_novo_pedido"):
-            id_pedido = st.text_input("Número do Mapa / Pedido (Ex: 1234552)", value=id_sugerido)
+            id_pedido = st.text_input("Código de Barras do Mapa (Ex: 1234552)", value=id_sugerido)
             arq_pedido = st.file_uploader("Arquivo de Pedido (Excel ou TXT)", type=["xlsx", "xls", "txt"])
             texto_manual_pedido = st.text_area("Ou digite os itens (Ex: Faleria Pinot Noir Reserva 23 / 1 Caixa)")
             
@@ -379,19 +394,36 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     st.session_state.pedidos.append(novo_registro_pedido)
                     salvar_pedidos(st.session_state.pedidos)
                     registrar_log(st.session_state.usuario_logado['nome'], "Novo Pedido Matriz", str(id_pedido))
-                    st.success(f"Pedido / Mapa {id_pedido} cadastrado com sucesso!")
+                    st.success(f"Pedido / Mapa {id_pedido} cadastrado e salvo com sucesso!")
                     st.rerun()
                 else:
                     st.error("Adicione ao menos um item ou arquivo válido.")
+                    
+        st.markdown("---")
+        st.markdown("#### 🗑️ Gerenciamento e Exclusão de Pedidos (Limpeza Semanal)")
+        if st.session_state.pedidos:
+            lista_ids_pedidos = [p['id'] for p in st.session_state.pedidos]
+            mapas_para_excluir = st.multiselect("Selecione os pedidos concluídos ou antigos para excluir:", lista_ids_pedidos)
+            if st.button("🗑️ Excluir Pedidos Selecionados"):
+                st.session_state.pedidos = [p for p in st.session_state.pedidos if p['id'] not in mapas_para_excluir]
+                salvar_pedidos(st.session_state.pedidos)
+                registrar_log(st.session_state.usuario_logado['nome'], "Exclusão de Pedidos Antigos", str(mapas_para_excluir))
+                st.success("Pedidos selecionados excluídos com sucesso!")
+                st.rerun()
+        else:
+            st.info("Nenhum pedido cadastrado no momento.")
 
     with aba_ped2:
-        st.markdown("### Conferência de Expedição por Código de Barras")
-        
         if not st.session_state.pedidos:
-            st.warning("Nenhum pedido cadastrado no sistema.")
+            st.warning("Nenhum pedido cadastrado no sistema. Cadastre na aba anterior.")
         else:
             mapas_disponiveis = [p['id'] for p in st.session_state.pedidos]
-            mapa_selecionado_id = st.selectbox("Código de Barras Mapa (Selecione ou Digite)", mapas_disponiveis)
+            
+            c_top1, c_top2 = st.columns([2, 2])
+            with c_top1:
+                mapa_selecionado_id = st.selectbox("Código de Barras Mapa", mapas_disponiveis)
+            with c_top2:
+                cpf_embalador = st.text_input("CPF Embalador", value="858.333.880-90")
             
             pedido_ativo = next((p for p in st.session_state.pedidos if p['id'] == mapa_selecionado_id), None)
             
@@ -401,29 +433,31 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 
                 st.markdown(f"""
                 <div style='background: #FFF; padding: 10px; border-radius: 8px; border: 1px solid #E9ECEF; margin-bottom: 15px;'>
-                    <b>Conferência do Mapa cod. {pedido_ativo['id']}</b><br>
-                    Data/Carga: {pedido_ativo['data']} | Status: <b style='color: {cor_status};'>{status_atual}</b>
+                    <b>Conferência do Mapa cod. {pedido_ativo['id']}</b> | Expedição Nº 41542 | Carga(s) Nº 114971<br>
+                    Data/Carga: {pedido_ativo['data']} | Embalador: {cpf_embalador} | Status: <b style='color: {cor_status};'>{status_atual}</b>
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # Seletor de Modo de Entrada (Computador / Digitação vs Câmera do Celular)
                 modo_leitura = st.radio("Forma de Leitura:", ["⌨️ Digitação / Pistola USB", "📷 Câmera do Celular"], horizontal=True)
                 
                 codigo_capturado = ""
                 if modo_leitura == "📷 Câmera do Celular":
-                    st.markdown("Aponte a câmera do celular para o código de barras ou QR Code do produto:")
-                    componente_leitor_barcode("wms_camera")
-                    codigo_capturado = st.session_state.get("codigo_bipado_wms", "")
+                    st.markdown("Aponte a câmera para o código de barras ou QR Code:")
+                    componente_leitor_barcode("checkout_camera")
+                    codigo_capturado = st.session_state.get("codigo_bipado_checkout", "")
                 
-                col_b1, col_b2, col_b3 = st.columns([2, 1, 1])
+                col_b1, col_b2, col_b3, col_b4 = st.columns([2, 1, 1, 1])
                 with col_b1:
                     val_inicial_input = codigo_capturado if modo_leitura == "📷 Câmera do Celular" else ""
-                    cod_barras_input = st.text_input("*Código de Barras ou Nome do Vinho", value=val_inicial_input, key="input_bipagem_wms")
+                    cod_barras_input = st.text_input("*Código de Barras", value=val_inicial_input, key="input_bipagem_checkout")
                 with col_b2:
-                    qtd_input = st.number_input("*Qtd", min_value=1, value=1, key="input_qtd_wms")
+                    qtd_input = st.number_input("*Qtd", min_value=1, value=1, key="input_qtd_checkout")
                 with col_b3:
                     st.write("")
                     btn_conferir = st.button("Conferir", use_container_width=True)
+                with col_b4:
+                    st.write("")
+                    btn_fechar = st.button("Fechar Caixa", use_container_width=True)
                 
                 if btn_conferir and cod_barras_input:
                     encontrou = False
@@ -441,13 +475,16 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                             break
                     
                     if encontrou:
-                        if "codigo_bipado_wms" in st.session_state:
-                            st.session_state.codigo_bipado_wms = ""
+                        if "codigo_bipado_checkout" in st.session_state:
+                            st.session_state.codigo_bipado_checkout = ""
                         salvar_pedidos(st.session_state.pedidos)
-                        st.success("Quantidade conferida com sucesso!")
+                        st.success("Item conferido! Movido para produtos conferidos.")
                         st.rerun()
                     else:
                         st.error("Produto não encontrado neste mapa ou código inválido.")
+
+                if btn_fechar:
+                    st.success("Caixa fechada com sucesso para conferência parcial!")
 
                 st.markdown("---")
                 
@@ -479,13 +516,22 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         """, unsafe_allow_html=True)
                 
                 st.write("")
-                # Botão para Salvar e Finalizar o Pedido para enviar depois
-                if st.button("💾 Salvar e Finalizar Conferência deste Pedido", use_container_width=True):
-                    pedido_ativo['status'] = "Concluído / Expedido"
-                    salvar_pedidos(st.session_state.pedidos)
-                    registrar_log(st.session_state.usuario_logado['nome'], "Finalizou Conferência Pedido", pedido_ativo['id'])
-                    st.success(f"Pedido {pedido_ativo['id']} finalizado e salvo com sucesso!")
-                    st.rerun()
+                col_salvar1, col_salvar2 = st.columns(2)
+                with col_salvar1:
+                    if st.button("💾 Salvar Pedido e Enviar Depois", use_container_width=True):
+                        salvar_pedidos(st.session_state.pedidos)
+                        registrar_log(st.session_state.usuario_logado['nome'], "Salvou Pedido Parcial", pedido_ativo['id'])
+                        st.success(f"Progresso do pedido {pedido_ativo['id']} salvo com sucesso para envio posterior!")
+                with col_salvar2:
+                    if st.button("🚀 Finalizar e Enviar para Matriz", use_container_width=True):
+                        pedido_ativo['status'] = "Concluído / Expedido"
+                        for item in pedido_ativo['itens']:
+                            item['separado'] = True
+                            item['qtd_separada'] = item['quantidade']
+                        salvar_pedidos(st.session_state.pedidos)
+                        registrar_log(st.session_state.usuario_logado['nome'], "Finalizou e Enviou Pedido", pedido_ativo['id'])
+                        st.success(f"Pedido {pedido_ativo['id']} finalizado e enviado para a Matriz com sucesso!")
+                        st.rerun()
 
 elif st.session_state.menu_atual == "Estoque":
     st.subheader("🍷 Estoque Completo do Galpão")
@@ -530,6 +576,46 @@ elif st.session_state.menu_atual == "Cadastrar":
                 st.rerun()
             else:
                 st.error("Informe o nome do vinho.")
+
+elif st.session_state.menu_atual == "Editar":
+    st.subheader("✏️ Editar ou Excluir Vinho do Estoque")
+    if not st.session_state.estoque:
+        st.warning("Nenhum vinho cadastrado para editar.")
+    else:
+        nomes_vinhos = [f"{v['nome']} ({v.get('safra', 'N/A')})" for v in st.session_state.estoque]
+        vinho_selecionado_str = st.selectbox("Selecione o Vinho para Editar:", nomes_vinhos)
+        
+        vinho_obj = next((v for v in st.session_state.estoque if f"{v['nome']} ({v.get('safra', 'N/A')})" == vinho_selecionado_str), None)
+        
+        if vinho_obj:
+            with st.form("form_edicao_vinho"):
+                n_edit = st.text_input("Nome do Vinho", value=vinho_obj.get('nome', '')).strip().title()
+                s_edit = st.text_input("Safra", value=vinho_obj.get('safra', '')).strip()
+                t_edit = st.selectbox("Tipo", ["Tinto", "Branco", "Rosé", "Espumante", "Fortificado"], index=0 if vinho_obj.get('tipo') not in ["Tinto", "Branco", "Rosé", "Espumante", "Fortificado"] else ["Tinto", "Branco", "Rosé", "Espumante", "Fortificado"].index(vinho_obj.get('tipo')))
+                bc_edit = st.text_input("Código de Barras", value=vinho_obj.get('codigo_barras', '')).strip()
+                
+                col_e1, col_e2 = st.columns(2)
+                with col_e1:
+                    btn_salvar_ed = st.form_submit_button("💾 Salvar Alterações", use_container_width=True)
+                with col_e2:
+                    btn_excluir_vinho = st.form_submit_button("🗑️ Excluir este Vinho", use_container_width=True)
+                
+                if btn_salvar_ed:
+                    vinho_obj['nome'] = n_edit
+                    vinho_obj['safra'] = s_edit
+                    vinho_obj['tipo'] = t_edit
+                    vinho_obj['codigo_barras'] = bc_edit
+                    salvar_dados(st.session_state.estoque)
+                    registrar_log(st.session_state.usuario_logado['nome'], "Editou Vinho", n_edit)
+                    st.success("Alterações salvas com sucesso!")
+                    st.rerun()
+                
+                if btn_excluir_vinho:
+                    st.session_state.estoque = [v for v in st.session_state.estoque if v != vinho_obj]
+                    salvar_dados(st.session_state.estoque)
+                    registrar_log(st.session_state.usuario_logado['nome'], "Excluiu Vinho", vinho_obj['nome'])
+                    st.success("Vinho excluído com sucesso!")
+                    st.rerun()
 
 elif st.session_state.menu_atual == "Filtros":
     st.subheader("🔍 Buscar e Filtrar Vinhos")
