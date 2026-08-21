@@ -222,7 +222,14 @@ def criar_documento_word_pedido(pedido):
     doc.add_heading("Itens do Pedido:", level=2)
     
     for i, item in enumerate(pedido['itens'], 1):
-        status_txt = "SEPARADO" if item.get('separado') else "PENDENTE"
+        if item.get('separado'):
+            if item.get('pendente_cadastro'):
+                status_txt = "SEPARADO (⚠️ PENDENTE DE CADASTRO)"
+            else:
+                status_txt = "SEPARADO"
+        else:
+            status_txt = "PENDENTE"
+            
         p_text = f"{i}. {item['nome']} (Safra: {item.get('safra', 'N/A')}) - Qtd Pedida: {item['quantidade']} | Qtd Separada: {item.get('qtd_separada', 0)} [{status_txt}]"
         doc.add_paragraph(p_text)
         
@@ -406,8 +413,12 @@ elif st.session_state.menu_atual == "PedidosMatriz":
         st.markdown("Envie a lista enviada pela matriz (Excel ou TXT) ou digite livremente.")
         st.info("ℹ️ Os pedidos salvos ficam guardados automaticamente no arquivo **pedidos_matriz.json** na pasta do sistema.")
         
+        # Numeração sequencial automática dos pedidos (Ex: Pedido #01, Pedido #02...)
+        proximo_numero = len(st.session_state.pedidos) + 1
+        id_sugerido = f"Pedido #{proximo_numero:02d}"
+        
         with st.form("form_novo_pedido"):
-            id_pedido = st.text_input("Identificação do Pedido / Loja", value=f"Pedido #{obter_horario_brasilia().strftime('%d/%m %H:%M')}")
+            id_pedido = st.text_input("Identificação Sequencial do Pedido", value=id_sugerido)
             arq_pedido = st.file_uploader("Arquivo de Pedido (Excel ou TXT)", type=["xlsx", "xls", "txt"])
             texto_manual_pedido = st.text_area("Ex: Campana Merlot 2024 /05 Caixas", placeholder="Campana Merlot 2024 / 05 Caixas")
             
@@ -480,7 +491,6 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 use_container_width=True
             )
             
-            # Sub-abas para atender as duas formas de conferência solicitadas
             aba_conf_1, aba_conf_2 = st.tabs(["🚀 1. Conferência Guiada (Bipando Caixas)", "🎯 2. Escolha Manual por Vinho do Pedido"])
             
             with aba_conf_1:
@@ -539,7 +549,6 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         if vinho_est:
                             codigo_cadastrado_sistema = str(vinho_est.get('codigo_barras', '')).strip()
                             
-                            # Exibição de todas as informações do vinho e quantidade pedida logo após a leitura/abertura
                             st.markdown(f"**🍷 Nome:** {vinho_est.get('nome')} ({vinho_est.get('safra')})")
                             st.markdown(f"**📍 Localização no Galpão:** {vinho_est.get('localizacao')} (Lado: {vinho_est.get('lado', 'N/A')})")
                             st.markdown(f"**📦 Embalagem:** {vinho_est.get('caixa', 'N/A')}")
@@ -566,12 +575,10 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                             qtd_pedida_atual = item.get('quantidade', 1)
                             qtd_informada = st.number_input("Quantidade conferida:", min_value=1, value=int(item.get('qtd_separada') if item.get('qtd_separada', 0) > 0 else qtd_pedida_atual), key=f"qtd_inf_{idx_ped}_{i}")
 
-                            # Alertas de divergência (caso a caixa não tenha código de barras do fabricante ou nome diverja)
-                            pode_avancar = True
                             if not codigo_cadastrado_sistema:
-                                st.warning("⚠️ **Aviso:** Este vinho não possui código de barras cadastrado no sistema (caixa sem código do fabricante). Conferência liberada por checagem visual/manual.")
+                                st.warning("⚠️ **Aviso:** Este vinho não possui código de barras cadastrado no sistema (caixa sem código do fabricante). Conferência liberada.")
                             elif bip_caixa.strip() and bip_caixa.strip() != codigo_cadastrado_sistema:
-                                st.warning(f"⚠️ **Divergência de Código de Barras!** O código bipado (`{bip_caixa}`) difere do cadastro (`{codigo_cadastrado_sistema}`). Certifique-se de que é a caixa correta.")
+                                st.warning(f"⚠️ **Divergência de Código de Barras!** O código bipado (`{bip_caixa}`) difere do cadastro (`{codigo_cadastrado_sistema}`).")
                             
                             if qtd_informada != qtd_pedida_atual:
                                 st.warning(f"⚠️ **Divergência de Quantidade!** Pedido solicita **{qtd_pedida_atual}**, mas foi informada quantidade **{qtd_informada}**.")
@@ -579,12 +586,25 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                             if st.button(f"✅ Confirmar Item #{i+1} e Avançar", key=f"btn_sep_{idx_ped}_{i}"):
                                 item['separado'] = True
                                 item['qtd_separada'] = qtd_informada
+                                item['pendente_cadastro'] = False
                                 salvar_pedidos(st.session_state.pedidos)
                                 registrar_log(st.session_state.usuario_logado['nome'], "Separar Item Pedido", f"{item['nome']} (Qtd: {qtd_informada})")
                                 st.success("Item confirmado com sucesso!")
                                 st.rerun()
                         else:
-                            st.error("❌ Vinho não encontrado no estoque.")
+                            st.error("⚠️ **Vinho não encontrado no cadastro do estoque!** O sistema permite a conferência manual/física, mas o item constará como pendente de cadastro no relatório.")
+                            
+                            qtd_pedida_atual = item.get('quantidade', 1)
+                            qtd_informada_nc = st.number_input("Quantidade conferida:", min_value=1, value=int(qtd_pedida_atual), key=f"qtd_nc_{idx_ped}_{i}")
+                            
+                            if st.button(f"✅ Confirmar Item (Pendente de Cadastro) #{i+1}", key=f"btn_sep_nc_{idx_ped}_{i}"):
+                                item['separado'] = True
+                                item['qtd_separada'] = qtd_informada_nc
+                                item['pendente_cadastro'] = True
+                                salvar_pedidos(st.session_state.pedidos)
+                                registrar_log(st.session_state.usuario_logado['nome'], "Separar Item Não Cadastrado", f"{item['nome']} (Qtd: {qtd_informada_nc})")
+                                st.success("Item confirmado como separado (Pendente de Cadastro)!")
+                                st.rerun()
 
                 st.markdown("---")
                 if todos_separados:
@@ -617,6 +637,12 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     if btn_salvar_manual:
                         item_selecionado_manual['separado'] = True
                         item_selecionado_manual['qtd_separada'] = qtd_manual_inf
+                        
+                        # Verifica se o item existe no estoque
+                        nome_manual_limpo = item_selecionado_manual['nome'].lower()
+                        existe_estoque = any(nome_manual_limpo in v.get('nome', '').lower() for v in st.session_state.estoque)
+                        item_selecionado_manual['pendente_cadastro'] = not existe_estoque
+                        
                         salvar_pedidos(st.session_state.pedidos)
                         registrar_log(st.session_state.usuario_logado['nome'], "Separar Item Manual", f"{item_selecionado_manual['nome']} (Qtd: {qtd_manual_inf})")
                         st.success("Item confirmado com sucesso!")
