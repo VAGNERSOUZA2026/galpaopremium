@@ -91,6 +91,7 @@ def salvar_dados(estoque):
     estoque_ordenado = sorted(estoque, key=lambda x: x.get("nome", "").lower())
     with open(NOME_ARQUIVO, "w", encoding="utf-8") as f: json.dump(estoque_ordenado, f, ensure_ascii=False, indent=4)
     realizar_backup(NOME_ARQUIVO)
+    st.session_state.estoque = estoque_ordenado
 
 def carregar_usuarios():
     if os.path.exists(ARQUIVO_USUARIOS):
@@ -258,7 +259,9 @@ def componente_leitor_barcode(chave_sessao):
 if "usuarios" not in st.session_state:
     st.session_state.usuarios = carregar_usuarios()
 
-st.session_state.estoque = carregar_dados()
+if "estoque" not in st.session_state:
+    st.session_state.estoque = carregar_dados()
+
 st.session_state.pedidos = carregar_pedidos()
 
 if "menu_atual" not in st.session_state: st.session_state.menu_atual = "🏠 Home"
@@ -554,7 +557,6 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         qtd_pedida_atual = item.get('quantidade', 1)
                         qtd_informada = st.number_input("Quantidade que está levando:", min_value=1, value=int(qtd_pedida_atual), key=f"qtd_inf_{idx_ped}_{i}")
 
-                        # Validação de Divergência de Quantidade
                         if qtd_informada != qtd_pedida_atual:
                             st.warning(f"⚠️ **ATENÇÃO - DIVERGÊNCIA DE QUANTIDADE!** O pedido solicita **{qtd_pedida_atual}**, mas você informou **{qtd_informada}**.")
 
@@ -763,7 +765,6 @@ elif st.session_state.menu_atual == "Editar":
                 excluir_vinho = st.form_submit_button("🗑️ Excluir Vinho", use_container_width=True)
                 
             if salvar_edicao:
-                # Verifica se o código de barras pertence a OUTRO item do estoque
                 duplicado = False
                 for i, item_est in enumerate(st.session_state.estoque):
                     if i != idx_vinho and novo_codigo and str(item_est.get("codigo_barras", "")).strip() == novo_codigo:
@@ -785,7 +786,7 @@ elif st.session_state.menu_atual == "Editar":
                 
             if excluir_vinho:
                 removido = st.session_state.estoque.pop(idx_vinho)
-                salvar_dados(st.session_state.estoque)
+                salvar_dados(st.session_state.estoque) # Força a atualização imediata e persistência no arquivo JSON
                 registrar_log(st.session_state.usuario_logado['nome'], "Excluir Vinho", removido.get('nome', ''))
                 st.success("Vinho excluído com sucesso!")
                 st.rerun()
