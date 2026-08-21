@@ -31,7 +31,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     }
                     st.session_state.pedidos.append(novo_registro_pedido)
                     salvar_pedidos(st.session_state.pedidos)
-                    registrar_log(st.session_state.usuario_logado['nome'], "Novo Pedido Matriz", id_pedido)
+                    registrar_log(st.session_state.usuario_logado['nome'], "Novo Pedido Matriz", str(id_pedido))
                     st.success(f"Pedido / Mapa {id_pedido} cadastrado com sucesso!")
                     st.rerun()
                 else:
@@ -40,7 +40,6 @@ elif st.session_state.menu_atual == "PedidosMatriz":
     with aba_ped2:
         st.markdown("### Conferência de Expedição por Código de Barras")
         
-        # Seleção do Mapa
         if not st.session_state.pedidos:
             st.warning("Nenhum pedido cadastrado no sistema.")
         else:
@@ -57,7 +56,6 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # Campos de bipagem inspirados na segunda foto
                 col_b1, col_b2, col_b3 = st.columns([2, 1, 1])
                 with col_b1:
                     cod_barras_input = st.text_input("*Código de Barras ou Nome do Vinho", key="input_bipagem_wms")
@@ -67,11 +65,9 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     st.write("")
                     btn_conferir = st.button("Conferir", use_container_width=True)
                 
-                # Ação ao conferir o item
                 if btn_conferir and cod_barras_input:
                     encontrou = False
                     for item in pedido_ativo['itens']:
-                        # Verifica se bate com o nome ou se o código de barras confere no estoque cadastrado
                         vinho_no_estoque = next((v for v in st.session_state.estoque if v['nome'].lower() in item['nome'].lower() or v.get('codigo_barras') == cod_barras_input), None)
                         
                         match_nome = cod_barras_input.lower() in item['nome'].lower()
@@ -93,7 +89,6 @@ elif st.session_state.menu_atual == "PedidosMatriz":
 
                 st.markdown("---")
                 
-                # Layout de Duas Colunas (Produtos a Conferir vs Produtos Conferidos)
                 col_esq, col_dir = st.columns(2)
                 
                 with col_esq:
@@ -120,4 +115,3 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                             ✅ <b>{item['nome']}</b> ({item.get('safra', 'N/A')}) - {item.get('qtd_separada', 0)} unidade(s) conferida(s)
                         </div>
                         """, unsafe_allow_html=True)
-                        
