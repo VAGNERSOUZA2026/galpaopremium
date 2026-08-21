@@ -262,9 +262,7 @@ def componente_leitor_barcode(chave_sessao):
 if "usuarios" not in st.session_state:
     st.session_state.usuarios = carregar_usuarios()
 
-# Garantir carregamento direto e atualizado do arquivo JSON do estoque
 st.session_state.estoque = carregar_dados()
-
 st.session_state.pedidos = carregar_pedidos()
 
 if "menu_atual" not in st.session_state: st.session_state.menu_atual = "🏠 Home"
@@ -482,117 +480,147 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 use_container_width=True
             )
             
-            ordem_separacao = st.radio("Direção da Rota pelos Corredores:", ["Crescente (Corredor 01 ao 25)", "Decrescente (Corredor 25 ao 01)"], horizontal=True)
-            reversa = True if "Decrescente" in ordem_separacao else False
+            # Sub-abas para atender as duas formas de conferência solicitadas
+            aba_conf_1, aba_conf_2 = st.tabs(["🚀 1. Conferência Guiada (Bipando Caixas)", "🎯 2. Escolha Manual por Vinho do Pedido"])
             
-            itens_com_local = []
-            for item in pedido_atual['itens']:
-                nome_pedido_limpo = item['nome'].lower()
-                safra_pedido = str(item.get('safra', '')).strip()
+            with aba_conf_1:
+                ordem_separacao = st.radio("Direção da Rota pelos Corredores:", ["Crescente (Corredor 01 ao 25)", "Decrescente (Corredor 25 ao 01)"], horizontal=True, key=f"ordem_{idx_ped}")
+                reversa = True if "Decrescente" in ordem_separacao else False
                 
-                vinho_encontrado = None
-                for v in st.session_state.estoque:
-                    v_nome = v.get('nome', '').lower()
-                    v_safra = str(v.get('safra', '')).strip()
-                    if v_nome in nome_pedido_limpo or nome_pedido_limpo in v_nome:
-                        if safra_pedido and v_safra:
-                            if safra_pedido == v_safra:
+                itens_com_local = []
+                for item in pedido_atual['itens']:
+                    nome_pedido_limpo = item['nome'].lower()
+                    safra_pedido = str(item.get('safra', '')).strip()
+                    
+                    vinho_encontrado = None
+                    for v in st.session_state.estoque:
+                        v_nome = v.get('nome', '').lower()
+                        v_safra = str(v.get('safra', '')).strip()
+                        if v_nome in nome_pedido_limpo or nome_pedido_limpo in v_nome:
+                            if safra_pedido and v_safra:
+                                if safra_pedido == v_safra:
+                                    vinho_encontrado = v
+                                    break
+                            else:
                                 vinho_encontrado = v
                                 break
-                        else:
-                            vinho_encontrado = v
-                            break
-                if not vinho_encontrado:
-                    vinho_encontrado = next((v for v in st.session_state.estoque if v.get('nome', '').lower() in nome_pedido_limpo), None)
+                    if not vinho_encontrado:
+                        vinho_encontrado = next((v for v in st.session_state.estoque if v.get('nome', '').lower() in nome_pedido_limpo), None)
+                    
+                    loc = vinho_encontrado.get('localizacao', 'Corredor 01 - Pallet Item 01') if vinho_encontrado else 'Não cadastrado'
+                    corr_num = extrair_numero_corredor(loc)
+                    
+                    itens_com_local.append({
+                        "item_original": item,
+                        "vinho_estoque": vinho_encontrado,
+                        "localizacao": loc,
+                        "corredor_num": corr_num
+                    })
+                    
+                itens_ordenados = sorted(itens_com_local, key=lambda x: x['corredor_num'], reverse=reversa)
                 
-                loc = vinho_encontrado.get('localizacao', 'Corredor 01 - Pallet Item 01') if vinho_encontrado else 'Não cadastrado'
-                corr_num = extrair_numero_corredor(loc)
+                st.markdown("---")
+                st.markdown("#### 🎯 Roteiro e Bipe Sequencial")
                 
-                itens_com_local.append({
-                    "item_original": item,
-                    "vinho_estoque": vinho_encontrado,
-                    "localizacao": loc,
-                    "corredor_num": corr_num
-                })
-                
-            itens_ordenados = sorted(itens_com_local, key=lambda x: x['corredor_num'], reverse=reversa)
-            
-            st.markdown("---")
-            st.markdown("#### 🎯 Roteiro e Bipe de Caixas (Antierros)")
-            
-            todos_separados = True
-            for i, obj in enumerate(itens_ordenados):
-                item = obj['item_original']
-                vinho_est = obj['vinho_estoque']
-                loc = obj['localizacao']
-                
-                status_cor = "🟢" if item.get('separado') else "⏳"
-                if not item.get('separado'): todos_separados = False
-                
-                key_bip_state = f"bip_val_{idx_ped}_{i}"
-                if key_bip_state not in st.session_state.codigos_bipados_conferencia:
-                    st.session_state.codigos_bipados_conferencia[key_bip_state] = ""
+                todos_separados = True
+                for i, obj in enumerate(itens_ordenados):
+                    item = obj['item_original']
+                    vinho_est = obj['vinho_estoque']
+                    loc = obj['localizacao']
+                    
+                    status_cor = "🟢" if item.get('separado') else "⏳"
+                    if not item.get('separado'): todos_separados = False
+                    
+                    key_bip_state = f"bip_val_{idx_ped}_{i}"
+                    if key_bip_state not in st.session_state.codigos_bipados_conferencia:
+                        st.session_state.codigos_bipados_conferencia[key_bip_state] = ""
 
-                with st.expander(f"{status_cor} {item['nome']} {item.get('safra', '')} | Qtd Pedida: {item['quantidade']} | 📍 {loc}"):
-                    if vinho_est:
-                        codigo_cadastrado_sistema = str(vinho_est.get('codigo_barras', '')).strip()
-                        
-                        st.markdown(f"**Galpão:** Safra: **{vinho_est.get('safra')}** | Local: **{vinho_est.get('localizacao')}**")
-                        st.markdown(f"C. Barras Oficial Cadastrado: `{codigo_cadastrado_sistema if codigo_cadastrado_sistema else 'NÃO CADASTRADO'}`")
-                        
-                        st.markdown("---")
-                        st.markdown("📷 **1º Passo: Bipe ou digite o código de barras da caixa**")
-                        
-                        bip_caixa = st.text_input(
-                            "Código de barras da caixa (Pistola USB ou Câmera):", 
-                            value=st.session_state.codigos_bipados_conferencia.get(key_bip_state, ""), 
-                            key=f"bip_txt_{idx_ped}_{i}"
-                        )
-                        
-                        if bip_caixa != st.session_state.codigos_bipados_conferencia.get(key_bip_state, ""):
-                            st.session_state.codigos_bipados_conferencia[key_bip_state] = bip_caixa
+                    with st.expander(f"{status_cor} {item['nome']} {item.get('safra', '')} | Qtd Pedida: {item['quantidade']} | 📍 {loc}"):
+                        if vinho_est:
+                            codigo_cadastrado_sistema = str(vinho_est.get('codigo_barras', '')).strip()
+                            
+                            # Exibição de todas as informações do vinho e quantidade pedida logo após a leitura/abertura
+                            st.markdown(f"**🍷 Nome:** {vinho_est.get('nome')} ({vinho_est.get('safra')})")
+                            st.markdown(f"**📍 Localização no Galpão:** {vinho_est.get('localizacao')} (Lado: {vinho_est.get('lado', 'N/A')})")
+                            st.markdown(f"**📦 Embalagem:** {vinho_est.get('caixa', 'N/A')}")
+                            st.markdown(f"**📊 Quantidade Solicitada no Pedido:** `{item['quantidade']}`")
+                            st.markdown(f"**🏷️ Código de Barras Oficial:** `{codigo_cadastrado_sistema if codigo_cadastrado_sistema else 'NÃO CADASTRADO'}`")
+                            
+                            st.markdown("---")
+                            st.markdown("📷 **1º Passo: Bipe ou digite o código de barras da caixa**")
+                            
+                            bip_caixa = st.text_input(
+                                "Código de barras da caixa (Pistola USB ou Câmera):", 
+                                value=st.session_state.codigos_bipados_conferencia.get(key_bip_state, ""), 
+                                key=f"bip_txt_{idx_ped}_{i}"
+                            )
+                            
+                            if bip_caixa != st.session_state.codigos_bipados_conferencia.get(key_bip_state, ""):
+                                st.session_state.codigos_bipados_conferencia[key_bip_state] = bip_caixa
 
-                        with st.expander("📲 Abrir câmera do celular para leitura"):
-                            componente_leitor_barcode(key_bip_state)
+                            with st.expander("📲 Abrir câmera do celular para leitura"):
+                                componente_leitor_barcode(key_bip_state)
 
-                        st.markdown("---")
-                        st.markdown("📦 **2º Passo: Confirme a quantidade e finalize o item**")
-                        qtd_pedida_atual = item.get('quantidade', 1)
-                        qtd_informada = st.number_input("Quantidade que está levando:", min_value=1, value=int(qtd_pedida_atual), key=f"qtd_inf_{idx_ped}_{i}")
+                            st.markdown("---")
+                            st.markdown("📦 **2º Passo: Confirme a quantidade e pressione Enter/Botão**")
+                            qtd_pedida_atual = item.get('quantidade', 1)
+                            qtd_informada = st.number_input("Quantidade conferida:", min_value=1, value=int(item.get('qtd_separada') if item.get('qtd_separada', 0) > 0 else qtd_pedida_atual), key=f"qtd_inf_{idx_ped}_{i}")
 
-                        if qtd_informada != qtd_pedida_atual:
-                            st.warning(f"⚠️ **ATENÇÃO - DIVERGÊNCIA DE QUANTIDADE!** O pedido solicita **{qtd_pedida_atual}**, mas você informou **{qtd_informada}**.")
+                            # Alertas de divergência (caso a caixa não tenha código de barras do fabricante ou nome diverja)
+                            pode_avancar = True
+                            if not codigo_cadastrado_sistema:
+                                st.warning("⚠️ **Aviso:** Este vinho não possui código de barras cadastrado no sistema (caixa sem código do fabricante). Conferência liberada por checagem visual/manual.")
+                            elif bip_caixa.strip() and bip_caixa.strip() != codigo_cadastrado_sistema:
+                                st.warning(f"⚠️ **Divergência de Código de Barras!** O código bipado (`{bip_caixa}`) difere do cadastro (`{codigo_cadastrado_sistema}`). Certifique-se de que é a caixa correta.")
+                            
+                            if qtd_informada != qtd_pedida_atual:
+                                st.warning(f"⚠️ **Divergência de Quantidade!** Pedido solicita **{qtd_pedida_atual}**, mas foi informada quantidade **{qtd_informada}**.")
 
-                        pode_avancar = True
-                        if not codigo_cadastrado_sistema:
-                            st.warning("⚠️ Este vinho não possui código de barras cadastrado. A conferência será manual.")
-                        elif bip_caixa.strip() != codigo_cadastrado_sistema:
-                            pode_avancar = False
-                            if bip_caixa.strip():
-                                st.error(f"❌ **ERRO DE CONFERÊNCIA!** O código bipado (`{bip_caixa}`) NÃO corresponde ao cadastro (`{codigo_cadastrado_sistema}`).")
-
-                        if st.button(f"✅ Confirmar Item #{i+1}", key=f"btn_sep_{idx_ped}_{i}"):
-                            if not pode_avancar:
-                                st.error("❌ Impossível confirmar: O código de barras está incorreto!")
-                            else:
+                            if st.button(f"✅ Confirmar Item #{i+1} e Avançar", key=f"btn_sep_{idx_ped}_{i}"):
                                 item['separado'] = True
                                 item['qtd_separada'] = qtd_informada
                                 salvar_pedidos(st.session_state.pedidos)
                                 registrar_log(st.session_state.usuario_logado['nome'], "Separar Item Pedido", f"{item['nome']} (Qtd: {qtd_informada})")
                                 st.success("Item confirmado com sucesso!")
                                 st.rerun()
-                    else:
-                        st.error("❌ Vinho não encontrado no estoque.")
+                        else:
+                            st.error("❌ Vinho não encontrado no estoque.")
 
-            st.markdown("---")
-            if todos_separados:
-                st.success("🎉 Pedido 100% separado e conferido!")
-                if st.button("💾 Finalizar e Arquivar Pedido", use_container_width=True, key="btn_finalizar_pedido_ok"):
-                    pedido_atual['status'] = "Concluído"
-                    salvar_pedidos(st.session_state.pedidos)
-                    registrar_log(st.session_state.usuario_logado['nome'], "Concluir Pedido", pedido_atual['id'])
-                    st.success("Pedido finalizado com sucesso!")
-                    st.rerun()
+                st.markdown("---")
+                if todos_separados:
+                    st.success("🎉 Pedido 100% separado e conferido!")
+                    if st.button("💾 Finalizar e Arquivar Pedido", use_container_width=True, key="btn_finalizar_pedido_ok"):
+                        pedido_atual['status'] = "Concluído"
+                        salvar_pedidos(st.session_state.pedidos)
+                        registrar_log(st.session_state.usuario_logado['nome'], "Concluir Pedido", pedido_atual['id'])
+                        st.success("Pedido finalizado com sucesso!")
+                        st.rerun()
+
+            with aba_conf_2:
+                st.markdown("#### 🎯 Escolha Direta por Vinho do Pedido")
+                st.markdown("Selecione abaixo o vinho referente a este pedido para conferir e dar baixa instantaneamente:")
+                
+                opcoes_vinho_pedido = [f"{item['nome']} (Safra: {item.get('safra', 'N/A')}) - Qtd: {item['quantidade']} [{'🟢 Separado' if item.get('separado') else '⏳ Pendente'}]" for item in pedido_atual['itens']]
+                escolha_manual_idx = st.selectbox("Selecione o item do pedido:", range(len(opcoes_vinho_pedido)), format_func=lambda x: opcoes_vinho_pedido[x], key=f"sel_manual_{idx_ped}")
+                
+                item_selecionado_manual = pedido_atual['itens'][escolha_manual_idx]
+                
+                st.markdown("---")
+                st.markdown(f"**🍷 Item Selecionado:** {item_selecionado_manual['nome']} ({item_selecionado_manual.get('safra', 'N/A')})")
+                st.markdown(f"**📊 Quantidade Pedida:** `{item_selecionado_manual['quantidade']}`")
+                
+                with st.form(f"form_manual_baixa_{escolha_manual_idx}"):
+                    qtd_manual_inf = st.number_input("Quantidade a separar:", min_value=1, value=int(item_selecionado_manual['quantidade']))
+                    bip_manual = st.text_input("Bipe o código de barras (opcional / se houver):").strip()
+                    
+                    btn_salvar_manual = st.form_submit_button("✅ Confirmar Separação Deste Item")
+                    if btn_salvar_manual:
+                        item_selecionado_manual['separado'] = True
+                        item_selecionado_manual['qtd_separada'] = qtd_manual_inf
+                        salvar_pedidos(st.session_state.pedidos)
+                        registrar_log(st.session_state.usuario_logado['nome'], "Separar Item Manual", f"{item_selecionado_manual['nome']} (Qtd: {qtd_manual_inf})")
+                        st.success("Item confirmado com sucesso!")
+                        st.rerun()
 
 elif st.session_state.menu_atual == "Filtros":
     st.subheader("🔍 Busca por Local ou Nome")
@@ -658,7 +686,6 @@ elif st.session_state.menu_atual == "Scanner":
 elif st.session_state.menu_atual == "Estoque":
     st.subheader("🍷 Estoque Completo do Galpão")
     
-    # Botão para forçar a recarga dos dados do arquivo físico
     if st.button("🔄 Atualizar / Sincronizar Estoque do Arquivo"):
         st.session_state.estoque = carregar_dados()
         st.success("Estoque sincronizado com o arquivo!")
@@ -796,7 +823,6 @@ elif st.session_state.menu_atual == "Editar":
                 
             if excluir_vinho:
                 removido = st.session_state.estoque.pop(idx_vinho)
-                # Força a salvagem imediata e reatribuição limpa no session_state
                 salvar_dados(st.session_state.estoque)
                 st.session_state.estoque = carregar_dados()
                 registrar_log(st.session_state.usuario_logado['nome'], "Excluir Vinho", removido.get('nome', ''))
