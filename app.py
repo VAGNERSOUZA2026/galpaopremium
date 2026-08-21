@@ -527,7 +527,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 if key_bip_state not in st.session_state.codigos_bipados_conferencia:
                     st.session_state.codigos_bipados_conferencia[key_bip_state] = ""
 
-                with st.expander(f"{status_cor} {item['nome']} {item.get('safra', '')} | Qtd: {item['quantidade']} | 📍 {loc}"):
+                with st.expander(f"{status_cor} {item['nome']} {item.get('safra', '')} | Qtd Pedida: {item['quantidade']} | 📍 {loc}"):
                     if vinho_est:
                         codigo_cadastrado_sistema = str(vinho_est.get('codigo_barras', '')).strip()
                         
@@ -551,7 +551,12 @@ elif st.session_state.menu_atual == "PedidosMatriz":
 
                         st.markdown("---")
                         st.markdown("📦 **2º Passo: Confirme a quantidade e finalize o item**")
-                        qtd_informada = st.number_input("Quantidade que está levando:", min_value=1, value=item.get('quantidade', 1), key=f"qtd_inf_{idx_ped}_{i}")
+                        qtd_pedida_atual = item.get('quantidade', 1)
+                        qtd_informada = st.number_input("Quantidade que está levando:", min_value=1, value=int(qtd_pedida_atual), key=f"qtd_inf_{idx_ped}_{i}")
+
+                        # Validação de Divergência de Quantidade
+                        if qtd_informada != qtd_pedida_atual:
+                            st.warning(f"⚠️ **ATENÇÃO - DIVERGÊNCIA DE QUANTIDADE!** O pedido solicita **{qtd_pedida_atual}**, mas você informou **{qtd_informada}**.")
 
                         pode_avancar = True
                         if not codigo_cadastrado_sistema:
@@ -568,7 +573,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                                 item['separado'] = True
                                 item['qtd_separada'] = qtd_informada
                                 salvar_pedidos(st.session_state.pedidos)
-                                registrar_log(st.session_state.usuario_logado['nome'], "Separar Item Pedido", f"{item['nome']}")
+                                registrar_log(st.session_state.usuario_logado['nome'], "Separar Item Pedido", f"{item['nome']} (Qtd: {qtd_informada})")
                                 st.success("Item confirmado com sucesso!")
                                 st.rerun()
                     else:
@@ -690,7 +695,11 @@ elif st.session_state.menu_atual == "Cadastrar":
         
         btn_salvar_novo = st.form_submit_button("💾 Salvar Vinho no Estoque")
         if btn_salvar_novo:
-            if nome_vinho:
+            if not nome_vinho:
+                st.error("O nome do vinho é obrigatório.")
+            elif codigo_barras and any(str(v.get("codigo_barras", "")).strip() == codigo_barras for v in st.session_state.estoque):
+                st.error(f"❌ **ERRO:** Este código de barras (`{codigo_barras}`) já está cadastrado em outro vinho no estoque!")
+            else:
                 novo_vinho = {
                     "nome": nome_vinho,
                     "tipo": tipo_vinho,
@@ -707,8 +716,6 @@ elif st.session_state.menu_atual == "Cadastrar":
                 st.success("Vinho cadastrado com sucesso!")
                 st.session_state.codigo_capturado_cadastro = ""
                 st.rerun()
-            else:
-                st.error("O nome do vinho é obrigatório.")
 
 elif st.session_state.menu_atual == "GerarQR":
     st.subheader("📱 Gerar QR Code para Localização ou Vinho")
@@ -756,15 +763,25 @@ elif st.session_state.menu_atual == "Editar":
                 excluir_vinho = st.form_submit_button("🗑️ Excluir Vinho", use_container_width=True)
                 
             if salvar_edicao:
-                vinho_selecionado['nome'] = novo_nome
-                vinho_selecionado['tipo'] = novo_tipo
-                vinho_selecionado['safra'] = nova_safra
-                vinho_selecionado['localizacao'] = nova_local
-                vinho_selecionado['codigo_barras'] = novo_codigo
-                salvar_dados(st.session_state.estoque)
-                registrar_log(st.session_state.usuario_logado['nome'], "Editar Vinho", novo_nome)
-                st.success("Alterações salvas com sucesso!")
-                st.rerun()
+                # Verifica se o código de barras pertence a OUTRO item do estoque
+                duplicado = False
+                for i, item_est in enumerate(st.session_state.estoque):
+                    if i != idx_vinho and novo_codigo and str(item_est.get("codigo_barras", "")).strip() == novo_codigo:
+                        duplicado = True
+                        break
+                
+                if duplicado:
+                    st.error(f"❌ **ERRO:** Este código de barras (`{novo_codigo}`) já pertence a outro vinho cadastrado!")
+                else:
+                    vinho_selecionado['nome'] = novo_nome
+                    vinho_selecionado['tipo'] = novo_tipo
+                    vinho_selecionado['safra'] = nova_safra
+                    vinho_selecionado['localizacao'] = nova_local
+                    vinho_selecionado['codigo_barras'] = novo_codigo
+                    salvar_dados(st.session_state.estoque)
+                    registrar_log(st.session_state.usuario_logado['nome'], "Editar Vinho", novo_nome)
+                    st.success("Alterações salvas com sucesso!")
+                    st.rerun()
                 
             if excluir_vinho:
                 removido = st.session_state.estoque.pop(idx_vinho)
