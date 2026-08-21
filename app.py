@@ -480,7 +480,13 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         match_bc = vinho_no_estoque and vinho_no_estoque.get('codigo_barras') == cod_barras_input
                         
                         if match_nome or match_bc:
-                            item['qtd_separada'] = item.get('qtd_separada', 0) + qtd_input
+                            nova_qtd_sep = item.get('qtd_separada', 0) + qtd_input
+                            # TRAVA DE DIVERGÊNCIA IMEDIATA NO BOTÃO CONFERIR
+                            if nova_qtd_sep > item['quantidade']:
+                                st.session_state.exigir_senha_divergencia = True
+                                st.error(f"⚠️ A quantidade total separada ({nova_qtd_sep}) ultrapassa o pedido ({item['quantidade']})! Exigirá senha de liberação (2026) para finalizar.")
+                            
+                            item['qtd_separada'] = nova_qtd_sep
                             if item['qtd_separada'] >= item['quantidade']:
                                 item['separado'] = True
                             encontrou = True
@@ -504,14 +510,15 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                                 novo_item_extra = {
                                     "nome": nome_extra,
                                     "safra": "Extra",
-                                    "quantidade": 0, # Pedido original era 0, gerando divergência imediata para liberação com senha
+                                    "quantidade": 0,
                                     "separado": True,
                                     "qtd_separada": qtd_extra,
                                     "divergencia": qtd_extra
                                 }
                                 pedido_ativo['itens'].append(novo_item_extra)
+                                st.session_state.exigir_senha_divergencia = True
                                 salvar_pedidos(st.session_state.pedidos)
-                                st.success("Vinho extra incluído! Necessitará de senha de divergência ao finalizar.")
+                                st.success("Vinho extra incluído! Necessitará de senha de divergência (2026) ao finalizar.")
                                 st.rerun()
                             else:
                                 st.error("Informe o nome do vinho.")
@@ -558,7 +565,6 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         st.success(f"Progresso do pedido {pedido_ativo['id']} salvo com sucesso!")
                 with col_salvar2:
                     if st.button("🚀 Finalizar e Enviar para Matriz", use_container_width=True):
-                        # Calcular divergências em todos os itens
                         tem_divergencia = False
                         for item in pedido_ativo['itens']:
                             dif = item.get('qtd_separada', 0) - item['quantidade']
@@ -595,8 +601,10 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                             st.error("Senha de divergência incorreta. Digite 2026.")
 
 elif st.session_state.menu_atual == "Estoque":
-    st.subheader("🍷 Estoque Completo do Galpão")
-    for vinho in st.session_state.estoque:
+    st.subheader("🍷 Estoque Completo do Galpão (Ordem Alfabética)")
+    # Garantir ordem alfabética estrita na exibição
+    estoque_ordenado = sorted(st.session_state.estoque, key=lambda x: x.get("nome", "").lower())
+    for vinho in estoque_ordenado:
         st.markdown(f"""
         <div class="wine-card">
             <div class="wine-title">{vinho['nome']} ({vinho.get('safra', 'N/A')})</div>
@@ -606,7 +614,12 @@ elif st.session_state.menu_atual == "Estoque":
 
 elif st.session_state.menu_atual == "Cadastrar":
     st.subheader("➕ Cadastrar Novo Vinho")
-    with st.form("form_cad"):
+    
+    # Gerenciador de estado para limpar o formulário após salvar com sucesso
+    if "form_limpo" not in st.session_state:
+        st.session_state.form_limpo = False
+
+    with st.form("form_cad", clear_on_submit=True):
         nome_c = st.text_input("Nome do Vinho").strip().title()
         safra_c = st.text_input("Safra").strip()
         tipo_c = st.selectbox("Tipo", ["Tinto", "Branco", "Rosé", "Espumante", "Fortificado"])
@@ -617,9 +630,18 @@ elif st.session_state.menu_atual == "Cadastrar":
         caixa_c = st.selectbox("Embalagem", OPCOES_CAIXA)
         bc_c = st.text_input("Código de Barras").strip()
         
-        if st.form_submit_button("Salvar Vinho"):
+        btn_salvando = st.form_submit_button("Salvar Vinho")
+        
+        if btn_salvando:
             if nome_c:
                 local_completo = f"{corredor_c} - {tipo_local_c} {num_local_c}"
+                
+                # Verificar se já existe um vinho com o mesmo nome
+                vinho_existente = next((v for v in st.session_state.estoque if v['nome'].lower() == nome_c.lower()), None)
+                
+                if vinho_existente:
+                    st.warning(f"⚠️ Atenção: O vinho '{nome_c}' já consta no sistema! Como houve alteração (safra, pallet ou outra característica), o cadastro foi aceito e incluído com sucesso.")
+                
                 novo_vinho = {
                     "nome": nome_c,
                     "safra": safra_c,
@@ -633,8 +655,7 @@ elif st.session_state.menu_atual == "Cadastrar":
                 st.session_state.estoque.append(novo_vinho)
                 salvar_dados(st.session_state.estoque)
                 registrar_log(st.session_state.usuario_logado['nome'], "Cadastrou Vinho", nome_c)
-                st.success("Vinho cadastrado com sucesso!")
-                st.rerun()
+                st.success("Vinho cadastrado com sucesso! Formulário limpo para o próximo.")
             else:
                 st.error("Informe o nome do vinho.")
 
@@ -643,7 +664,7 @@ elif st.session_state.menu_atual == "Editar":
     if not st.session_state.estoque:
         st.warning("Nenhum vinho cadastrado para editar.")
     else:
-        nomes_vinhos = [f"{v['nome']} ({v.get('safra', 'N/A')})" for v in st.session_state.estoque]
+        nomes_vinhos = [f"{v['nome']} ({v.get('safra', 'N/A')})" for v in sorted(st.session_state.estoque, key=lambda x: x.get('nome', '').lower())]
         vinho_selecionado_str = st.selectbox("Selecione o Vinho para Editar:", nomes_vinhos)
         
         vinho_obj = next((v for v in st.session_state.estoque if f"{v['nome']} ({v.get('safra', 'N/A')})" == vinho_selecionado_str), None)
@@ -681,7 +702,7 @@ elif st.session_state.menu_atual == "Editar":
 elif st.session_state.menu_atual == "Filtros":
     st.subheader("🔍 Buscar e Filtrar Vinhos")
     termo = st.text_input("Digite o nome ou código de barras:", value=st.session_state.termo_busca)
-    filtrados = [v for v in st.session_state.estoque if termo.lower() in v['nome'].lower() or termo in v.get('codigo_barras', '')]
+    filtrados = [v for v in sorted(st.session_state.estoque, key=lambda x: x.get('nome', '').lower()) if termo.lower() in v['nome'].lower() or termo in v.get('codigo_barras', '')]
     for v in filtrados:
         st.markdown(f"""
         <div class="wine-card">
@@ -693,7 +714,7 @@ elif st.session_state.menu_atual == "Filtros":
 elif st.session_state.menu_atual == "MapaSeparacao":
     st.subheader("🗺️ Mapa de Separação por Corredor")
     corredor_sel = st.selectbox("Selecione o Corredor", LISTA_CORREDORES)
-    vinhos_corr = [v for v in st.session_state.estoque if corredor_sel.lower() in v.get('localizacao', '').lower()]
+    vinhos_corr = [v for v in sorted(st.session_state.estoque, key=lambda x: x.get('nome', '').lower()) if corredor_sel.lower() in v.get('localizacao', '').lower()]
     st.write(f"Total de itens no {corredor_sel}: {len(vinhos_corr)}")
     for v in vinhos_corr:
         st.markdown(f"""
