@@ -131,6 +131,8 @@ def carregar_pedidos():
                     item["qtd_separada"] = 0
                 if "divergencia" not in item:
                     item["divergencia"] = 0
+                if "autorizado_divergencia" not in item:
+                    item["autorizado_divergencia"] = False
     return pedidos
 
 def salvar_pedidos(pedidos):
@@ -160,7 +162,7 @@ def interpretar_linha_pedido(texto_linha):
 
     texto_limpo = re.sub(r'\bcaixas?\b', '', texto_limpo, flags=re.IGNORECASE)
     nome = re.sub(r'[/\|\-\–]+', '', texto_limpo).strip().title()
-    return {"nome": nome, "safra": safra, "quantidade": quantidade, "separado": False, "qtd_separada": 0, "divergencia": 0}
+    return {"nome": nome, "safra": safra, "quantidade": quantidade, "separado": False, "qtd_separada": 0, "divergencia": 0, "autorizado_divergencia": False}
 
 def extrair_pedidos_de_arquivo(arq):
     itens = []
@@ -182,7 +184,8 @@ def extrair_pedidos_de_arquivo(arq):
                         "quantidade": qtd, 
                         "separado": False, 
                         "qtd_separada": 0,
-                        "divergencia": 0
+                        "divergencia": 0,
+                        "autorizado_divergencia": False
                     })
         elif ext == 'txt':
             linhas = [l.strip() for l in arq.getvalue().decode("utf-8").split("\n") if l.strip()]
@@ -481,14 +484,18 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         
                         if match_nome or match_bc:
                             nova_qtd_sep = item.get('qtd_separada', 0) + qtd_input
-                            # TRAVA DE DIVERGÊNCIA IMEDIATA NO BOTÃO CONFERIR
-                            if nova_qtd_sep > item['quantidade']:
-                                st.session_state.exigir_senha_divergencia = True
-                                st.error(f"⚠️ A quantidade total separada ({nova_qtd_sep}) ultrapassa o pedido ({item['quantidade']})! Exigirá senha de liberação (2026) para finalizar.")
-                            
                             item['qtd_separada'] = nova_qtd_sep
-                            if item['qtd_separada'] >= item['quantidade']:
+                            item['divergencia'] = nova_qtd_sep - item['quantidade']
+                            
+                            # Se a quantidade separada for diferente da pedida, exige senha individualmente para este item
+                            if nova_qtd_sep != item['quantidade']:
+                                item['autorizado_divergencia'] = False
+                                st.session_state.item_pendente_senha = item['nome']
+                                st.warning(f"⚠️ O item '{item['nome']}' possui quantidade divergente (Pedida: {item['quantidade']}, Separada: {nova_qtd_sep}). Digite a senha abaixo para autorizar.")
+                            else:
+                                item['autorizado_divergencia'] = True
                                 item['separado'] = True
+
                             encontrou = True
                             break
                     
@@ -496,30 +503,54 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         if "codigo_bipado_checkout" in st.session_state:
                             st.session_state.codigo_bipado_checkout = ""
                         salvar_pedidos(st.session_state.pedidos)
-                        st.success("Item conferido com sucesso!")
                         st.rerun()
                     else:
                         st.error("Produto não encontrado neste mapa ou código inválido.")
+
+                # Bloco de senha individual por item com divergência
+                itens_com_divergencia_nao_autorizados = [i for i in pedido_ativo['itens'] if i.get('qtd_separada', 0) != i['quantidade'] and not i.get('autorizado_divergencia', False)]
+                
+                if itens_com_divergencia_nao_autorizados:
+                    st.markdown("---")
+                    st.error("🔒 Existem itens com quantidades divergentes aguardando liberação de senha individual (Senha: 2026):")
+                    for it_div in itens_com_divergencia_nao_autorizados:
+                        with st.form(f"form_senha_item_{it_div['nome']}"):
+                            st.markdown(f"**Item:** {it_div['nome']} | Pedido: {it_div['quantidade']} | Separado: {it_div['qtd_separada']}")
+                            senha_item = st.text_input("Digite a senha de liberação (2026):", type="password", key=f"pass_{it_div['nome']}")
+                            if st.form_submit_button("Autorizar Este Item"):
+                                if senha_item == SENHA_DIVERGENCIA:
+                                    it_div['autorizado_divergencia'] = True
+                                    it_div['separado'] = True
+                                    salvar_pedidos(st.session_state.pedidos)
+                                    registrar_log(st.session_state.usuario_logado['nome'], "Liberou Divergência Item", it_div['nome'])
+                                    st.success(f"Divergência autorizada para '{it_div['nome']}'!")
+                                    st.rerun()
+                                else:
+                                    st.error("Senha incorreta. Digite 2026.")
 
                 with st.expander("➕ Inserção Manual Extra (Solicitação de Trajeto / Adicionar Vinho Não Listado)"):
                     with st.form("form_vinho_extra"):
                         nome_extra = st.text_input("Nome do Vinho Extra").strip().title()
                         qtd_extra = st.number_input("Quantidade", min_value=1, value=1)
-                        if st.form_submit_button("Adicionar ao Pedido"):
+                        senha_extra = st.text_input("Senha de Liberação (2026)", type="password")
+                        if st.form_submit_button("Adicionar ao Pedido com Senha"):
                             if nome_extra:
-                                novo_item_extra = {
-                                    "nome": nome_extra,
-                                    "safra": "Extra",
-                                    "quantidade": 0,
-                                    "separado": True,
-                                    "qtd_separada": qtd_extra,
-                                    "divergencia": qtd_extra
-                                }
-                                pedido_ativo['itens'].append(novo_item_extra)
-                                st.session_state.exigir_senha_divergencia = True
-                                salvar_pedidos(st.session_state.pedidos)
-                                st.success("Vinho extra incluído! Necessitará de senha de divergência (2026) ao finalizar.")
-                                st.rerun()
+                                if senha_extra == SENHA_DIVERGENCIA:
+                                    novo_item_extra = {
+                                        "nome": nome_extra,
+                                        "safra": "Extra",
+                                        "quantidade": 0,
+                                        "separado": True,
+                                        "qtd_separada": qtd_extra,
+                                        "divergencia": qtd_extra,
+                                        "autorizado_divergencia": True
+                                    }
+                                    pedido_ativo['itens'].append(novo_item_extra)
+                                    salvar_pedidos(st.session_state.pedidos)
+                                    st.success("Vinho extra incluído e autorizado com sucesso!")
+                                    st.rerun()
+                                else:
+                                    st.error("Senha incorreta para item extra. Digite 2026.")
                             else:
                                 st.error("Informe o nome do vinho.")
 
@@ -558,51 +589,32 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 col_salvar1, col_salvar2 = st.columns(2)
                 with col_salvar1:
                     if st.button("💾 Salvar Pedido e Enviar Depois", use_container_width=True):
-                        for item in pedido_ativo['itens']:
-                            item['divergencia'] = item.get('qtd_separada', 0) - item['quantidade']
                         salvar_pedidos(st.session_state.pedidos)
                         registrar_log(st.session_state.usuario_logado['nome'], "Salvou Pedido Parcial", pedido_ativo['id'])
                         st.success(f"Progresso do pedido {pedido_ativo['id']} salvo com sucesso!")
                 with col_salvar2:
                     if st.button("🚀 Finalizar e Enviar para Matriz", use_container_width=True):
-                        tem_divergencia = False
-                        for item in pedido_ativo['itens']:
-                            dif = item.get('qtd_separada', 0) - item['quantidade']
-                            item['divergencia'] = dif
-                            if dif != 0:
-                                tem_divergencia = True
+                        # Verifica se há itens com divergência que ainda não tiveram a senha digitada
+                        divergencias_pendentes = [i for i in pedido_ativo['itens'] if i.get('qtd_separada', 0) != i['quantidade'] and not i.get('autorizado_divergencia', False)]
                         
-                        if tem_divergencia:
-                            st.session_state.exigir_senha_divergencia = True
+                        if divergencias_pendentes:
+                            st.error("⚠️ Não é possível finalizar! Existem itens com quantidade divergente que ainda precisam da senha de liberação (2026).")
                         else:
-                            pedido_ativo['status'] = "Concluído / Expedido"
-                            for item in pedido_ativo['itens']:
-                                item['separado'] = True
+                            # Apenas os itens que foram efetivamente conferidos ou tratados ganham status final
+                            # Itens intocados (quantidade 0 e separada 0) não entram erroneamente como negativos
+                            tem_divergencia_geral = any(i.get('divergencia', 0) != 0 for i in pedido_ativo['itens'])
+                            if tem_divergencia_geral:
+                                pedido_ativo['status'] = "Concluído / Expedido (Com Divergência)"
+                            else:
+                                pedido_ativo['status'] = "Concluído / Expedido"
+                                
                             salvar_pedidos(st.session_state.pedidos)
                             registrar_log(st.session_state.usuario_logado['nome'], "Finalizou e Enviou Pedido", pedido_ativo['id'])
                             st.success(f"Pedido {pedido_ativo['id']} finalizado e enviado para a Matriz com sucesso!")
                             st.rerun()
 
-                if st.session_state.get("exigir_senha_divergencia", False):
-                    st.error("⚠️ ALERTA DE DIVERGÊNCIA: Há diferença entre a quantidade pedida e a separada!")
-                    senha_digitada = st.text_input("Digite a senha de liberação de divergência (Senha: 2026):", type="password", key="input_senha_div_final")
-                    if st.button("Confirmar Liberação com Senha 2026", use_container_width=True):
-                        if senha_digitada == SENHA_DIVERGENCIA:
-                            pedido_ativo['status'] = "Concluído / Expedido (Com Divergência)"
-                            for item in pedido_ativo['itens']:
-                                item['separado'] = True
-                                item['divergencia'] = item.get('qtd_separada', 0) - item['quantidade']
-                            salvar_pedidos(st.session_state.pedidos)
-                            st.session_state.exigir_senha_divergencia = False
-                            registrar_log(st.session_state.usuario_logado['nome'], "Finalizou com Divergência (Senha 2026)", pedido_ativo['id'])
-                            st.success("Divergência autorizada com sucesso! Pedido enviado para a Matriz.")
-                            st.rerun()
-                        else:
-                            st.error("Senha de divergência incorreta. Digite 2026.")
-
 elif st.session_state.menu_atual == "Estoque":
     st.subheader("🍷 Estoque Completo do Galpão (Ordem Alfabética)")
-    # Garantir ordem alfabética estrita na exibição
     estoque_ordenado = sorted(st.session_state.estoque, key=lambda x: x.get("nome", "").lower())
     for vinho in estoque_ordenado:
         st.markdown(f"""
@@ -615,7 +627,6 @@ elif st.session_state.menu_atual == "Estoque":
 elif st.session_state.menu_atual == "Cadastrar":
     st.subheader("➕ Cadastrar Novo Vinho")
     
-    # Gerenciador de estado para limpar o formulário após salvar com sucesso
     if "form_limpo" not in st.session_state:
         st.session_state.form_limpo = False
 
@@ -635,8 +646,6 @@ elif st.session_state.menu_atual == "Cadastrar":
         if btn_salvando:
             if nome_c:
                 local_completo = f"{corredor_c} - {tipo_local_c} {num_local_c}"
-                
-                # Verificar se já existe um vinho com o mesmo nome
                 vinho_existente = next((v for v in st.session_state.estoque if v['nome'].lower() == nome_c.lower()), None)
                 
                 if vinho_existente:
