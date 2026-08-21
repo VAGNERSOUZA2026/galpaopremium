@@ -81,15 +81,18 @@ def carregar_dados():
     estoque = []
     if os.path.exists(NOME_ARQUIVO):
         try:
-            with open(NOME_ARQUIVO, "r", encoding="utf-8") as f: estoque = json.load(f)
-        except: pass
+            with open(NOME_ARQUIVO, "r", encoding="utf-8") as f: 
+                estoque = json.load(f)
+        except: 
+            pass
     if not estoque:
         estoque = [{"nome": "Campana Merlot", "tipo": "Tinto", "safra": "2024", "localizacao": "Corredor 01 - Pallet Item 01", "lado": "Direito", "caixa": "Caixa com 12 garrafas", "codigo_barras": "7891008116632", "foto": ""}]
     return sorted(estoque, key=lambda x: x.get("nome", "").lower())
 
 def salvar_dados(estoque):
     estoque_ordenado = sorted(estoque, key=lambda x: x.get("nome", "").lower())
-    with open(NOME_ARQUIVO, "w", encoding="utf-8") as f: json.dump(estoque_ordenado, f, ensure_ascii=False, indent=4)
+    with open(NOME_ARQUIVO, "w", encoding="utf-8") as f: 
+        json.dump(estoque_ordenado, f, ensure_ascii=False, indent=4)
     realizar_backup(NOME_ARQUIVO)
     st.session_state.estoque = estoque_ordenado
 
@@ -259,8 +262,8 @@ def componente_leitor_barcode(chave_sessao):
 if "usuarios" not in st.session_state:
     st.session_state.usuarios = carregar_usuarios()
 
-if "estoque" not in st.session_state:
-    st.session_state.estoque = carregar_dados()
+# Garantir carregamento direto e atualizado do arquivo JSON do estoque
+st.session_state.estoque = carregar_dados()
 
 st.session_state.pedidos = carregar_pedidos()
 
@@ -654,6 +657,13 @@ elif st.session_state.menu_atual == "Scanner":
 
 elif st.session_state.menu_atual == "Estoque":
     st.subheader("🍷 Estoque Completo do Galpão")
+    
+    # Botão para forçar a recarga dos dados do arquivo físico
+    if st.button("🔄 Atualizar / Sincronizar Estoque do Arquivo"):
+        st.session_state.estoque = carregar_dados()
+        st.success("Estoque sincronizado com o arquivo!")
+        st.rerun()
+
     if not st.session_state.estoque:
         st.info("Estoque vazio.")
     else:
@@ -786,9 +796,11 @@ elif st.session_state.menu_atual == "Editar":
                 
             if excluir_vinho:
                 removido = st.session_state.estoque.pop(idx_vinho)
-                salvar_dados(st.session_state.estoque) # Força a atualização imediata e persistência no arquivo JSON
+                # Força a salvagem imediata e reatribuição limpa no session_state
+                salvar_dados(st.session_state.estoque)
+                st.session_state.estoque = carregar_dados()
                 registrar_log(st.session_state.usuario_logado['nome'], "Excluir Vinho", removido.get('nome', ''))
-                st.success("Vinho excluído com sucesso!")
+                st.success("Vinho excluído com sucesso e removido do arquivo!")
                 st.rerun()
 
 elif st.session_state.menu_atual == "Historico":
