@@ -55,6 +55,12 @@ if not os.path.exists(PASTA_BACKUP):
 if not os.path.exists(PASTA_FOTOS):
     os.makedirs(PASTA_FOTOS)
 
+LISTA_CORREDORES = [f"Corredor {i:02d}" for i in range(1, 26)]
+LISTA_LOCAIS_TIPO = ["Pallet", "Prateleira"]
+LISTA_NUMEROS_LOCAL = [f"Item {i:02d}" for i in range(1, 26)]
+LISTA_LADOS = ["Direito", "Esquerdo", "Centro / Único"]
+OPCOES_CAIXA = ["Caixa com 12 garrafas", "Caixa com 6 garrafas", "Caixa com 3 garrafas", "Caixa com 2 garrafas", "Garrafa Avulsa (1 un)", "Outra quantidade"]
+
 def obter_horario_brasilia():
     fuso_brasilia = timezone(timedelta(hours=-3))
     return datetime.now(fuso_brasilia)
@@ -121,6 +127,9 @@ def carregar_pedidos():
 def salvar_pedidos(pedidos):
     with open(ARQUIVO_PEDIDOS, "w", encoding="utf-8") as f: json.dump(pedidos, f, ensure_ascii=False, indent=4)
 
+def gerar_qr_code_api(texto):
+    return f"https://api.qrserver.com/v1/create-qr-code/?size=250x250&data={urllib.parse.quote(texto)}"
+
 def interpretar_linha_pedido(texto_linha):
     texto = texto_linha.strip()
     safra = ""
@@ -182,6 +191,7 @@ st.session_state.estoque = carregar_dados()
 st.session_state.pedidos = carregar_pedidos()
 
 if "menu_atual" not in st.session_state: st.session_state.menu_atual = "🏠 Home"
+if "termo_busca" not in st.session_state: st.session_state.termo_busca = ""
 
 qp = st.query_params
 user_url = qp.get("user", None)
@@ -259,12 +269,36 @@ st.markdown("---")
 if st.session_state.menu_atual == "🏠 Home":
     st.markdown(f"<p style='text-align: center; color: #666; margin-bottom: 0px;'>{obter_saudacao()},</p>", unsafe_allow_html=True)
     st.markdown(f"<h1 style='text-align: center; color: #7A1C2E; margin-top: 0px;'>{st.session_state.usuario_logado['nome']}! 👋</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #444; font-size: 0.95rem; margin-bottom: 25px;'>Escolha abaixo a opção desejada para gerenciar o galpão:</p>", unsafe_allow_html=True)
     
-    col_home_1, col_home_2 = st.columns(2)
-    with col_home_1:
+    c1, c2, c3 = st.columns(3)
+    with c1:
         if st.button("📦 Checkout / Pedidos (WMS)", use_container_width=True): st.session_state.menu_atual = "PedidosMatriz"; st.rerun()
-    with col_home_2:
+    with c2:
+        if st.button("🔍 Buscar / Filtros", use_container_width=True): st.session_state.menu_atual = "Filtros"; st.rerun()
+    with c3:
+        if st.button("🗺️ Mapa de Separação", use_container_width=True): st.session_state.menu_atual = "MapaSeparacao"; st.rerun()
+    
+    st.write("")
+    c4, c5, c6 = st.columns(3)
+    with c4:
         if st.button("🍷 Estoque Completo", use_container_width=True): st.session_state.menu_atual = "Estoque"; st.rerun()
+    with c5:
+        if st.button("➕ Cadastrar Vinho", use_container_width=True): st.session_state.menu_atual = "Cadastrar"; st.rerun()
+    with c6:
+        if st.button("📱 Gerar QR Code", use_container_width=True): st.session_state.menu_atual = "GerarQR"; st.rerun()
+        
+    st.write("")
+    c7, c8, c9 = st.columns(3)
+    with c7:
+        if st.button("✏️ Editar Vinho", use_container_width=True): st.session_state.menu_atual = "Editar"; st.rerun()
+    with c8:
+        if st.button("📋 Histórico", use_container_width=True): st.session_state.menu_atual = "Historico"; st.rerun()
+    with c9:
+        if st.session_state.usuario_logado.get('cargo') == "Desenvolvedor":
+            if st.button("⚙️ Gerenciar Contas", use_container_width=True):
+                st.session_state.menu_atual = "GerenciarUsuarios"
+                st.rerun()
 
 elif st.session_state.menu_atual == "PedidosMatriz":
     st.subheader("📦 Checkout de Expedição e Mapa de Separação (WMS)")
@@ -288,8 +322,17 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 if texto_manual_pedido.strip():
                     for linha in texto_manual_pedido.split("\n"):
                         if linha.strip():
-                            itens_novos.append(interpretar_linha_pedido(linha))
+                            item_interpretado = interpretar_linha_pedido(linha)
+                            # Garante que começa estritamente pendente (não separado)
+                            item_interpretado["separado"] = False
+                            item_interpretado["qtd_separada"] = 0
+                            itens_novos.append(item_interpretado)
                 
+                # Garante que os itens vindos de arquivo também começam zerados e não separados
+                for it in itens_novos:
+                    it["separado"] = False
+                    it["qtd_separada"] = 0
+
                 if itens_novos:
                     novo_registro_pedido = {
                         "id": str(id_pedido).strip(),
@@ -375,21 +418,4 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 with col_dir:
                     st.markdown("<h4 style='color: #2E7D32;'>PRODUTOS CONFERIDOS</h4>", unsafe_allow_html=True)
                     conferidos = [i for i in pedido_ativo['itens'] if i.get('separado', False)]
-                    if not conferidos:
-                        st.info("Nenhum produto conferido ainda.")
-                    for idx, item in enumerate(conferidos):
-                        st.markdown(f"""
-                        <div style='background: #F1F8E9; padding: 10px; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid #2E7D32;'>
-                            ✅ <b>{item['nome']}</b> ({item.get('safra', 'N/A')}) - {item.get('qtd_separada', 0)} unidade(s) conferida(s)
-                        </div>
-                        """, unsafe_allow_html=True)
-
-elif st.session_state.menu_atual == "Estoque":
-    st.subheader("🍷 Estoque Completo do Galpão")
-    for vinho in st.session_state.estoque:
-        st.markdown(f"""
-        <div class="wine-card">
-            <div class="wine-title">{vinho['nome']} ({vinho.get('safra', 'N/A')})</div>
-            <div>Tipo: {vinho.get('tipo', 'N/A')} | Local: {vinho.get('localizacao', 'N/A')}</div>
-        </div>
-        """, unsafe_allow_html=True)
+               
