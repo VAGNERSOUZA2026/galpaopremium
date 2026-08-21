@@ -184,6 +184,34 @@ def extrair_pedidos_de_arquivo(arq):
     except: pass
     return itens
 
+def componente_leitor_barcode(chave_sessao):
+    html_code = f"""
+    <div style="text-align: center; background: #FFF; padding: 10px; border-radius: 12px; border: 1px solid #E9ECEF;">
+        <div id="reader_{chave_sessao}" style="width: 100%; max-width: 350px; margin: auto; border-radius: 8px; overflow: hidden;"></div>
+        <p id="resultado_{chave_sessao}" style="font-weight: bold; color: #7A1C2E; margin-top: 8px; font-size: 0.9rem;"></p>
+    </div>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script>
+      function onScanSuccess(decodedText, decodedResult) {{
+        document.getElementById("resultado_{chave_sessao}").innerText = "✅ Lido: " + decodedText;
+        const url = new URL(window.parent.location.href);
+        url.searchParams.set('scanned_{chave_sessao}', decodedText);
+        window.parent.history.replaceState({{}}, '', url);
+        
+        if (window.html5QrCode_{chave_sessao}) {{
+            window.html5QrCode_{chave_sessao}.stop().catch(err => {{}});
+        }}
+      }}
+      
+      try {{
+          const html5QrCode = new Html5Qrcode("reader_{chave_sessao}");
+          window.html5QrCode_{chave_sessao} = html5QrCode;
+          html5QrCode.start({{ facingMode: "environment" }}, {{ fps: 10, qrbox: {{ width: 250, height: 120 }} }}, onScanSuccess).catch(err => {{}});
+      }} catch (e) {{}}
+    </script>
+    """
+    components.html(html_code, height=260)
+
 if "usuarios" not in st.session_state:
     st.session_state.usuarios = carregar_usuarios()
 
@@ -194,6 +222,16 @@ if "menu_atual" not in st.session_state: st.session_state.menu_atual = "🏠 Hom
 if "termo_busca" not in st.session_state: st.session_state.termo_busca = ""
 
 qp = st.query_params
+
+for key, val in list(qp.items()):
+    if key.startswith("scanned_"):
+        sess_key = key.replace("scanned_", "")
+        valor_limpo = str(val).strip()
+        if sess_key == "wms_camera":
+            st.session_state.codigo_bipado_wms = valor_limpo
+        del st.query_params[key]
+        st.rerun()
+
 user_url = qp.get("user", None)
 cargo_url = qp.get("cargo", "Operador")
 
@@ -323,12 +361,10 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     for linha in texto_manual_pedido.split("\n"):
                         if linha.strip():
                             item_interpretado = interpretar_linha_pedido(linha)
-                            # Garante que começa estritamente pendente (não separado)
                             item_interpretado["separado"] = False
                             item_interpretado["qtd_separada"] = 0
                             itens_novos.append(item_interpretado)
                 
-                # Garante que os itens vindos de arquivo também começam zerados e não separados
                 for it in itens_novos:
                     it["separado"] = False
                     it["qtd_separada"] = 0
@@ -360,16 +396,29 @@ elif st.session_state.menu_atual == "PedidosMatriz":
             pedido_ativo = next((p for p in st.session_state.pedidos if p['id'] == mapa_selecionado_id), None)
             
             if pedido_ativo:
+                status_atual = pedido_ativo.get('status', 'Pendente')
+                cor_status = "#2E7D32" if status_atual == "Concluído / Expedido" else "#7A1C2E"
+                
                 st.markdown(f"""
                 <div style='background: #FFF; padding: 10px; border-radius: 8px; border: 1px solid #E9ECEF; margin-bottom: 15px;'>
                     <b>Conferência do Mapa cod. {pedido_ativo['id']}</b><br>
-                    Data/Carga: {pedido_ativo['data']} | Status: <b>{pedido_ativo.get('status', 'Pendente')}</b>
+                    Data/Carga: {pedido_ativo['data']} | Status: <b style='color: {cor_status};'>{status_atual}</b>
                 </div>
                 """, unsafe_allow_html=True)
                 
+                # Seletor de Modo de Entrada (Computador / Digitação vs Câmera do Celular)
+                modo_leitura = st.radio("Forma de Leitura:", ["⌨️ Digitação / Pistola USB", "📷 Câmera do Celular"], horizontal=True)
+                
+                codigo_capturado = ""
+                if modo_leitura == "📷 Câmera do Celular":
+                    st.markdown("Aponte a câmera do celular para o código de barras ou QR Code do produto:")
+                    componente_leitor_barcode("wms_camera")
+                    codigo_capturado = st.session_state.get("codigo_bipado_wms", "")
+                
                 col_b1, col_b2, col_b3 = st.columns([2, 1, 1])
                 with col_b1:
-                    cod_barras_input = st.text_input("*Código de Barras ou Nome do Vinho", key="input_bipagem_wms")
+                    val_inicial_input = codigo_capturado if modo_leitura == "📷 Câmera do Celular" else ""
+                    cod_barras_input = st.text_input("*Código de Barras ou Nome do Vinho", value=val_inicial_input, key="input_bipagem_wms")
                 with col_b2:
                     qtd_input = st.number_input("*Qtd", min_value=1, value=1, key="input_qtd_wms")
                 with col_b3:
@@ -392,6 +441,8 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                             break
                     
                     if encontrou:
+                        if "codigo_bipado_wms" in st.session_state:
+                            st.session_state.codigo_bipado_wms = ""
                         salvar_pedidos(st.session_state.pedidos)
                         st.success("Quantidade conferida com sucesso!")
                         st.rerun()
@@ -418,4 +469,109 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 with col_dir:
                     st.markdown("<h4 style='color: #2E7D32;'>PRODUTOS CONFERIDOS</h4>", unsafe_allow_html=True)
                     conferidos = [i for i in pedido_ativo['itens'] if i.get('separado', False)]
-               
+                    if not conferidos:
+                        st.info("Nenhum produto conferido ainda.")
+                    for idx, item in enumerate(conferidos):
+                        st.markdown(f"""
+                        <div style='background: #F1F8E9; padding: 10px; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid #2E7D32;'>
+                            ✅ <b>{item['nome']}</b> ({item.get('safra', 'N/A')}) - {item.get('qtd_separada', 0)} unidade(s) conferida(s)
+                        </div>
+                        """, unsafe_allow_html=True)
+                
+                st.write("")
+                # Botão para Salvar e Finalizar o Pedido para enviar depois
+                if st.button("💾 Salvar e Finalizar Conferência deste Pedido", use_container_width=True):
+                    pedido_ativo['status'] = "Concluído / Expedido"
+                    salvar_pedidos(st.session_state.pedidos)
+                    registrar_log(st.session_state.usuario_logado['nome'], "Finalizou Conferência Pedido", pedido_ativo['id'])
+                    st.success(f"Pedido {pedido_ativo['id']} finalizado e salvo com sucesso!")
+                    st.rerun()
+
+elif st.session_state.menu_atual == "Estoque":
+    st.subheader("🍷 Estoque Completo do Galpão")
+    for vinho in st.session_state.estoque:
+        st.markdown(f"""
+        <div class="wine-card">
+            <div class="wine-title">{vinho['nome']} ({vinho.get('safra', 'N/A')})</div>
+            <div>Tipo: {vinho.get('tipo', 'N/A')} | Local: {vinho.get('localizacao', 'N/A')}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+elif st.session_state.menu_atual == "Cadastrar":
+    st.subheader("➕ Cadastrar Novo Vinho")
+    with st.form("form_cad"):
+        nome_c = st.text_input("Nome do Vinho").strip().title()
+        safra_c = st.text_input("Safra").strip()
+        tipo_c = st.selectbox("Tipo", ["Tinto", "Branco", "Rosé", "Espumante", "Fortificado"])
+        corredor_c = st.selectbox("Corredor", LISTA_CORREDORES)
+        tipo_local_c = st.selectbox("Tipo de Local", LISTA_LOCAIS_TIPO)
+        num_local_c = st.selectbox("Número do Local", LISTA_NUMEROS_LOCAL)
+        lado_c = st.selectbox("Lado", LISTA_LADOS)
+        caixa_c = st.selectbox("Embalagem", OPCOES_CAIXA)
+        bc_c = st.text_input("Código de Barras").strip()
+        
+        if st.form_submit_button("Salvar Vinho"):
+            if nome_c:
+                local_completo = f"{corredor_c} - {tipo_local_c} {num_local_c}"
+                novo_vinho = {
+                    "nome": nome_c,
+                    "safra": safra_c,
+                    "tipo": tipo_c,
+                    "localizacao": local_completo,
+                    "lado": lado_c,
+                    "caixa": caixa_c,
+                    "codigo_barras": bc_c,
+                    "foto": ""
+                }
+                st.session_state.estoque.append(novo_vinho)
+                salvar_dados(st.session_state.estoque)
+                registrar_log(st.session_state.usuario_logado['nome'], "Cadastrou Vinho", nome_c)
+                st.success("Vinho cadastrado com sucesso!")
+                st.rerun()
+            else:
+                st.error("Informe o nome do vinho.")
+
+elif st.session_state.menu_atual == "Filtros":
+    st.subheader("🔍 Buscar e Filtrar Vinhos")
+    termo = st.text_input("Digite o nome ou código de barras:", value=st.session_state.termo_busca)
+    filtrados = [v for v in st.session_state.estoque if termo.lower() in v['nome'].lower() or termo in v.get('codigo_barras', '')]
+    for v in filtrados:
+        st.markdown(f"""
+        <div class="wine-card">
+            <div class="wine-title">{v['nome']} ({v.get('safra', 'N/A')})</div>
+            <div>Local: {v.get('localizacao', 'N/A')} | Caixa: {v.get('caixa', 'N/A')} | Cód: {v.get('codigo_barras', 'N/A')}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+elif st.session_state.menu_atual == "MapaSeparacao":
+    st.subheader("🗺️ Mapa de Separação por Corredor")
+    corredor_sel = st.selectbox("Selecione o Corredor", LISTA_CORREDORES)
+    vinhos_corr = [v for v in st.session_state.estoque if corredor_sel.lower() in v.get('localizacao', '').lower()]
+    st.write(f"Total de itens no {corredor_sel}: {len(vinhos_corr)}")
+    for v in vinhos_corr:
+        st.markdown(f"""
+        <div class="wine-card">
+            <div class="wine-title">{v['nome']} ({v.get('safra', 'N/A')})</div>
+            <div>Posição: {v.get('localizacao', 'N/A')} - Lado {v.get('lado', 'N/A')}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+elif st.session_state.menu_atual == "GerarQR":
+    st.subheader("📱 Gerar QR Code de Localização")
+    loc = st.selectbox("Escolha o Corredor", LISTA_CORREDORES)
+    qr_url = gerar_qr_code_api(loc)
+    st.image(qr_url, width=220)
+    st.markdown(f"**Local:** {loc}")
+
+elif st.session_state.menu_atual == "Historico":
+    st.subheader("📋 Histórico de Auditoria")
+    logs = carregar_logs()
+    if not logs:
+        st.info("Nenhum registro no histórico.")
+    for l in logs[:50]:
+        st.markdown(f"- **{l['data_hora']}** | *{l['usuario']}* - {l['acao']}: {l['detalhes']}")
+
+elif st.session_state.menu_atual == "GerenciarUsuarios":
+    st.subheader("⚙️ Gerenciar Contas de Usuários")
+    for u in st.session_state.usuarios:
+        st.markdown(f"- **{u['nome']}** ({u.get('cargo', 'Operador')})")
