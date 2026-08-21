@@ -685,7 +685,7 @@ elif st.session_state.menu_atual == "Cadastrar":
         st.markdown("🎯 **Código de Barras (Use a pistola USB no PC ou clique abaixo para usar a câmera do celular)**")
         codigo_barras = st.text_input("Código de Barras (Bipe aqui direto com o leitor USB):", value=st.session_state.codigo_capturado_cadastro).strip()
         
-        with st.expander("📱 Abrir câmera para escanear código de barras (Celular)"):
+        with st.expander("📲 Abrir câmera para escanear código de barras (Celular)"):
             componente_leitor_barcode("cad_barcode")
         
         btn_salvar_novo = st.form_submit_button("💾 Salvar Vinho no Estoque")
@@ -793,7 +793,7 @@ elif st.session_state.menu_atual == "GerenciarUsuarios":
         
         st.markdown("---")
         with st.form("form_novo_usuario_dev"):
-            n_novo = st.text_input("Nome do Novo Usuário").notify if hasattr(st.text_input("Nome do Novo Usuário"), 'notify') else st.text_input("Nome do Novo Usuário", key="n_novo_usr").strip().title()
+            n_novo = st.text_input("Nome do Novo Usuário", key="n_novo_usr").strip().title()
             c_novo = st.selectbox("Cargo", ["Operador", "Administrador", "Desenvolvedor"], key="c_novo_usr")
             s_novo = st.text_input("Senha", type="password", key="s_novo_usr").strip()
             if st.form_submit_button("Criar Conta"):
