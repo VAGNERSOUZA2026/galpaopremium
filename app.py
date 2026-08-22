@@ -464,11 +464,9 @@ elif st.session_state.menu_atual == "PedidosMatriz":
         else:
             mapas_disponiveis = [p['id'] for p in st.session_state.pedidos]
             
-            c_top1, c_top2 = st.columns([2, 2])
+            c_top1, _ = st.columns([2, 2])
             with c_top1:
                 mapa_selecionado_id = st.selectbox("Código de Barras Mapa", mapas_disponiveis)
-            with c_top2:
-                cpf_embalador = st.text_input("CPF Embalador", value="858.333.880-90")
             
             pedido_ativo = next((p for p in st.session_state.pedidos if p['id'] == mapa_selecionado_id), None)
             
@@ -479,11 +477,11 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 st.markdown(f"""
                 <div style='background: #FFF; padding: 10px; border-radius: 8px; border: 1px solid #E9ECEF; margin-bottom: 15px;'>
                     <b>Conferência do Mapa cod. {pedido_ativo['id']}</b> | Expedição Nº 41542 | Carga(s) Nº 114971<br>
-                    Data/Carga: {pedido_ativo['data']} | Embalador: {cpf_embalador} | Status: <b style='color: {cor_status};'>{status_atual}</b>
+                    Data/Carga: {pedido_ativo['data']} | Status: <b style='color: {cor_status};'>{status_atual}</b>
                 </div>
                 """, unsafe_allow_html=True)
                 
-                modo_leitura = st.radio("Forma de Leitura:", ["⌨️ Digitação / Pistola USB", "📷 Câmera do Celular"], horizontal=True)
+                modo_leitura = st.radio("Forma de Leitura:", ["⌨️ Seleção / Pistola USB", "📷 Câmera do Celular"], horizontal=True)
                 
                 codigo_capturado = ""
                 if modo_leitura == "📷 Câmera do Celular":
@@ -491,20 +489,32 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     componente_leitor_barcode("checkout_camera")
                     codigo_capturado = st.session_state.get("codigo_bipado_checkout", "")
                 
+                # Itens pendentes para o selectbox interativo
+                itens_pendentes_lista = [i['nome'] for i in pedido_ativo['itens'] if not i.get('separado', False)]
+                
                 col_b1, col_b2, col_b3 = st.columns([2, 1, 1])
                 with col_b1:
-                    val_inicial_input = codigo_capturado if modo_leitura == "📷 Câmera do Celular" else ""
-                    cod_barras_input = st.text_input("*Código de Barras ou Nome", value=val_inicial_input, key="input_bipagem_checkout")
+                    if modo_leitura == "📷 Câmera do Celular":
+                        cod_barras_input = st.text_input("*Código de Barras ou Nome", value=codigo_capturado, key="input_bipagem_checkout")
+                    else:
+                        # Selectbox com a setinha que mostra apenas os itens pendentes da lista
+                        if itens_pendentes_lista:
+                            opcao_selecionada_dropdown = st.selectbox("*Selecione o Vinho da Lista ou Digite/Bipe", ["-- Selecione ou Digite --"] + itens_pendentes_lista)
+                            if opcao_selecionada_dropdown != "-- Selecione ou Digite --":
+                                cod_barras_input = opcao_selecionada_dropdown
+                            else:
+                                cod_barras_input = st.text_input("*Ou digite/bipe o Código de Barras", value="", key="input_bipagem_checkout")
+                        else:
+                            cod_barras_input = st.text_input("*Código de Barras ou Nome", value="", key="input_bipagem_checkout")
                 with col_b2:
                     qtd_input = st.number_input("*Qtd", min_value=1, value=1, key="input_qtd_checkout")
                 with col_b3:
                     st.write("")
                     btn_conferir = st.button("Conferir", use_container_width=True)
                 
-                if btn_conferir and cod_barras_input:
+                if btn_conferir and cod_barras_input and cod_barras_input != "-- Selecione ou Digite --":
                     encontrou = False
                     for item in pedido_ativo['itens']:
-                        # Se o item já está separado corretamente, bloqueia novas adições
                         if item.get('separado', False) and item.get('divergencia', 0) == 0:
                             continue
 
@@ -517,14 +527,12 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                             encontrou = True
                             nova_qtd_proposta = item.get('qtd_separada', 0) + qtd_input
                             
-                            # TRAVA RIGOROSA: Se a quantidade proposta ultrapassa a pedida, NÃO soma direto. Fica pendente e exige senha.
                             if nova_qtd_proposta == item['quantidade']:
                                 item['qtd_separada'] = nova_qtd_proposta
                                 item['divergencia'] = 0
                                 item['autorizado_divergencia'] = True
                                 item['separado'] = True
                             else:
-                                # Se ultrapassou ou ficou diferente, bloqueia a soma automática e exige senha para registrar a divergência
                                 item['qtd_separada'] = nova_qtd_proposta
                                 item['divergencia'] = nova_qtd_proposta - item['quantidade']
                                 item['autorizado_divergencia'] = False
@@ -540,7 +548,6 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     else:
                         st.error("Produto não encontrado neste mapa ou já totalmente conferido.")
 
-                # Itens com divergência pendente de senha
                 itens_com_divergencia_nao_autorizados = [i for i in pedido_ativo['itens'] if i.get('divergencia', 0) != 0 and not i.get('autorizado_divergencia', False)]
                 
                 if itens_com_divergencia_nao_autorizados:
@@ -549,9 +556,8 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     for it_div in itens_com_divergencia_nao_autorizados:
                         with st.form(f"form_senha_item_{it_div['nome']}"):
                             st.markdown(f"**Item:** {it_div['nome']} | Pedido: {it_div['quantidade']} | Separado incorretamente: {it_div['qtd_separada']}")
-                            st.info("Dica: Se foi erro de digitação, você pode corrigir informando a quantidade exata acima e clicando em conferir, ou autorizar a divergência com a senha abaixo:")
+                            st.info("Dica: Se foi erro de digitação, você pode corrigir clicando abaixo para ajustar a quantidade exata:")
                             
-                            # Opção rápida para corrigir a quantidade direto na caixa de senha
                             corrigir_para_pedida = st.form_submit_button("🔄 Corrigir e Ajustar para Qtd Pedida Automaticamente")
                             if corrigir_para_pedida:
                                 it_div['qtd_separada'] = it_div['quantidade']
