@@ -665,7 +665,7 @@ elif st.session_state.menu_atual == "Estoque":
         st.markdown(f"""
         <div class="wine-card">
             <div class="wine-title">{vinho['nome']} ({vinho.get('safra', 'N/A')})</div>
-            <div>Tipo: {vinho.get('tipo', 'N/A')} | Local: {vinho.get('localizacao', 'N/A')}</div>
+            <div>Tipo: {vinho.get('tipo', 'N/A')} | Local: {vinho.get('localizacao', 'N/A')} - Lado: {vinho.get('lado', 'N/A')} | Caixa: {vinho.get('caixa', 'N/A')}</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -725,6 +725,24 @@ elif st.session_state.menu_atual == "Editar":
                 n_edit = st.text_input("Nome do Vinho", value=vinho_obj.get('nome', '')).strip().title()
                 s_edit = st.text_input("Safra", value=vinho_obj.get('safra', '')).strip()
                 t_edit = st.selectbox("Tipo", ["Tinto", "Branco", "Rosé", "Espumante", "Fortificado"], index=0 if vinho_obj.get('tipo') not in ["Tinto", "Branco", "Rosé", "Espumante", "Fortificado"] else ["Tinto", "Branco", "Rosé", "Espumante", "Fortificado"].index(vinho_obj.get('tipo')))
+                
+                loc_atual = vinho_obj.get('localizacao', 'Corredor 01 - Pallet Item 01')
+                corr_atual = loc_atual.split(" - ")[0] if " - " in loc_atual else "Corredor 01"
+                resto_loc = loc_atual.split(" - ")[1] if " - " in loc_atual else "Pallet Item 01"
+                tipo_loc_atual = "Pallet" if "Pallet" in resto_loc else "Prateleira"
+                num_loc_atual = re.search(r'Item \d+', resto_loc)
+                num_loc_atual_str = num_loc_atual.group(0) if num_loc_atual else "Item 01"
+
+                corredor_edit = st.selectbox("Corredor", LISTA_CORREDORES, index=LISTA_CORREDORES.index(corr_atual) if corr_atual in LISTA_CORREDORES else 0)
+                tipo_local_edit = st.selectbox("Tipo de Local", LISTA_LOCAIS_TIPO, index=LISTA_LOCAIS_TIPO.index(tipo_loc_atual) if tipo_loc_atual in LISTA_LOCAIS_TIPO else 0)
+                num_local_edit = st.selectbox("Número do Local", LISTA_NUMEROS_LOCAL, index=LISTA_NUMEROS_LOCAL.index(num_loc_atual_str) if num_loc_atual_str in LISTA_NUMEROS_LOCAL else 0)
+                
+                lado_atual = vinho_obj.get('lado', 'Direito')
+                lado_edit = st.selectbox("Lado", LISTA_LADOS, index=LISTA_LADOS.index(lado_atual) if lado_atual in LISTA_LADOS else 0)
+                
+                caixa_atual = vinho_obj.get('caixa', 'Caixa com 12 garrafas')
+                caixa_edit = st.selectbox("Embalagem", OPCOES_CAIXA, index=OPCOES_CAIXA.index(caixa_atual) if caixa_atual in OPCOES_CAIXA else 0)
+                
                 bc_edit = st.text_input("Código de Barras", value=vinho_obj.get('codigo_barras', '')).strip()
                 
                 col_e1, col_e2 = st.columns(2)
@@ -737,6 +755,9 @@ elif st.session_state.menu_atual == "Editar":
                     vinho_obj['nome'] = n_edit
                     vinho_obj['safra'] = s_edit
                     vinho_obj['tipo'] = t_edit
+                    vinho_obj['localizacao'] = f"{corredor_edit} - {tipo_local_edit} {num_local_edit}"
+                    vinho_obj['lado'] = lado_edit
+                    vinho_obj['caixa'] = caixa_edit
                     vinho_obj['codigo_barras'] = bc_edit
                     salvar_dados(st.session_state.estoque)
                     registrar_log(st.session_state.usuario_logado['nome'], "Editou Vinho", n_edit)
@@ -758,7 +779,7 @@ elif st.session_state.menu_atual == "Filtros":
         st.markdown(f"""
         <div class="wine-card">
             <div class="wine-title">{v['nome']} ({v.get('safra', 'N/A')})</div>
-            <div>Local: {v.get('localizacao', 'N/A')} | Caixa: {v.get('caixa', 'N/A')} | Cód: {v.get('codigo_barras', 'N/A')}</div>
+            <div>Local: {v.get('localizacao', 'N/A')} - Lado: {v.get('lado', 'N/A')} | Caixa: {v.get('caixa', 'N/A')} | Cód: {v.get('codigo_barras', 'N/A')}</div>
         </div>
         """, unsafe_allow_html=True)
 
