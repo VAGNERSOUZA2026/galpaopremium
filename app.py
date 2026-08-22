@@ -36,6 +36,9 @@ st.markdown(
     .wine-card { background-color: #FFFFFF; color: #1A1A1A; border-radius: 14px; padding: 16px; margin-bottom: 12px; border: 1px solid #E9ECEF; box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03); }
     .wine-title { color: #7A1C2E; font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
     .stButton button { background-color: #7A1C2E !important; color: #FFFFFF !important; border-radius: 12px !important; font-weight: 600 !important; border: none !important; padding: 10px 16px !important; width: 100%; white-space: pre-wrap; }
+    
+    /* Melhoria estética da tela de login para evitar aspecto vazio */
+    .login-container { background: #FFFFFF; padding: 30px; border-radius: 20px; box-shadow: 0px 8px 24px rgba(122, 28, 46, 0.08); border: 1px solid #E9ECEF; }
     </style>
 """, unsafe_allow_html=True,
 )
@@ -284,26 +287,38 @@ if "usuario_logado" not in st.session_state or st.session_state.usuario_logado i
 
 if st.session_state.usuario_logado is None:
     st.write("")
-    _, cc, _ = st.columns([1, 1.3, 1])
+    _, cc, _ = st.columns([1, 1.4, 1])
     with cc:
+        st.markdown("<div class='login-container'>", unsafe_allow_html=True)
         if os.path.exists("imagem premium.jpeg"):
             _, ci, _ = st.columns([1, 1.8, 1])
-            with ci: st.image("imagem premium.jpeg", width=190)
-        st.markdown("<h1 style='text-align: center; color: #7A1C2E; font-size: 1.6rem;'>SEPARAÇÃO DE VINHO GALPÃO</h1>", unsafe_allow_html=True)
+            with ci: st.image("imagem premium.jpeg", width=180)
+        st.markdown("<h1 style='text-align: center; color: #7A1C2E; font-size: 1.4rem; margin-top: 10px;'>SEPARAÇÃO DE VINHO GALPÃO</h1>", unsafe_allow_html=True)
         
-        tab1, tab2, tab3 = st.tabs(["🔑 Entrar", "👤 Criar Conta", "⚙️ Dev"])
+        tab1, tab2 = st.tabs(["🔑 Entrar", "👤 Criar Conta"])
         with tab1:
             with st.form("l_form"):
                 u = st.text_input("Usuário").strip().title()
                 p = st.text_input("Senha", type="password").strip()
                 if st.form_submit_button("ENTRAR", use_container_width=True):
-                    user = next((x for x in st.session_state.usuarios if x['nome'].lower() == u.lower() and x['senha'] == p), None)
-                    if user:
-                        st.session_state.usuario_logado = user
-                        st.query_params["user"] = user['nome']
-                        st.query_params["cargo"] = user.get('cargo', 'Operador')
+                    # Se logar com Administrador e senha 1980, define como Desenvolvedor automaticamente
+                    if u.lower() in ["admin", "desenvolvedor", "dev"] and p == SENHA_DEV:
+                        dev_user = {"nome": u if u.lower() != "admin" else "Vagner Souza", "cargo": "Desenvolvedor"}
+                        st.session_state.usuario_logado = dev_user
+                        st.query_params["user"] = dev_user['nome']
+                        st.query_params["cargo"] = "Desenvolvedor"
                         st.rerun()
-                    else: st.error("Dados incorretos.")
+                    else:
+                        user = next((x for x in st.session_state.usuarios if x['nome'].lower() == u.lower() and x['senha'] == p), None)
+                        if user:
+                            # Se senha for 1980 e for admin, garante cargo de Dev
+                            if p == SENHA_DEV:
+                                user['cargo'] = "Desenvolvedor"
+                            st.session_state.usuario_logado = user
+                            st.query_params["user"] = user['nome']
+                            st.query_params["cargo"] = user.get('cargo', 'Operador')
+                            st.rerun()
+                        else: st.error("Dados incorretos.")
         with tab2:
             with st.form("c_form"):
                 n = st.text_input("Nome").strip().title()
@@ -318,17 +333,7 @@ if st.session_state.usuario_logado is None:
                         st.query_params["cargo"] = novo['cargo']
                         st.rerun()
                     else: st.error("Preencha tudo.")
-        with tab3:
-            with st.form("d_form"):
-                sp = st.text_input("Senha Mestra", type="password")
-                if st.form_submit_button("DEV", use_container_width=True):
-                    if sp == SENHA_DEV:
-                        dev_user = {"nome": "Dev", "cargo": "Desenvolvedor"}
-                        st.session_state.usuario_logado = dev_user
-                        st.query_params["user"] = "Dev"
-                        st.query_params["cargo"] = "Desenvolvedor"
-                        st.rerun()
-                    else: st.error("Senha incorreta.")
+        st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
 ct1, ct2, ct3 = st.columns([3, 2, 1])
@@ -344,6 +349,8 @@ with ct3:
         st.rerun()
 
 st.markdown("---")
+
+is_desenvolvedor = st.session_state.usuario_logado.get('cargo') == "Desenvolvedor" or st.session_state.usuario_logado.get('nome').lower() in ["dev", "vagner souza"]
 
 if st.session_state.menu_atual == "🏠 Home":
     st.markdown(f"<p style='text-align: center; color: #666; margin-bottom: 0px;'>{obter_saudacao()},</p>", unsafe_allow_html=True)
@@ -374,10 +381,42 @@ if st.session_state.menu_atual == "🏠 Home":
     with c8:
         if st.button("📋 Histórico", use_container_width=True): st.session_state.menu_atual = "Historico"; st.rerun()
     with c9:
-        if st.session_state.usuario_logado.get('cargo') == "Desenvolvedor":
-            if st.button("⚙️ Gerenciar Contas", use_container_width=True):
-                st.session_state.menu_atual = "GerenciarUsuarios"
+        if is_desenvolvedor:
+            if st.button("⚙️ Painel Dev / Limpeza", use_container_width=True):
+                st.session_state.menu_atual = "PainelDev"
                 st.rerun()
+
+elif st.session_state.menu_atual == "PainelDev" and is_desenvolvedor:
+    st.subheader("⚙️ Painel do Desenvolvedor - Gerenciamento de Testes")
+    st.markdown("Ferramentas exclusivas para zerar dados de teste antes de entregar o sistema em produção para o galpão.")
+    
+    with st.form("form_zerar_sistema"):
+        st.warning("⚠️ Cuidado: Esta ação irá apagar todos os estoques cadastrados, pedidos e logs de teste.")
+        senha_conf_dev = st.text_input("Digite a senha de confirmação (1980):", type="password")
+        
+        col_z1, col_z2, col_z3 = st.columns(3)
+        with col_z1:
+            zerar_estoque_btn = st.form_submit_button("🗑️ Zerar Todo o Estoque")
+        with col_z2:
+            zerar_pedidos_btn = st.form_submit_button("🗑️ Zerar Todos os Pedidos")
+        with col_z3:
+            zerar_tudo_btn = st.form_submit_button("🔥 Zerar Sistema Completo")
+            
+        if zerar_estoque_btn or zerar_pedidos_btn or zerar_tudo_btn:
+            if senha_conf_dev == SENHA_DEV:
+                if zerar_estoque_btn or zerar_tudo_btn:
+                    if os.path.exists(NOME_ARQUIVO):
+                        os.remove(NOME_ARQUIVO)
+                    st.session_state.estoque = []
+                if zerar_pedidos_btn or zerar_tudo_btn:
+                    if os.path.exists(ARQUIVO_PEDIDOS):
+                        os.remove(ARQUIVO_PEDIDOS)
+                    st.session_state.pedidos = []
+                registrar_log(st.session_state.usuario_logado['nome'], "Zera Sistema (DEV)", "Limpeza efetuada")
+                st.success("Dados de teste zerados com sucesso! O sistema está limpo para produção.")
+                st.rerun()
+            else:
+                st.error("Senha de desenvolvedor incorreta (Digite 1980).")
 
 elif st.session_state.menu_atual == "PainelMatriz":
     st.subheader("🏢 Painel da Matriz - Acompanhamento de Pedidos")
@@ -392,7 +431,6 @@ elif st.session_state.menu_atual == "PainelMatriz":
         with col_f2:
             filtro_data = st.text_input("📅 Filtrar por Data (Ex: 22/08/2026)", "").strip()
             
-        # Garante que só exibe se houver termo digitado
         if not filtro_busca_id and not filtro_data:
             st.info("💡 Digite um número de pedido ou data nos campos acima para visualizar os registros.")
         else:
@@ -652,17 +690,24 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     conferidos = [i for i in pedido_ativo['itens'] if i.get('separado', False)]
                     if not conferidos:
                         st.info("Nenhum produto conferido ainda.")
-                    for item in conferidos:
-                        dif_val = item.get('divergencia', 0)
-                        if item.get('extra', False):
-                            dif_texto = " (Extra)"
+                    else:
+                        # Oculta itens conferidos sem divergência da tela de listagem para evitar poluição visual,
+                        # ou exibe apenas os que possuem divergência/extras relevantes conforme solicitado.
+                        conferidos_exibicao = [i for i in conferidos if i.get('divergencia', 0) != 0 or i.get('extra', False)]
+                        if not conferidos_exibicao:
+                            st.info("✅ Todos os itens conferidos foram validados perfeitamente sem divergências (ocultados para evitar poluição visual).")
                         else:
-                            dif_texto = f" ({dif_val:+d})" if dif_val != 0 else " (0)"
-                        st.markdown(f"""
-                        <div style='background: #F1F8E9; padding: 10px; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid #2E7D32;'>
-                            ✅ <b>{item['nome']}</b> ({item.get('safra', 'N/A')}) - {item.get('qtd_separada', 0)} unidade(s) conferida(s) <b style='color: #C62828;'>{dif_texto}</b>
-                        </div>
-                        """, unsafe_allow_html=True)
+                            for item in conferidos_exibicao:
+                                dif_val = item.get('divergencia', 0)
+                                if item.get('extra', False):
+                                    dif_texto = " (Extra)"
+                                else:
+                                    dif_texto = f" ({dif_val:+d})"
+                                st.markdown(f"""
+                                <div style='background: #F1F8E9; padding: 10px; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid #2E7D32;'>
+                                    ✅ <b>{item['nome']}</b> ({item.get('safra', 'N/A')}) - {item.get('qtd_separada', 0)} unidade(s) <b style='color: #C62828;'>{dif_texto}</b>
+                                </div>
+                                """, unsafe_allow_html=True)
                 
                 st.write("")
                 col_salvar1, col_salvar2 = st.columns(2)
@@ -845,8 +890,3 @@ elif st.session_state.menu_atual == "Historico":
         st.info("Nenhum registro no histórico.")
     for l in logs[:50]:
         st.markdown(f"- **{l['data_hora']}** | *{l['usuario']}* - {l['acao']}: {l['detalhes']}")
-
-elif st.session_state.menu_atual == "GerenciarUsuarios":
-    st.subheader("⚙️ Gerenciar Contas de Usuários")
-    for u in st.session_state.usuarios:
-        st.markdown(f"- **{u['nome']}** ({u.get('cargo', 'Operador')})")
