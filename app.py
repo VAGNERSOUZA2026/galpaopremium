@@ -37,7 +37,8 @@ st.markdown(
     .wine-title { color: #7A1C2E; font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
     .stButton button { background-color: #7A1C2E !important; color: #FFFFFF !important; border-radius: 12px !important; font-weight: 600 !important; border: none !important; padding: 10px 16px !important; width: 100%; white-space: pre-wrap; }
     
-    /* Melhoria estética da tela de login para evitar aspecto vazio */
+    /* Estilização moderna da tela inicial para eliminar espaços vazios */
+    .hero-container { background: #FFFFFF; padding: 40px; border-radius: 24px; box-shadow: 0px 10px 30px rgba(122, 28, 46, 0.06); border: 1px solid #E9ECEF; max-width: 950px; margin: 20px auto; text-align: center; }
     .login-container { background: #FFFFFF; padding: 30px; border-radius: 20px; box-shadow: 0px 8px 24px rgba(122, 28, 46, 0.08); border: 1px solid #E9ECEF; }
     </style>
 """, unsafe_allow_html=True,
@@ -125,7 +126,7 @@ def carregar_usuarios():
         try:
             with open(ARQUIVO_USUARIOS, "r", encoding="utf-8") as f: return json.load(f)
         except: pass
-    return [{"nome": "Vagner Souza", "cargo": "Administrador", "senha": "1980"}]
+    return [{"nome": "Vagner Souza", "cargo": "Desenvolvedor", "senha": "1980"}]
 
 def salvar_usuarios(usuarios):
     with open(ARQUIVO_USUARIOS, "w", encoding="utf-8") as f: json.dump(usuarios, f, ensure_ascii=False, indent=4)
@@ -295,44 +296,24 @@ if st.session_state.usuario_logado is None:
             with ci: st.image("imagem premium.jpeg", width=180)
         st.markdown("<h1 style='text-align: center; color: #7A1C2E; font-size: 1.4rem; margin-top: 10px;'>SEPARAÇÃO DE VINHO GALPÃO</h1>", unsafe_allow_html=True)
         
-        tab1, tab2 = st.tabs(["🔑 Entrar", "👤 Criar Conta"])
-        with tab1:
-            with st.form("l_form"):
-                u = st.text_input("Usuário").strip().title()
-                p = st.text_input("Senha", type="password").strip()
-                if st.form_submit_button("ENTRAR", use_container_width=True):
-                    # Se logar com Administrador e senha 1980, define como Desenvolvedor automaticamente
-                    if u.lower() in ["admin", "desenvolvedor", "dev"] and p == SENHA_DEV:
-                        dev_user = {"nome": u if u.lower() != "admin" else "Vagner Souza", "cargo": "Desenvolvedor"}
-                        st.session_state.usuario_logado = dev_user
-                        st.query_params["user"] = dev_user['nome']
-                        st.query_params["cargo"] = "Desenvolvedor"
+        with st.form("l_form"):
+            u = st.text_input("Usuário").strip().title()
+            p = st.text_input("Senha", type="password").strip()
+            if st.form_submit_button("ENTRAR", use_container_width=True):
+                if p == SENHA_DEV:
+                    dev_user = {"nome": u if u else "Desenvolvedor", "cargo": "Desenvolvedor"}
+                    st.session_state.usuario_logado = dev_user
+                    st.query_params["user"] = dev_user['nome']
+                    st.query_params["cargo"] = "Desenvolvedor"
+                    st.rerun()
+                else:
+                    user = next((x for x in st.session_state.usuarios if x['nome'].lower() == u.lower() and x['senha'] == p), None)
+                    if user:
+                        st.session_state.usuario_logado = user
+                        st.query_params["user"] = user['nome']
+                        st.query_params["cargo"] = user.get('cargo', 'Operador')
                         st.rerun()
-                    else:
-                        user = next((x for x in st.session_state.usuarios if x['nome'].lower() == u.lower() and x['senha'] == p), None)
-                        if user:
-                            # Se senha for 1980 e for admin, garante cargo de Dev
-                            if p == SENHA_DEV:
-                                user['cargo'] = "Desenvolvedor"
-                            st.session_state.usuario_logado = user
-                            st.query_params["user"] = user['nome']
-                            st.query_params["cargo"] = user.get('cargo', 'Operador')
-                            st.rerun()
-                        else: st.error("Dados incorretos.")
-        with tab2:
-            with st.form("c_form"):
-                n = st.text_input("Nome").strip().title()
-                s = st.text_input("Senha", type="password").strip()
-                if st.form_submit_button("CADASTRAR", use_container_width=True):
-                    if n and s:
-                        novo = {"nome": n, "cargo": "Operador", "senha": s}
-                        st.session_state.usuarios.append(novo)
-                        salvar_usuarios(st.session_state.usuarios)
-                        st.session_state.usuario_logado = novo
-                        st.query_params["user"] = novo['nome']
-                        st.query_params["cargo"] = novo['cargo']
-                        st.rerun()
-                    else: st.error("Preencha tudo.")
+                    else: st.error("Dados incorretos.")
         st.markdown("</div>", unsafe_allow_html=True)
     st.stop()
 
@@ -350,12 +331,18 @@ with ct3:
 
 st.markdown("---")
 
-is_desenvolvedor = st.session_state.usuario_logado.get('cargo') == "Desenvolvedor" or st.session_state.usuario_logado.get('nome').lower() in ["dev", "vagner souza"]
+# Validação estrita e isolada para Desenvolvedor
+cargo_atual = str(st.session_state.usuario_logado.get('cargo', '')).strip().lower()
+nome_atual = str(st.session_state.usuario_logado.get('nome', '')).strip().lower()
+is_desenvolvedor = (cargo_atual == "desenvolvedor" or nome_atual in ["dev", "vagner souza", "desenvolvedor"])
 
 if st.session_state.menu_atual == "🏠 Home":
-    st.markdown(f"<p style='text-align: center; color: #666; margin-bottom: 0px;'>{obter_saudacao()},</p>", unsafe_allow_html=True)
-    st.markdown(f"<h1 style='text-align: center; color: #7A1C2E; margin-top: 0px;'>{st.session_state.usuario_logado['nome']}! 👋</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #444; font-size: 0.95rem; margin-bottom: 25px;'>Separação de Vinho Galpão - Escolha a opção abaixo:</p>", unsafe_allow_html=True)
+    st.markdown("<div class='hero-container'>", unsafe_allow_html=True)
+    if os.path.exists("imagem premium.jpeg"):
+        st.image("imagem premium.jpeg", width=140)
+    st.markdown(f"<p style='color: #666; margin-bottom: 0px; font-size: 1rem;'>{obter_saudacao()},</p>", unsafe_allow_html=True)
+    st.markdown(f"<h1 style='color: #7A1C2E; margin-top: 0px; font-size: 2rem;'>{st.session_state.usuario_logado['nome']}! 👋</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #555; font-size: 1rem; margin-bottom: 25px;'>Sistema de Separação de Vinhos - Galpão. Selecione abaixo a operação desejada:</p>", unsafe_allow_html=True)
     
     c1, c2, c3 = st.columns(3)
     with c1:
@@ -385,6 +372,7 @@ if st.session_state.menu_atual == "🏠 Home":
             if st.button("⚙️ Painel Dev / Limpeza", use_container_width=True):
                 st.session_state.menu_atual = "PainelDev"
                 st.rerun()
+    st.markdown("</div>", unsafe_allow_html=True)
 
 elif st.session_state.menu_atual == "PainelDev" and is_desenvolvedor:
     st.subheader("⚙️ Painel do Desenvolvedor - Gerenciamento de Testes")
@@ -691,8 +679,6 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     if not conferidos:
                         st.info("Nenhum produto conferido ainda.")
                     else:
-                        # Oculta itens conferidos sem divergência da tela de listagem para evitar poluição visual,
-                        # ou exibe apenas os que possuem divergência/extras relevantes conforme solicitado.
                         conferidos_exibicao = [i for i in conferidos if i.get('divergencia', 0) != 0 or i.get('extra', False)]
                         if not conferidos_exibicao:
                             st.info("✅ Todos os itens conferidos foram validados perfeitamente sem divergências (ocultados para evitar poluição visual).")
