@@ -158,6 +158,8 @@ def carregar_pedidos():
                     item["autorizado_divergencia"] = False
                 if "separado" not in item:
                     item["separado"] = False
+                if "extra" not in item:
+                    item["extra"] = False
     return pedidos
 
 def salvar_pedidos(pedidos):
@@ -187,7 +189,7 @@ def interpretar_linha_pedido(texto_linha):
 
     texto_limpo = re.sub(r'\bcaixas?\b', '', texto_limpo, flags=re.IGNORECASE)
     nome = re.sub(r'[/\|\-\–]+', '', texto_limpo).strip().title()
-    return {"nome": nome, "safra": safra, "quantidade": quantidade, "separado": False, "qtd_separada": 0, "divergencia": 0, "autorizado_divergencia": False}
+    return {"nome": nome, "safra": safra, "quantidade": quantidade, "separado": False, "qtd_separada": 0, "divergencia": 0, "autorizado_divergencia": False, "extra": False}
 
 def extrair_pedidos_de_arquivo(arq):
     itens = []
@@ -210,7 +212,8 @@ def extrair_pedidos_de_arquivo(arq):
                         "separado": False, 
                         "qtd_separada": 0,
                         "divergencia": 0,
-                        "autorizado_divergencia": False
+                        "autorizado_divergencia": False,
+                        "extra": False
                     })
         elif ext == 'txt':
             linhas = [l.strip() for l in arq.getvalue().decode("utf-8").split("\n") if l.strip()]
@@ -392,7 +395,7 @@ elif st.session_state.menu_atual == "PainelMatriz":
             df_itens = []
             for item in p['itens']:
                 dif = item.get('divergencia', 0)
-                dif_str = f"({dif:+d})" if dif != 0 else "(0)"
+                dif_str = f"({dif:+d})" if (dif != 0 and not item.get('extra', False)) else "(0)"
                 df_itens.append({
                     "Produto": item['nome'],
                     "Safra": item.get('safra', 'N/A'),
@@ -577,7 +580,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                                     st.error("Senha incorreta. Digite 2026.")
 
                 with st.expander("➕ Inserção Manual Extra (Solicitação de Trajeto / Adicionar Vinho Não Listado)"):
-                    with st.form("form_vinho_extra"):
+                    with st.form("form_vinho_extra", clear_on_submit=True):
                         nome_extra = st.text_input("Nome do Vinho Extra").strip().title()
                         qtd_extra = st.number_input("Quantidade", min_value=1, value=1)
                         senha_extra = st.text_input("Senha de Liberação (2026)", type="password")
@@ -587,11 +590,12 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                                     novo_item_extra = {
                                         "nome": nome_extra,
                                         "safra": "Extra",
-                                        "quantidade": 0,
+                                        "quantidade": qtd_extra,
                                         "separado": True,
                                         "qtd_separada": qtd_extra,
-                                        "divergencia": qtd_extra,
-                                        "autorizado_divergencia": True
+                                        "divergencia": 0,
+                                        "autorizado_divergencia": True,
+                                        "extra": True
                                     }
                                     pedido_ativo['itens'].append(novo_item_extra)
                                     salvar_pedidos(st.session_state.pedidos)
@@ -626,7 +630,10 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         st.info("Nenhum produto conferido ainda.")
                     for item in conferidos:
                         dif_val = item.get('divergencia', 0)
-                        dif_texto = f" ({dif_val:+d})" if dif_val != 0 else " (0)"
+                        if item.get('extra', False):
+                            dif_texto = " (Extra)"
+                        else:
+                            dif_texto = f" ({dif_val:+d})" if dif_val != 0 else " (0)"
                         st.markdown(f"""
                         <div style='background: #F1F8E9; padding: 10px; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid #2E7D32;'>
                             ✅ <b>{item['nome']}</b> ({item.get('safra', 'N/A')}) - {item.get('qtd_separada', 0)} unidade(s) conferida(s) <b style='color: #C62828;'>{dif_texto}</b>
@@ -647,7 +654,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         if divergencias_pendentes:
                             st.error("⚠️ Não é possível finalizar! Existem itens com quantidade divergente que ainda precisam da senha de liberação (2026) ou correção.")
                         else:
-                            tem_divergencia_geral = any(i.get('divergencia', 0) != 0 for i in pedido_ativo['itens'])
+                            tem_divergencia_geral = any(i.get('divergencia', 0) != 0 and not i.get('extra', False) for i in pedido_ativo['itens'])
                             if tem_divergencia_geral:
                                 pedido_ativo['status'] = "Concluído / Expedido (Com Divergência)"
                             else:
