@@ -489,7 +489,6 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     componente_leitor_barcode("checkout_camera")
                     codigo_capturado = st.session_state.get("codigo_bipado_checkout", "")
                 
-                # Itens pendentes para o selectbox interativo
                 itens_pendentes_lista = [i['nome'] for i in pedido_ativo['itens'] if not i.get('separado', False)]
                 
                 col_b1, col_b2, col_b3 = st.columns([2, 1, 1])
@@ -524,7 +523,6 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         
                         if match_nome or match_bc:
                             encontrou = True
-                            # CORREÇÃO AQUI: Define exatamente a quantidade informada na conferência (em vez de somar infinitamente se o usuário bipar de novo por engano)
                             item['qtd_separada'] = int(qtd_input)
                             item['divergencia'] = item['qtd_separada'] - item['quantidade']
                             
