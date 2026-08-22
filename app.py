@@ -160,6 +160,8 @@ def carregar_pedidos():
                     item["separado"] = False
                 if "extra" not in item:
                     item["extra"] = False
+        if "status" not in p:
+            p["status"] = "Pendente"
     return pedidos
 
 def salvar_pedidos(pedidos):
@@ -379,32 +381,50 @@ if st.session_state.menu_atual == "🏠 Home":
 
 elif st.session_state.menu_atual == "PainelMatriz":
     st.subheader("🏢 Painel da Matriz - Acompanhamento de Pedidos")
-    st.markdown("Aqui a Matriz visualiza em tempo real todos os pedidos salvos, finalizados e as divergências de quantidade registradas pelo galpão.")
+    st.markdown("Utilize os filtros abaixo para localizar rapidamente um pedido específico ou filtrá-lo por data.")
     
     if not st.session_state.pedidos:
         st.info("Nenhum pedido registrado no sistema.")
     else:
-        for p in st.session_state.pedidos:
-            status_col = "#2E7D32" if p.get('status') == "Concluído / Expedido" else "#7A1C2E"
-            st.markdown(f"""
-            <div style='background: #FFF; padding: 15px; border-radius: 10px; border: 1px solid #E9ECEF; margin-bottom: 15px;'>
-                <b>Mapa / Pedido Nº {p['id']}</b> | Data: {p['data']} | Status: <b style='color: {status_col};'>{p.get('status', 'Pendente')}</b>
-            </div>
-            """, unsafe_allow_html=True)
+        col_f1, col_f2 = st.columns(2)
+        with col_f1:
+            filtro_busca_id = st.text_input("🔍 Buscar por Número do Pedido / Código", "").strip()
+        with col_f2:
+            filtro_data = st.text_input("📅 Filtrar por Data (Ex: 22/08/2026)", "").strip()
             
-            df_itens = []
-            for item in p['itens']:
-                dif = item.get('divergencia', 0)
-                dif_str = f"({dif:+d})" if (dif != 0 and not item.get('extra', False)) else "(0)"
-                df_itens.append({
-                    "Produto": item['nome'],
-                    "Safra": item.get('safra', 'N/A'),
-                    "Qtd Pedida": item['quantidade'],
-                    "Qtd Separada": item.get('qtd_separada', 0),
-                    "Divergência": dif_str
-                })
-            st.dataframe(pd.DataFrame(df_itens), use_container_width=True)
-            st.markdown("---")
+        pedidos_filtrados = st.session_state.pedidos
+        if filtro_busca_id:
+            pedidos_filtrados = [p for p in pedidos_filtrados if filtro_busca_id.lower() in p['id'].lower()]
+        if filtro_data:
+            pedidos_filtrados = [p for p in pedidos_filtrados if filtro_data in p['data']]
+            
+        if not pedidos_filtrados:
+            st.warning("Nenhum pedido encontrado com os filtros informados.")
+        else:
+            for p in pedidos_filtrados:
+                status_col = "#2E7D32" if "Concluído" in p.get('status', '') else "#7A1C2E"
+                st.markdown(f"""
+                <div style='background: #FFF; padding: 15px; border-radius: 10px; border: 1px solid #E9ECEF; margin-bottom: 15px;'>
+                    <b>Mapa / Pedido Nº {p['id']}</b> | Data: {p['data']} | Status: <b style='color: {status_col};'>{p.get('status', 'Pendente')}</b>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                df_itens = []
+                for item in p['itens']:
+                    dif = item.get('divergencia', 0)
+                    if item.get('extra', False):
+                        dif_str = "(Extra)"
+                    else:
+                        dif_str = f"({dif:+d})" if dif != 0 else "(0)"
+                    df_itens.append({
+                        "Produto": item['nome'],
+                        "Safra": item.get('safra', 'N/A'),
+                        "Qtd Pedida": item['quantidade'],
+                        "Qtd Separada": item.get('qtd_separada', 0),
+                        "Divergência": dif_str
+                    })
+                st.dataframe(pd.DataFrame(df_itens), use_container_width=True)
+                st.markdown("---")
 
 elif st.session_state.menu_atual == "PedidosMatriz":
     st.subheader("📦 Checkout de Expedição - Separação de Vinho Galpão")
@@ -475,7 +495,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
             
             if pedido_ativo:
                 status_atual = pedido_ativo.get('status', 'Pendente')
-                cor_status = "#2E7D32" if status_atual == "Concluído / Expedido" else "#7A1C2E"
+                cor_status = "#2E7D32" if "Concluído" in status_atual else "#7A1C2E"
                 
                 st.markdown(f"""
                 <div style='background: #FFF; padding: 10px; border-radius: 8px; border: 1px solid #E9ECEF; margin-bottom: 15px;'>
@@ -644,14 +664,25 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 col_salvar1, col_salvar2 = st.columns(2)
                 with col_salvar1:
                     if st.button("💾 Salvar Pedido e Enviar Depois", use_container_width=True):
-                        salvar_pedidos(st.session_state.pedidos)
-                        registrar_log(st.session_state.usuario_logado['nome'], "Salvou Pedido Parcial", pedido_ativo['id'])
-                        st.success(f"Progresso do pedido {pedido_ativo['id']} salvo com sucesso!")
+                        pendentes_verificacao = [i for i in pedido_ativo['itens'] if not i.get('separado', False)]
+                        if pendentes_verificacao:
+                            pedido_ativo['status'] = "Em andamento / Parcial (Incompleto)"
+                            salvar_pedidos(st.session_state.pedidos)
+                            registrar_log(st.session_state.usuario_logado['nome'], "Salvou Pedido Incompleto", pedido_ativo['id'])
+                            st.warning(f"⚠️ Atenção: O pedido {pedido_ativo['id']} está **incompleto** (restam {len(pendentes_verificacao)} itens sem conferir). O progresso foi salvo no sistema e atualizado no painel da matriz como incompleto.")
+                        else:
+                            pedido_ativo['status'] = "Salvo Parcialmente"
+                            salvar_pedidos(st.session_state.pedidos)
+                            registrar_log(st.session_state.usuario_logado['nome'], "Salvou Pedido Parcial", pedido_ativo['id'])
+                            st.success(f"Progresso do pedido {pedido_ativo['id']} salvo com sucesso no sistema!")
                 with col_salvar2:
                     if st.button("🚀 Finalizar e Enviar para Matriz", use_container_width=True):
+                        pendentes_verificacao = [i for i in pedido_ativo['itens'] if not i.get('separado', False)]
                         divergencias_pendentes = [i for i in pedido_ativo['itens'] if i.get('divergencia', 0) != 0 and not i.get('autorizado_divergencia', False)]
                         
-                        if divergencias_pendentes:
+                        if pendentes_verificacao:
+                            st.error(f"❌ Impossível finalizar! O pedido está **incompleto**. Ainda existem {len(pendentes_verificacao)} produtos pendentes de conferência na lista.")
+                        elif divergencias_pendentes:
                             st.error("⚠️ Não é possível finalizar! Existem itens com quantidade divergente que ainda precisam da senha de liberação (2026) ou correção.")
                         else:
                             tem_divergencia_geral = any(i.get('divergencia', 0) != 0 and not i.get('extra', False) for i in pedido_ativo['itens'])
@@ -685,7 +716,7 @@ elif st.session_state.menu_atual == "Cadastrar":
         tipo_c = st.selectbox("Tipo", ["Tinto", "Branco", "Rosé", "Espumante", "Fortificado"])
         corredor_c = st.selectbox("Corredor", LISTA_CORREDORES)
         tipo_local_c = st.selectbox("Tipo de Local", LISTA_LOCAIS_TIPO)
-        num_local_c = st.selectbox("Número do Local", LISTA_NUMEROS_LOCAL)
+        num_local_c = st.selectbox("Número du Local", LISTA_NUMEROS_LOCAL)
         lado_c = st.selectbox("Lado", LISTA_LADOS)
         caixa_c = st.selectbox("Embalagem", OPCOES_CAIXA)
         bc_c = st.text_input("Código de Barras").strip()
@@ -698,7 +729,7 @@ elif st.session_state.menu_atual == "Cadastrar":
                 vinho_existente = next((v for v in st.session_state.estoque if v['nome'].lower() == nome_c.lower()), None)
                 
                 if vinho_existente:
-                    st.warning(f"⚠️ Atenção: O vinho '{nome_c}' já consta no sistema! Como houve alteração (safra, pallet ou outra característica), o cadastro foi aceito e incluído com sucesso.")
+                    st.warning(f"⚠️ Atenção: O vinho '{nome_c}' já consta no sistema! Como houve alteração, o cadastro foi aceito e incluído com sucesso.")
                 
                 novo_vinho = {
                     "nome": nome_c,
