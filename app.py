@@ -497,7 +497,6 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     if modo_leitura == "📷 Câmera do Celular":
                         cod_barras_input = st.text_input("*Código de Barras ou Nome", value=codigo_capturado, key="input_bipagem_checkout")
                     else:
-                        # Selectbox com a setinha que mostra apenas os itens pendentes da lista
                         if itens_pendentes_lista:
                             opcao_selecionada_dropdown = st.selectbox("*Selecione o Vinho da Lista ou Digite/Bipe", ["-- Selecione ou Digite --"] + itens_pendentes_lista)
                             if opcao_selecionada_dropdown != "-- Selecione ou Digite --":
@@ -525,19 +524,18 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         
                         if match_nome or match_bc:
                             encontrou = True
-                            nova_qtd_proposta = item.get('qtd_separada', 0) + qtd_input
+                            # CORREÇÃO AQUI: Define exatamente a quantidade informada na conferência (em vez de somar infinitamente se o usuário bipar de novo por engano)
+                            item['qtd_separada'] = int(qtd_input)
+                            item['divergencia'] = item['qtd_separada'] - item['quantidade']
                             
-                            if nova_qtd_proposta == item['quantidade']:
-                                item['qtd_separada'] = nova_qtd_proposta
-                                item['divergencia'] = 0
+                            if item['divergencia'] == 0:
                                 item['autorizado_divergencia'] = True
                                 item['separado'] = True
                             else:
-                                item['qtd_separada'] = nova_qtd_proposta
-                                item['divergencia'] = nova_qtd_proposta - item['quantidade']
                                 item['autorizado_divergencia'] = False
                                 item['separado'] = False
-                                st.warning(f"⚠️ Atenção! Quantidade separada ({nova_qtd_proposta}) diverge da pedida ({item['quantidade']}) para o item '{item['nome']}'. O item foi bloqueado até a digitação da senha.")
+                                dif_tipo = "mais" if item['divergencia'] > 0 else "menos"
+                                st.warning(f"⚠️ Atenção! Quantidade separada ({item['qtd_separada']}) diverge para {dif_tipo} da pedida ({item['quantidade']}) para o item '{item['nome']}'. O item foi bloqueado até a digitação da senha.")
                             break
                     
                     if encontrou:
@@ -555,7 +553,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     st.error("🔒 Existem itens com quantidade incorreta / divergente aguardando correção ou liberação de senha (Senha: 2026):")
                     for it_div in itens_com_divergencia_nao_autorizados:
                         with st.form(f"form_senha_item_{it_div['nome']}"):
-                            st.markdown(f"**Item:** {it_div['nome']} | Pedido: {it_div['quantidade']} | Separado incorretamente: {it_div['qtd_separada']}")
+                            st.markdown(f"**Item:** {it_div['nome']} | Pedido: {it_div['quantidade']} | Separado: {it_div['qtd_separada']} (Divergência: {it_div['divergencia']:+d})")
                             st.info("Dica: Se foi erro de digitação, você pode corrigir clicando abaixo para ajustar a quantidade exata:")
                             
                             corrigir_para_pedida = st.form_submit_button("🔄 Corrigir e Ajustar para Qtd Pedida Automaticamente")
