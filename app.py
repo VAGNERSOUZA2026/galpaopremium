@@ -94,6 +94,30 @@ def salvar_dados(estoque):
     realizar_backup(NOME_ARQUIVO)
     st.session_state.estoque = estoque_ordenado
 
+def sincronizar_estoque_com_pedidos(pedidos, estoque):
+    """Garante que todos os vinhos presentes nos pedidos existam na base de estoque do galpão"""
+    nomes_existentes = {v['nome'].lower() for v in estoque}
+    alterado = False
+    for p in pedidos:
+        for item in p.get('itens', []):
+            nome_item = item.get('nome', '').strip()
+            if nome_item and nome_item.lower() not in nomes_existentes:
+                novo_v = {
+                    "nome": nome_item.title(),
+                    "safra": item.get('safra', ''),
+                    "tipo": "Tinto",
+                    "localizacao": "Corredor 01 - Pallet Item 01",
+                    "lado": "Centro / Único",
+                    "caixa": "Caixa com 12 garrafas",
+                    "codigo_barras": "",
+                    "foto": ""
+                }
+                estoque.append(novo_v)
+                nomes_existentes.add(nome_item.lower())
+                alterado = True
+    if alterado:
+        salvar_dados(estoque)
+
 def carregar_usuarios():
     if os.path.exists(ARQUIVO_USUARIOS):
         try:
@@ -229,6 +253,7 @@ if "usuarios" not in st.session_state:
 
 st.session_state.estoque = carregar_dados()
 st.session_state.pedidos = carregar_pedidos()
+sincronizar_estoque_com_pedidos(st.session_state.pedidos, st.session_state.estoque)
 
 if "menu_atual" not in st.session_state: st.session_state.menu_atual = "🏠 Home"
 if "termo_busca" not in st.session_state: st.session_state.termo_busca = ""
@@ -413,6 +438,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     }
                     st.session_state.pedidos.append(novo_registro_pedido)
                     salvar_pedidos(st.session_state.pedidos)
+                    sincronizar_estoque_com_pedidos(st.session_state.pedidos, st.session_state.estoque)
                     registrar_log(st.session_state.usuario_logado['nome'], "Novo Pedido Matriz", str(id_pedido))
                     st.success(f"Pedido / Mapa {id_pedido} cadastrado e salvo com sucesso!")
                     st.rerun()
@@ -479,6 +505,10 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 if btn_conferir and cod_barras_input:
                     encontrou = False
                     for item in pedido_ativo['itens']:
+                        # Trava de segurança: se o item já foi separado/concluído com sucesso, bloqueia novas adições acidentais
+                        if item.get('separado', False):
+                            continue
+
                         vinho_no_estoque = next((v for v in st.session_state.estoque if v['nome'].lower() in item['nome'].lower() or v.get('codigo_barras') == cod_barras_input), None)
                         
                         match_nome = cod_barras_input.lower() in item['nome'].lower()
@@ -488,14 +518,15 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                             item['qtd_separada'] = item.get('qtd_separada', 0) + qtd_input
                             item['divergencia'] = item['qtd_separada'] - item['quantidade']
                             
-                            # Se a quantidade separada for DIFERENTE da pedida, exige senha individualmente para este item
-                            if item['qtd_separada'] != item['quantidade']:
-                                item['autorizado_divergencia'] = False
-                                st.warning(f"⚠️ O item '{item['nome']}' possui quantidade divergente (Pedida: {item['quantidade']}, Separada: {item['qtd_separada']}). Digite a senha abaixo para autorizar.")
-                            else:
-                                # Se bater certinho com a quantidade pedida, vai direto para conferido sem pedir senha!
+                            # VALIDAÇÃO INTELIGENTE: Se a quantidade separada agora é IGUAL à pedida, limpa a divergência e valida direto!
+                            if item['qtd_separada'] == item['quantidade']:
                                 item['autorizado_divergencia'] = True
                                 item['separado'] = True
+                            else:
+                                # Se continua diferente, exige senha e marca como não autorizado
+                                item['autorizado_divergencia'] = False
+                                item['separado'] = False
+                                st.warning(f"⚠️ O item '{item['nome']}' possui quantidade divergente (Pedida: {item['quantidade']}, Separada: {item['qtd_separada']}). Digite a senha abaixo para autorizar.")
 
                             encontrou = True
                             break
@@ -506,9 +537,9 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         salvar_pedidos(st.session_state.pedidos)
                         st.rerun()
                     else:
-                        st.error("Produto não encontrado neste mapa ou código inválido.")
+                        st.error("Produto já conferido totalmente, não encontrado neste mapa ou código inválido.")
 
-                # Bloco para senha individual apenas dos itens que ficaram com divergência
+                # Bloco para senha individual apenas dos itens que realmente estão com divergência pendente
                 itens_com_divergencia_nao_autorizados = [i for i in pedido_ativo['itens'] if i.get('qtd_separada', 0) != 0 and i.get('qtd_separada', 0) != i['quantidade'] and not i.get('autorizado_divergencia', False)]
                 
                 if itens_com_divergencia_nao_autorizados:
@@ -557,7 +588,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
 
                 st.markdown("---")
                 
-                # RESTAURADO: Colunas lado a lado originais (Esquerda: A Conferir / Direita: Conferidos)
+                # Colunas lado a lado (Esquerda: A Conferir / Direita: Conferidos)
                 col_esq, col_dir = st.columns(2)
                 
                 with col_esq:
