@@ -381,7 +381,7 @@ if st.session_state.menu_atual == "🏠 Home":
 
 elif st.session_state.menu_atual == "PainelMatriz":
     st.subheader("🏢 Painel da Matriz - Acompanhamento de Pedidos")
-    st.markdown("Utilize os filtros abaixo para localizar rapidamente um pedido específico ou filtrá-lo por data.")
+    st.markdown("Utilize os filtros abaixo para buscar um pedido. **Os pedidos só aparecerão após realizar a busca.**")
     
     if not st.session_state.pedidos:
         st.info("Nenhum pedido registrado no sistema.")
@@ -392,39 +392,43 @@ elif st.session_state.menu_atual == "PainelMatriz":
         with col_f2:
             filtro_data = st.text_input("📅 Filtrar por Data (Ex: 22/08/2026)", "").strip()
             
-        pedidos_filtrados = st.session_state.pedidos
-        if filtro_busca_id:
-            pedidos_filtrados = [p for p in pedidos_filtrados if filtro_busca_id.lower() in p['id'].lower()]
-        if filtro_data:
-            pedidos_filtrados = [p for p in pedidos_filtrados if filtro_data in p['data']]
-            
-        if not pedidos_filtrados:
-            st.warning("Nenhum pedido encontrado com os filtros informados.")
+        # Garante que só exibe se houver termo digitado
+        if not filtro_busca_id and not filtro_data:
+            st.info("💡 Digite um número de pedido ou data nos campos acima para visualizar os registros.")
         else:
-            for p in pedidos_filtrados:
-                status_col = "#2E7D32" if "Concluído" in p.get('status', '') else "#7A1C2E"
-                st.markdown(f"""
-                <div style='background: #FFF; padding: 15px; border-radius: 10px; border: 1px solid #E9ECEF; margin-bottom: 15px;'>
-                    <b>Mapa / Pedido Nº {p['id']}</b> | Data: {p['data']} | Status: <b style='color: {status_col};'>{p.get('status', 'Pendente')}</b>
-                </div>
-                """, unsafe_allow_html=True)
+            pedidos_filtrados = st.session_state.pedidos
+            if filtro_busca_id:
+                pedidos_filtrados = [p for p in pedidos_filtrados if filtro_busca_id.lower() in p['id'].lower()]
+            if filtro_data:
+                pedidos_filtrados = [p for p in pedidos_filtrados if filtro_data in p['data']]
                 
-                df_itens = []
-                for item in p['itens']:
-                    dif = item.get('divergencia', 0)
-                    if item.get('extra', False):
-                        dif_str = "(Extra)"
-                    else:
-                        dif_str = f"({dif:+d})" if dif != 0 else "(0)"
-                    df_itens.append({
-                        "Produto": item['nome'],
-                        "Safra": item.get('safra', 'N/A'),
-                        "Qtd Pedida": item['quantidade'],
-                        "Qtd Separada": item.get('qtd_separada', 0),
-                        "Divergência": dif_str
-                    })
-                st.dataframe(pd.DataFrame(df_itens), use_container_width=True)
-                st.markdown("---")
+            if not pedidos_filtrados:
+                st.warning("Nenhum pedido encontrado com os filtros informados.")
+            else:
+                for p in pedidos_filtrados:
+                    status_col = "#2E7D32" if "Concluído" in p.get('status', '') else "#7A1C2E"
+                    st.markdown(f"""
+                    <div style='background: #FFF; padding: 15px; border-radius: 10px; border: 1px solid #E9ECEF; margin-bottom: 15px;'>
+                        <b>Mapa / Pedido Nº {p['id']}</b> | Data: {p['data']} | Status: <b style='color: {status_col};'>{p.get('status', 'Pendente')}</b>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    df_itens = []
+                    for item in p['itens']:
+                        dif = item.get('divergencia', 0)
+                        if item.get('extra', False):
+                            dif_str = "(Extra)"
+                        else:
+                            dif_str = f"({dif:+d})" if dif != 0 else "(0)"
+                        df_itens.append({
+                            "Produto": item['nome'],
+                            "Safra": item.get('safra', 'N/A'),
+                            "Qtd Pedida": item['quantidade'],
+                            "Qtd Separada": item.get('qtd_separada', 0),
+                            "Divergência": dif_str
+                        })
+                    st.dataframe(pd.DataFrame(df_itens), use_container_width=True)
+                    st.markdown("---")
 
 elif st.session_state.menu_atual == "PedidosMatriz":
     st.subheader("📦 Checkout de Expedição - Separação de Vinho Galpão")
@@ -716,7 +720,7 @@ elif st.session_state.menu_atual == "Cadastrar":
         tipo_c = st.selectbox("Tipo", ["Tinto", "Branco", "Rosé", "Espumante", "Fortificado"])
         corredor_c = st.selectbox("Corredor", LISTA_CORREDORES)
         tipo_local_c = st.selectbox("Tipo de Local", LISTA_LOCAIS_TIPO)
-        num_local_c = st.selectbox("Número du Local", LISTA_NUMEROS_LOCAL)
+        num_local_c = st.selectbox("Número do Local", LISTA_NUMEROS_LOCAL)
         lado_c = st.selectbox("Lado", LISTA_LADOS)
         caixa_c = st.selectbox("Embalagem", OPCOES_CAIXA)
         bc_c = st.text_input("Código de Barras").strip()
