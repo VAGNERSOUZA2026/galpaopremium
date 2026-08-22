@@ -37,9 +37,10 @@ st.markdown(
     .wine-title { color: #7A1C2E; font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; }
     .stButton button { background-color: #7A1C2E !important; color: #FFFFFF !important; border-radius: 12px !important; font-weight: 600 !important; border: none !important; padding: 10px 16px !important; width: 100%; white-space: pre-wrap; }
     
-    /* Estilização moderna da tela inicial para eliminar espaços vazios */
-    .hero-container { background: #FFFFFF; padding: 40px; border-radius: 24px; box-shadow: 0px 10px 30px rgba(122, 28, 46, 0.06); border: 1px solid #E9ECEF; max-width: 950px; margin: 20px auto; text-align: center; }
-    .login-container { background: #FFFFFF; padding: 30px; border-radius: 20px; box-shadow: 0px 8px 24px rgba(122, 28, 46, 0.08); border: 1px solid #E9ECEF; }
+    /* Layout centralizado e limpo, eliminando o excesso de branco na tela inicial */
+    .hero-container { background: #FFFFFF; padding: 25px 30px; border-radius: 20px; box-shadow: 0px 6px 20px rgba(122, 28, 46, 0.06); border: 1px solid #E9ECEF; max-width: 900px; margin: 10px auto; text-align: center; }
+    .login-wrapper { display: flex; justify-content: center; align-items: center; min-height: 75vh; }
+    .login-container { background: #FFFFFF; padding: 30px; border-radius: 20px; box-shadow: 0px 8px 24px rgba(122, 28, 46, 0.08); border: 1px solid #E9ECEF; width: 100%; max-width: 420px; text-align: center; margin: auto; }
     </style>
 """, unsafe_allow_html=True,
 )
@@ -126,7 +127,10 @@ def carregar_usuarios():
         try:
             with open(ARQUIVO_USUARIOS, "r", encoding="utf-8") as f: return json.load(f)
         except: pass
-    return [{"nome": "Vagner Souza", "cargo": "Desenvolvedor", "senha": "1980"}]
+    return [
+        {"nome": "Vagner Souza", "cargo": "Desenvolvedor", "senha": "1980"},
+        {"nome": "Ronald", "cargo": "Operador", "senha": "123"}
+    ]
 
 def salvar_usuarios(usuarios):
     with open(ARQUIVO_USUARIOS, "w", encoding="utf-8") as f: json.dump(usuarios, f, ensure_ascii=False, indent=4)
@@ -287,34 +291,25 @@ if "usuario_logado" not in st.session_state or st.session_state.usuario_logado i
         st.session_state.usuario_logado = None
 
 if st.session_state.usuario_logado is None:
-    st.write("")
-    _, cc, _ = st.columns([1, 1.4, 1])
-    with cc:
-        st.markdown("<div class='login-container'>", unsafe_allow_html=True)
-        if os.path.exists("imagem premium.jpeg"):
-            _, ci, _ = st.columns([1, 1.8, 1])
-            with ci: st.image("imagem premium.jpeg", width=180)
-        st.markdown("<h1 style='text-align: center; color: #7A1C2E; font-size: 1.4rem; margin-top: 10px;'>SEPARAÇÃO DE VINHO GALPÃO</h1>", unsafe_allow_html=True)
-        
-        with st.form("l_form"):
-            u = st.text_input("Usuário").strip().title()
-            p = st.text_input("Senha", type="password").strip()
-            if st.form_submit_button("ENTRAR", use_container_width=True):
-                if p == SENHA_DEV:
-                    dev_user = {"nome": u if u else "Desenvolvedor", "cargo": "Desenvolvedor"}
-                    st.session_state.usuario_logado = dev_user
-                    st.query_params["user"] = dev_user['nome']
-                    st.query_params["cargo"] = "Desenvolvedor"
-                    st.rerun()
-                else:
-                    user = next((x for x in st.session_state.usuarios if x['nome'].lower() == u.lower() and x['senha'] == p), None)
-                    if user:
-                        st.session_state.usuario_logado = user
-                        st.query_params["user"] = user['nome']
-                        st.query_params["cargo"] = user.get('cargo', 'Operador')
-                        st.rerun()
-                    else: st.error("Dados incorretos.")
-        st.markdown("</div>", unsafe_allow_html=True)
+    st.markdown("<div class='login-wrapper'>", unsafe_allow_html=True)
+    st.markdown("<div class='login-container'>", unsafe_allow_html=True)
+    if os.path.exists("imagem premium.jpeg"):
+        st.image("imagem premium.jpeg", width=140)
+    st.markdown("<h1 style='text-align: center; color: #7A1C2E; font-size: 1.3rem; margin-top: 10px;'>SEPARAÇÃO DE VINHO GALPÃO</h1>", unsafe_allow_html=True)
+    
+    with st.form("l_form"):
+        u = st.text_input("Usuário").strip()
+        p = st.text_input("Senha", type="password").strip()
+        if st.form_submit_button("ENTRAR", use_container_width=True):
+            user = next((x for x in st.session_state.usuarios if x['nome'].lower() == u.lower() and x['senha'] == p), None)
+            if user:
+                st.session_state.usuario_logado = user
+                st.query_params["user"] = user['nome']
+                st.query_params["cargo"] = user.get('cargo', 'Operador')
+                st.rerun()
+            else: 
+                st.error("Usuário ou senha incorretos.")
+    st.markdown("</div></div>", unsafe_allow_html=True)
     st.stop()
 
 ct1, ct2, ct3 = st.columns([3, 2, 1])
@@ -331,18 +326,17 @@ with ct3:
 
 st.markdown("---")
 
-# Validação estrita e isolada para Desenvolvedor
+# Validação RIGOROSA e exclusivamente baseada no cargo cadastrado do usuário logado
 cargo_atual = str(st.session_state.usuario_logado.get('cargo', '')).strip().lower()
-nome_atual = str(st.session_state.usuario_logado.get('nome', '')).strip().lower()
-is_desenvolvedor = (cargo_atual == "desenvolvedor" or nome_atual in ["dev", "vagner souza", "desenvolvedor"])
+is_desenvolvedor = (cargo_atual == "desenvolvedor")
 
 if st.session_state.menu_atual == "🏠 Home":
     st.markdown("<div class='hero-container'>", unsafe_allow_html=True)
     if os.path.exists("imagem premium.jpeg"):
-        st.image("imagem premium.jpeg", width=140)
-    st.markdown(f"<p style='color: #666; margin-bottom: 0px; font-size: 1rem;'>{obter_saudacao()},</p>", unsafe_allow_html=True)
-    st.markdown(f"<h1 style='color: #7A1C2E; margin-top: 0px; font-size: 2rem;'>{st.session_state.usuario_logado['nome']}! 👋</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='color: #555; font-size: 1rem; margin-bottom: 25px;'>Sistema de Separação de Vinhos - Galpão. Selecione abaixo a operação desejada:</p>", unsafe_allow_html=True)
+        st.image("imagem premium.jpeg", width=110)
+    st.markdown(f"<p style='color: #666; margin-bottom: 0px; font-size: 0.95rem;'>{obter_saudacao()},</p>", unsafe_allow_html=True)
+    st.markdown(f"<h1 style='color: #7A1C2E; margin-top: 0px; font-size: 1.8rem;'>{st.session_state.usuario_logado['nome']}! 👋</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='color: #555; font-size: 0.95rem; margin-bottom: 20px;'>Sistema de Separação de Vinhos - Galpão. Selecione abaixo a operação desejada:</p>", unsafe_allow_html=True)
     
     c1, c2, c3 = st.columns(3)
     with c1:
@@ -372,7 +366,56 @@ if st.session_state.menu_atual == "🏠 Home":
             if st.button("⚙️ Painel Dev / Limpeza", use_container_width=True):
                 st.session_state.menu_atual = "PainelDev"
                 st.rerun()
+                
+    if is_desenvolvedor:
+        st.write("")
+        _, cc_adm, _ = st.columns([1, 1.2, 1])
+        with cc_adm:
+            if st.button("👥 Gerenciar Contas de Acesso", use_container_width=True):
+                st.session_state.menu_atual = "GerenciarContas"
+                st.rerun()
+                
     st.markdown("</div>", unsafe_allow_html=True)
+
+elif st.session_state.menu_atual == "GerenciarContas" and is_desenvolvedor:
+    st.subheader("👥 Gerenciamento de Contas e Usuários")
+    st.markdown("Cadastre novos operadores ou desenvolvedores, defina senhas e remova acessos.")
+    
+    with st.form("form_novo_usuario", clear_on_submit=True):
+        novo_nome_usr = st.text_input("Nome do Usuário (Ex: Ronald, Maria)").strip().title()
+        novo_cargo_usr = st.selectbox("Cargo", ["Operador", "Desenvolvedor"])
+        nova_senha_usr = st.text_input("Senha de Acesso", type="password").strip()
+        
+        if st.form_submit_button("➕ Cadastrar Novo Usuário"):
+            if novo_nome_usr and nova_senha_usr:
+                usuario_existente = next((u for u in st.session_state.usuarios if u['nome'].lower() == novo_nome_usr.lower()), None)
+                if usuario_existente:
+                    st.error("Já existe um usuário cadastrado com esse nome.")
+                else:
+                    st.session_state.usuarios.append({"nome": novo_nome_usr, "cargo": novo_cargo_usr, "senha": nova_senha_usr})
+                    salvar_usuarios(st.session_state.usuarios)
+                    registrar_log(st.session_state.usuario_logado['nome'], "Cadastrou Novo Usuário", f"{novo_nome_usr} ({novo_cargo_usr})")
+                    st.success(f"Usuário {novo_nome_usr} cadastrado com sucesso!")
+                    st.rerun()
+            else:
+                st.error("Preencha o nome e a senha.")
+                
+    st.markdown("---")
+    st.markdown("#### Usuários Atuais Cadastrados")
+    for u in st.session_state.usuarios:
+        col_u1, col_u2, col_u3 = st.columns([2, 2, 1])
+        with col_u1:
+            st.markdown(f"**{u['nome']}**")
+        with col_u2:
+            st.markdown(f"Cargo: *{u.get('cargo', 'Operador')}*")
+        with col_u3:
+            if u['nome'].lower() not in ["vagner souza", "dev"] and u['nome'] != st.session_state.usuario_logado['nome']:
+                if st.button("🗑️ Excluir", key=f"del_u_{u['nome']}"):
+                    st.session_state.usuarios = [x for x in st.session_state.usuarios if x['nome'] != u['nome']]
+                    salvar_usuarios(st.session_state.usuarios)
+                    registrar_log(st.session_state.usuario_logado['nome'], "Excluiu Usuário", u['nome'])
+                    st.success(f"Usuário {u['nome']} removido!")
+                    st.rerun()
 
 elif st.session_state.menu_atual == "PainelDev" and is_desenvolvedor:
     st.subheader("⚙️ Painel do Desenvolvedor - Gerenciamento de Testes")
@@ -380,7 +423,7 @@ elif st.session_state.menu_atual == "PainelDev" and is_desenvolvedor:
     
     with st.form("form_zerar_sistema"):
         st.warning("⚠️ Cuidado: Esta ação irá apagar todos os estoques cadastrados, pedidos e logs de teste.")
-        senha_conf_dev = st.text_input("Digite a senha de confirmação (1980):", type="password")
+        senha_conf_dev = st.text_input("Digite a senha de confirmação do desenvolvedor (1980):", type="password")
         
         col_z1, col_z2, col_z3 = st.columns(3)
         with col_z1:
