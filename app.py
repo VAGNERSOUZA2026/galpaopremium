@@ -164,30 +164,79 @@ def salvar_pedidos(pedidos):
     with open(ARQUIVO_PEDIDOS, "w", encoding="utf-8") as f: json.dump(pedidos, f, ensure_ascii=False, indent=4)
 
 def interpretar_linha_pedido(texto_linha):
+    """
+    Melhoria para facilitar a digitação rápida.
+    Aceita formatos como:
+    - Fabre Malbec Rose / 2024 / 5 caixas
+    - Fabre Malbec Rose - 2024 - 5
+    - Fabre Malbec Rose 2024 / 5
+    """
     texto = texto_linha.strip()
     safra = ""
     quantidade = 1
     
-    anos = re.findall(r'\b(20\d{2})\b', texto)
-    if anos:
-        safra = anos[0]
-        texto_limpo = texto.replace(safra, "")
+    # Divide a linha por barras ou hífens para pegar partes distintas (Nome / Safra / Quantidade)
+    partes = re.split(r'[/\|–\-]', texto)
+    partes = [p.strip() for p in partes if p.strip()]
+    
+    nome = ""
+    if len(partes) >= 3:
+        # Parte 1: Nome, Parte 2: Safra, Parte 3: Quantidade
+        nome = partes[0]
+        safra_candidata = partes[1]
+        if re.match(r'^(20\d{2})$', safra_candidata):
+            safra = safra_candidata
+        
+        # Pega números da terceira parte (ex: "5 caixas" vira 5)
+        nums_qtd = re.findall(r'\d+', partes[2])
+        if nums_qtd:
+            quantidade = int(nums_qtd[0])
+            
+    elif len(partes) == 2:
+        nome = partes[0]
+        # Pode ser (Safra e Qtd na parte 2) ou (Nome e Safra/Qtd)
+        anos = re.findall(r'\b(20\d{2})\b', partes[1])
+        if anos:
+            safra = anos[0]
+        
+        nums = re.findall(r'\d+', partes[1])
+        if nums:
+            # Se encontrou um número que não é a safra, ele é a quantidade
+            for n in nums:
+                if n != safra:
+                    quantidade = int(n)
+                    break
     else:
-        texto_limpo = texto
+        # Linha corrida sem separadores claros, usa detecção inteligente por regex antiga
+        anos = re.findall(r'\b(20\d{2})\b', texto)
+        if anos:
+            safra = anos[0]
+            texto_limpo = texto.replace(safra, "")
+        else:
+            texto_limpo = texto
 
-    match_qtd = re.search(r'(?:/|\bcaixas?|\bqt[d]?\.?)\s*(\d+)', texto_limpo, re.IGNORECASE)
-    if match_qtd:
-        quantidade = int(match_qtd.group(1))
-        texto_limpo = texto_limpo.replace(match_qtd.group(0), "")
-    else:
-        numeros_soltos = re.findall(r'\b(\d+)\b', texto_limpo)
-        if numeros_soltos and numeros_soltos[-1] != safra:
-            quantidade = int(numeros_soltos[-1])
-            texto_limpo = texto_limpo.replace(numeros_soltos[-1], "")
+        match_qtd = re.search(r'(?:/|\bcaixas?|\bqt[d]?\.?)\s*(\d+)', texto_limpo, re.IGNORECASE)
+        if match_qtd:
+            quantidade = int(match_qtd.group(1))
+            texto_limpo = texto_limpo.replace(match_qtd.group(0), "")
+        else:
+            numeros_soltos = re.findall(r'\b(\d+)\b', texto_limpo)
+            if numeros_soltos and numeros_soltos[-1] != safra:
+                quantidade = int(numeros_soltos[-1])
+                texto_limpo = texto_limpo.replace(numeros_soltos[-1], "")
 
-    texto_limpo = re.sub(r'\bcaixas?\b', '', texto_limpo, flags=re.IGNORECASE)
-    nome = re.sub(r'[/\|\-\–]+', '', texto_limpo).strip().title()
-    return {"nome": nome, "safra": safra, "quantidade": quantidade, "separado": False, "qtd_separada": 0, "divergencia": 0, "autorizado_divergencia": False}
+        texto_limpo = re.sub(r'\bcaixas?\b', '', texto_limpo, flags=re.IGNORECASE)
+        nome = re.sub(r'[/\|\-\–]+', '', texto_limpo).strip()
+
+    return {
+        "nome": nome.title(), 
+        "safra": safra, 
+        "quantidade": quantidade, 
+        "separado": False, 
+        "qtd_separada": 0, 
+        "divergencia": 0, 
+        "autorizado_divergencia": False
+    }
 
 def extrair_pedidos_de_arquivo(arq):
     itens = []
@@ -426,14 +475,19 @@ elif st.session_state.menu_atual == "PedidosMatriz":
     aba_ped1, aba_ped2 = st.tabs(["📋 Enviar / Cadastrar / Excluir Pedidos", "🔍 Conferência (Checkout de Expedição)"])
     
     with aba_ped1:
-        st.markdown("Cadastre o mapa de separação enviado pela matriz (via arquivo Excel, TXT ou digitação manual).")
+        st.markdown("Cadastre o mapa de separação enviado pela matriz (via arquivo Excel, TXT ou digitação manual rápida).")
         proximo_numero = len(st.session_state.pedidos) + 1
         id_sugerido = f"123{proximo_numero:03d}"
         
         with st.form("form_novo_pedido"):
             id_pedido = st.text_input("Código de Barras do Mapa (Ex: 1234552)", value=id_sugerido)
             arq_pedido = st.file_uploader("Arquivo de Pedido (Excel ou TXT)", type=["xlsx", "xls", "txt"])
-            texto_manual_pedido = st.text_area("Ou digite os itens (Ex: Faleria Pinot Noir Reserva 23 / 1 Caixa)")
+            
+            # Campo com dica de preenchimento rápido atualizada
+            texto_manual_pedido = st.text_area(
+                "Ou digite um item por linha no formato rápido (Nome / Safra / Qtd):",
+                value="Fabre Malbec Rose / 2024 / 5 caixas"
+            )
             
             if st.form_submit_button("💾 Salvar Pedido no Sistema"):
                 itens_novos = []
