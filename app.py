@@ -164,50 +164,37 @@ def salvar_pedidos(pedidos):
     with open(ARQUIVO_PEDIDOS, "w", encoding="utf-8") as f: json.dump(pedidos, f, ensure_ascii=False, indent=4)
 
 def interpretar_linha_pedido(texto_linha):
-    """
-    Melhoria para facilitar a digitação rápida.
-    Aceita formatos como:
-    - Fabre Malbec Rose / 2024 / 5 caixas
-    - Fabre Malbec Rose - 2024 - 5
-    - Fabre Malbec Rose 2024 / 5
-    """
     texto = texto_linha.strip()
     safra = ""
     quantidade = 1
     
-    # Divide a linha por barras ou hífens para pegar partes distintas (Nome / Safra / Quantidade)
     partes = re.split(r'[/\|–\-]', texto)
     partes = [p.strip() for p in partes if p.strip()]
     
     nome = ""
     if len(partes) >= 3:
-        # Parte 1: Nome, Parte 2: Safra, Parte 3: Quantidade
         nome = partes[0]
         safra_candidata = partes[1]
         if re.match(r'^(20\d{2})$', safra_candidata):
             safra = safra_candidata
         
-        # Pega números da terceira parte (ex: "5 caixas" vira 5)
         nums_qtd = re.findall(r'\d+', partes[2])
         if nums_qtd:
             quantidade = int(nums_qtd[0])
             
     elif len(partes) == 2:
         nome = partes[0]
-        # Pode ser (Safra e Qtd na parte 2) ou (Nome e Safra/Qtd)
         anos = re.findall(r'\b(20\d{2})\b', partes[1])
         if anos:
             safra = anos[0]
         
         nums = re.findall(r'\d+', partes[1])
         if nums:
-            # Se encontrou um número que não é a safra, ele é a quantidade
             for n in nums:
                 if n != safra:
                     quantidade = int(n)
                     break
     else:
-        # Linha corrida sem separadores claros, usa detecção inteligente por regex antiga
         anos = re.findall(r'\b(20\d{2})\b', texto)
         if anos:
             safra = anos[0]
@@ -483,7 +470,6 @@ elif st.session_state.menu_atual == "PedidosMatriz":
             id_pedido = st.text_input("Código de Barras do Mapa (Ex: 1234552)", value=id_sugerido)
             arq_pedido = st.file_uploader("Arquivo de Pedido (Excel ou TXT)", type=["xlsx", "xls", "txt"])
             
-            # Campo com dica de preenchimento rápido atualizada
             texto_manual_pedido = st.text_area(
                 "Ou digite um item por linha no formato rápido (Nome / Safra / Qtd):",
                 value="Fabre Malbec Rose / 2024 / 5 caixas"
@@ -657,31 +643,33 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                                 st.error("Senha incorreta ou em branco. Digite 2026 e clique explicitamente no botão.")
                         st.markdown("---")
 
+                # CORREÇÃO APLICADA AQUI: Removido o st.form para evitar o envio acidental ao apertar Enter no campo de senha
                 with st.expander("➕ Inserção Manual Extra (Solicitação de Trajeto / Adicionar Vinho Não Listado)"):
-                    with st.form(f"form_vinho_extra_{pedido_ativo['id']}"):
-                        nome_extra = st.text_input("Nome do Vinho Extra").strip().title()
-                        qtd_extra = st.number_input("Quantidade", min_value=1, value=1)
-                        senha_extra = st.text_input("Senha de Liberação (2026)", type="password")
-                        if st.form_submit_button("Adicionar ao Pedido com Senha"):
-                            if nome_extra:
-                                if senha_extra == SENHA_DIVERGENCIA:
-                                    novo_item_extra = {
-                                        "nome": nome_extra,
-                                        "safra": "Extra",
-                                        "quantidade": 0,
-                                        "separado": True,
-                                        "qtd_separada": qtd_extra,
-                                        "divergencia": qtd_extra,
-                                        "autorizado_divergencia": True
-                                    }
-                                    pedido_ativo['itens'].append(novo_item_extra)
-                                    salvar_pedidos(st.session_state.pedidos)
-                                    st.success("Vinho extra incluído e autorizado com sucesso!")
-                                    st.rerun()
-                                else:
-                                    st.error("Senha incorreta para item extra. Digite 2026.")
+                    nome_extra = st.text_input("Nome do Vinho Extra", key=f"extra_nome_{pedido_ativo['id']}").strip().title()
+                    qtd_extra = st.number_input("Quantidade", min_value=1, value=1, key=f"extra_qtd_{pedido_ativo['id']}")
+                    senha_extra = st.text_input("Senha de Liberação (2026)", type="password", key=f"extra_senha_{pedido_ativo['id']}")
+                    
+                    st.write("")
+                    if st.button("Adicionar ao Pedido com Senha", key=f"btn_extra_submit_{pedido_ativo['id']}"):
+                        if nome_extra:
+                            if senha_extra == SENHA_DIVERGENCIA:
+                                novo_item_extra = {
+                                    "nome": nome_extra,
+                                    "safra": "Extra",
+                                    "quantidade": 0,
+                                    "separado": True,
+                                    "qtd_separada": qtd_extra,
+                                    "divergencia": qtd_extra,
+                                    "autorizado_divergencia": True
+                                }
+                                pedido_ativo['itens'].append(novo_item_extra)
+                                salvar_pedidos(st.session_state.pedidos)
+                                st.success("Vinho extra incluído e autorizado com sucesso!")
+                                st.rerun()
                             else:
-                                st.error("Informe o nome do vinho.")
+                                st.error("Senha incorreta para item extra. Digite 2026.")
+                        else:
+                            st.error("Informe o nome do vinho.")
 
                 st.markdown("---")
                 
