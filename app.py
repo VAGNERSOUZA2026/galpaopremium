@@ -643,18 +643,23 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                                 st.error("Senha incorreta ou em branco. Digite 2026 e clique explicitamente no botão.")
                         st.markdown("---")
 
-                # Inserção Manual Extra convertida para campos normais sem st.form para limpar perfeitamente ao submeter
-                with st.expander("➕ Inserção Manual Extra (Solicitação de Trajeto / Adicionar Vinho Não Listado)"):
-                    if f"extra_nome_{pedido_ativo['id']}" not in st.session_state:
-                        st.session_state[f"extra_nome_{pedido_ativo['id']}"] = ""
-                    if f"extra_qtd_{pedido_ativo['id']}" not in st.session_state:
-                        st.session_state[f"extra_qtd_{pedido_ativo['id']}"] = 1
-                    if f"extra_senha_{pedido_ativo['id']}" not in st.session_state:
-                        st.session_state[f"extra_senha_{pedido_ativo['id']}"] = ""
+                # Inicialização antecipada das chaves do formulário extra no session_state para evitar o erro do Streamlit
+                k_nome = f"extra_nome_{pedido_ativo['id']}"
+                k_qtd = f"extra_qtd_{pedido_ativo['id']}"
+                k_senha = f"extra_senha_{pedido_ativo['id']}"
 
-                    nome_extra = st.text_input("Nome do Vinho Extra", key=f"extra_nome_{pedido_ativo['id']}").strip().title()
-                    qtd_extra = st.number_input("Quantidade", min_value=1, key=f"extra_qtd_{pedido_ativo['id']}")
-                    senha_extra = st.text_input("Senha de Liberação (2026)", type="password", key=f"extra_senha_{pedido_ativo['id']}")
+                if k_nome not in st.session_state:
+                    st.session_state[k_nome] = ""
+                if k_qtd not in st.session_state:
+                    st.session_state[k_qtd] = 1
+                if k_senha not in st.session_state:
+                    st.session_state[k_senha] = ""
+
+                # Inserção Manual Extra convertida para campos normais sem st.form
+                with st.expander("➕ Inserção Manual Extra (Solicitação de Trajeto / Adicionar Vinho Não Listado)"):
+                    nome_extra = st.text_input("Nome do Vinho Extra", key=k_nome).strip().title()
+                    qtd_extra = st.number_input("Quantidade", min_value=1, key=k_qtd)
+                    senha_extra = st.text_input("Senha de Liberação (2026)", type="password", key=k_senha)
                     
                     st.write("")
                     if st.button("Adicionar ao Pedido com Senha", key=f"btn_extra_submit_{pedido_ativo['id']}"):
@@ -672,10 +677,10 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                                 pedido_ativo['itens'].append(novo_item_extra)
                                 salvar_pedidos(st.session_state.pedidos)
                                 
-                                # Limpa explicitamente o estado para apagar o formulário da tela
-                                st.session_state[f"extra_nome_{pedido_ativo['id']}"] = ""
-                                st.session_state[f"extra_qtd_{pedido_ativo['id']}"] = 1
-                                st.session_state[f"extra_senha_{pedido_ativo['id']}"] = ""
+                                # Limpa os valores definindo novas strings vazias e recarrega de forma limpa
+                                st.session_state[k_nome] = ""
+                                st.session_state[k_qtd] = 1
+                                st.session_state[k_senha] = ""
                                 
                                 st.success("Vinho extra incluído e autorizado com sucesso!")
                                 st.rerun()
