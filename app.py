@@ -511,13 +511,19 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         else:
                             cod_barras_input = st.text_input("*Código de Barras ou Nome", value="", key="input_bipagem_checkout")
                 with col_b2:
-                    qtd_input = st.number_input("*Qtd", min_value=1, value=1, key="input_qtd_checkout")
+                    # CORREÇÃO DEFINITIVA DO NUMBER INPUT VIA SESSION_STATE
+                    if "input_qtd_checkout" not in st.session_state:
+                        st.session_state.input_qtd_checkout = 1
+                    qtd_input = st.number_input("*Qtd", min_value=1, key="input_qtd_checkout")
                 with col_b3:
                     st.write("")
                     btn_conferir = st.button("Conferir", use_container_width=True)
                 
                 if btn_conferir and cod_barras_input and cod_barras_input != "-- Selecione ou Digite --":
                     encontrou = False
+                    # CAPTURA BLINDADA DIRETAMENTE DO ESTADO DA SESSÃO
+                    qtd_real_informada = int(st.session_state.get("input_qtd_checkout", 1))
+                    
                     for item in pedido_ativo['itens']:
                         if item.get('separado', False) and item.get('divergencia', 0) == 0:
                             continue
@@ -529,8 +535,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         
                         if match_nome or match_bc:
                             encontrou = True
-                            # CORREÇÃO CRUCIAL AQUI: Captura exata do valor digitado em qtd_input
-                            item['qtd_separada'] = int(qtd_input)
+                            item['qtd_separada'] = qtd_real_informada
                             item['divergencia'] = item['qtd_separada'] - item['quantidade']
                             
                             if item['divergencia'] == 0:
