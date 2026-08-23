@@ -376,15 +376,27 @@ if st.session_state.menu_atual == "🏠 Home":
 
 elif st.session_state.menu_atual == "PainelMatriz":
     st.subheader("🏢 Painel da Matriz - Acompanhamento de Pedidos")
-    st.markdown("Aqui a Matriz visualiza em tempo real todos os pedidos salvos, finalizados e as divergências de quantidade registradas pelo galpão.")
+    st.markdown("Selecione abaixo o número do pedido que deseja visualizar (o mais recente aparece selecionado por padrão):")
     
     if not st.session_state.pedidos:
         st.info("Nenhum pedido registrado no sistema.")
     else:
-        for p in st.session_state.pedidos:
+        mapas_disponiveis = [p['id'] for p in st.session_state.pedidos]
+        
+        c_sel1, _ = st.columns([2, 2])
+        with c_sel1:
+            pedido_selecionado_id = st.selectbox(
+                "🔍 Selecionar Pedido / Mapa para Conferir:",
+                mapas_disponiveis,
+                index=len(mapas_disponiveis) - 1
+            )
+            
+        p = next((item for item in st.session_state.pedidos if item['id'] == pedido_selecionado_id), None)
+        
+        if p:
             status_col = "#2E7D32" if p.get('status') == "Concluído / Expedido" else "#7A1C2E"
             st.markdown(f"""
-            <div style='background: #FFF; padding: 15px; border-radius: 10px; border: 1px solid #E9ECEF; margin-bottom: 15px;'>
+            <div style='background: #FFF; padding: 15px; border-radius: 10px; border: 1px solid #E9ECEF; margin-top: 15px; margin-bottom: 15px;'>
                 <b>Mapa / Pedido Nº {p['id']}</b> | Data: {p['data']} | Status: <b style='color: {status_col};'>{p.get('status', 'Pendente')}</b>
             </div>
             """, unsafe_allow_html=True)
@@ -407,7 +419,6 @@ elif st.session_state.menu_atual == "PainelMatriz":
                     "Divergência": dif_str
                 })
             st.dataframe(pd.DataFrame(df_itens), use_container_width=True)
-            st.markdown("---")
 
 elif st.session_state.menu_atual == "PedidosMatriz":
     st.subheader("📦 Checkout de Expedição - Separação de Vinho Galpão")
@@ -468,9 +479,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
         if not st.session_state.pedidos:
             st.warning("Nenhum pedido cadastrado no sistema. Cadastre na aba anterior.")
         else:
-            # Seleção otimizada: Ordena os pedidos e seleciona por padrão o último (mais recente) lançado
             mapas_disponiveis = [p['id'] for p in st.session_state.pedidos]
-            ultimo_pedido_id = mapas_disponiveis[-1] # O último da lista é o mais recente lançado
             
             c_top1, _ = st.columns([2, 2])
             with c_top1:
@@ -684,7 +693,7 @@ elif st.session_state.menu_atual == "Filtros":
     
     resultados = []
     for v in estoque:
-        match_termo = termo.lower() in v['nome'].lower() or termo.lower() in v.get('safra', '').lower() or termo.lower() in v.get('tipo', '').lower()  # noqa: E501
+        match_termo = termo.lower() in v['nome'].lower() or termo.lower() in v.get('safra', '').lower() or termo.lower() in v.get('tipo', '').lower()
         match_tipo = tipo_filtro == "Todos" or v.get('tipo') == tipo_filtro
         
         if match_termo and match_tipo:
