@@ -497,13 +497,14 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 
                 itens_pendentes_lista = [i['nome'] for i in pedido_ativo['itens'] if not i.get('separado', False)]
                 
+                # REMOVIDO st.form daqui para garantir que o número exato seja capturado em tempo real sem conflitos de foco ou cache
                 col_b1, col_b2, col_b3 = st.columns([2, 1, 1])
                 with col_b1:
                     if modo_leitura == "📷 Câmera do Celular":
                         cod_barras_input = st.text_input("*Código de Barras ou Nome", value=codigo_capturado, key="input_bipagem_checkout")
                     else:
                         if itens_pendentes_lista:
-                            opcao_selecionada_dropdown = st.selectbox("*Selecione o Vinho da Lista ou Digite/Bipe", ["-- Selecione ou Digite --"] + itens_pendentes_lista)
+                            opcao_selecionada_dropdown = st.selectbox("*Selecione o Vinho da Lista ou Digite/Bipe", ["-- Selecione ou Digite --"] + itens_pendentes_lista, key="select_vinho_checkout")
                             if opcao_selecionada_dropdown != "-- Selecione ou Digite --":
                                 cod_barras_input = opcao_selecionada_dropdown
                             else:
@@ -511,7 +512,6 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         else:
                             cod_barras_input = st.text_input("*Código de Barras ou Nome", value="", key="input_bipagem_checkout")
                 with col_b2:
-                    # CORREÇÃO DEFINITIVA DO NUMBER INPUT VIA SESSION_STATE
                     if "input_qtd_checkout" not in st.session_state:
                         st.session_state.input_qtd_checkout = 1
                     qtd_input = st.number_input("*Qtd", min_value=1, key="input_qtd_checkout")
@@ -521,7 +521,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 
                 if btn_conferir and cod_barras_input and cod_barras_input != "-- Selecione ou Digite --":
                     encontrou = False
-                    # CAPTURA BLINDADA DIRETAMENTE DO ESTADO DA SESSÃO
+                    # CAPTURA BLINDADA DO VALOR ATUAL DO SESSION STATE
                     qtd_real_informada = int(st.session_state.get("input_qtd_checkout", 1))
                     
                     for item in pedido_ativo['itens']:
@@ -562,6 +562,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     st.markdown("---")
                     st.error("🔒 Existem itens com quantidade incorreta / divergente aguardando correção ou liberação de senha (Senha: 2026):")
                     for it_div in itens_com_divergencia_nao_autorizados:
+                        # Para os formulários de senha, mantemos st.form pois ali o input é de texto de senha
                         with st.form(f"form_senha_item_{it_div['nome']}"):
                             st.markdown(f"**Item:** {it_div['nome']} | Pedido: {it_div['quantidade']} | Separado: {it_div['qtd_separada']} (Divergência: {it_div['divergencia']:+d})")
                             st.info("Dica: Se foi erro de digitação, você pode corrigir clicando abaixo para ajustar a quantidade exata:")
