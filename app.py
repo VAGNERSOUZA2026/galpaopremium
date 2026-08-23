@@ -643,10 +643,17 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                                 st.error("Senha incorreta ou em branco. Digite 2026 e clique explicitamente no botão.")
                         st.markdown("---")
 
-                # CORREÇÃO APLICADA AQUI: Removido o st.form para evitar o envio acidental ao apertar Enter no campo de senha
+                # Inserção Manual Extra convertida para campos normais sem st.form para limpar perfeitamente ao submeter
                 with st.expander("➕ Inserção Manual Extra (Solicitação de Trajeto / Adicionar Vinho Não Listado)"):
+                    if f"extra_nome_{pedido_ativo['id']}" not in st.session_state:
+                        st.session_state[f"extra_nome_{pedido_ativo['id']}"] = ""
+                    if f"extra_qtd_{pedido_ativo['id']}" not in st.session_state:
+                        st.session_state[f"extra_qtd_{pedido_ativo['id']}"] = 1
+                    if f"extra_senha_{pedido_ativo['id']}" not in st.session_state:
+                        st.session_state[f"extra_senha_{pedido_ativo['id']}"] = ""
+
                     nome_extra = st.text_input("Nome do Vinho Extra", key=f"extra_nome_{pedido_ativo['id']}").strip().title()
-                    qtd_extra = st.number_input("Quantidade", min_value=1, value=1, key=f"extra_qtd_{pedido_ativo['id']}")
+                    qtd_extra = st.number_input("Quantidade", min_value=1, key=f"extra_qtd_{pedido_ativo['id']}")
                     senha_extra = st.text_input("Senha de Liberação (2026)", type="password", key=f"extra_senha_{pedido_ativo['id']}")
                     
                     st.write("")
@@ -658,12 +665,18 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                                     "safra": "Extra",
                                     "quantidade": 0,
                                     "separado": True,
-                                    "qtd_separada": qtd_extra,
-                                    "divergencia": qtd_extra,
+                                    "qtd_separada": int(qtd_extra),
+                                    "divergencia": int(qtd_extra),
                                     "autorizado_divergencia": True
                                 }
                                 pedido_ativo['itens'].append(novo_item_extra)
                                 salvar_pedidos(st.session_state.pedidos)
+                                
+                                # Limpa explicitamente o estado para apagar o formulário da tela
+                                st.session_state[f"extra_nome_{pedido_ativo['id']}"] = ""
+                                st.session_state[f"extra_qtd_{pedido_ativo['id']}"] = 1
+                                st.session_state[f"extra_senha_{pedido_ativo['id']}"] = ""
+                                
                                 st.success("Vinho extra incluído e autorizado com sucesso!")
                                 st.rerun()
                             else:
