@@ -226,34 +226,6 @@ def extrair_pedidos_de_arquivo(arq):
     except: pass
     return itens
 
-def componente_leitor_barcode(chave_sessao):
-    html_code = f"""
-    <div style="text-align: center; background: #FFF; padding: 10px; border-radius: 12px; border: 1px solid #E9ECEF;">
-        <div id="reader_{chave_sessao}" style="width: 100%; max-width: 350px; margin: auto; border-radius: 8px; overflow: hidden;"></div>
-        <p id="resultado_{chave_sessao}" style="font-weight: bold; color: #7A1C2E; margin-top: 8px; font-size: 0.9rem;"></p>
-    </div>
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <script>
-      function onScanSuccess(decodedText, decodedResult) {{
-        document.getElementById("resultado_{chave_sessao}").innerText = "✅ Lido: " + decodedText;
-        const url = new URL(window.parent.location.href);
-        url.searchParams.set('scanned_{chave_sessao}', decodedText);
-        window.parent.history.replaceState({{}}, '', url);
-        
-        if (window.html5QrCode_{chave_sessao}) {{
-            window.html5QrCode_{chave_sessao}.stop().catch(err => {{}});
-        }}
-      }}
-      
-      try {{
-          const html5QrCode = new Html5Qrcode("reader_{chave_sessao}");
-          window.html5QrCode_{chave_sessao} = html5QrCode;
-          html5QrCode.start({{ facingMode: "environment" }}, {{ fps: 10, qrbox: {{ width: 250, height: 120 }} }}, onScanSuccess).catch(err => {{}});
-      }} catch (e) {{}}
-    </script>
-    """
-    components.html(html_code, height=260)
-
 if "usuarios" not in st.session_state:
     st.session_state.usuarios = carregar_usuarios()
 
@@ -265,16 +237,6 @@ if "menu_atual" not in st.session_state: st.session_state.menu_atual = "🏠 Hom
 if "termo_busca" not in st.session_state: st.session_state.termo_busca = ""
 
 qp = st.query_params
-
-for key, val in list(qp.items()):
-    if key.startswith("scanned_"):
-        sess_key = key.replace("scanned_", "")
-        valor_limpo = str(val).strip()
-        if sess_key == "checkout_camera":
-            st.session_state.codigo_bipado_checkout = valor_limpo
-        del st.query_params[key]
-        st.rerun()
-
 user_url = qp.get("user", None)
 cargo_url = qp.get("cargo", "Operador")
 
@@ -356,7 +318,7 @@ if st.session_state.menu_atual == "🏠 Home":
     
     c1, c2, c3 = st.columns(3)
     with c1:
-        if st.button("📦 Checkout de Expedição", use_container_width=True): st.session_state.menu_atual = "PedidosMatriz"; st.rerun()
+        if st.button("📦 Checkout / Pedidos da Matriz", use_container_width=True): st.session_state.menu_atual = "PedidosMatriz"; st.rerun()
     with c2:
         if st.button("🏢 Painel da Matriz", use_container_width=True): st.session_state.menu_atual = "PainelMatriz"; st.rerun()
     with c3:
@@ -384,189 +346,218 @@ if st.session_state.menu_atual == "🏠 Home":
                 st.rerun()
 
 elif st.session_state.menu_atual == "PedidosMatriz":
-    st.subheader("📦 Checkout de Expedição e Conferência")
-    pedidos_pendentes = [p for p in st.session_state.pedidos if "Concluído" not in p.get('status', '')]
+    st.subheader("📦 Checkout de Expedição e Conferência de Pedidos")
     
-    if not pedidos_pendentes:
-        st.info("Nenhum pedido pendente para conferência no momento.")
-    else:
-        ids_pedidos = [p['id'] for p in pedidos_pendentes]
-        pedido_sel_id = st.selectbox("Selecione o Pedido/Mapa para Conferir:", ids_pedidos)
-        pedido_ativo = next((p for p in pedidos_pendentes if p['id'] == pedido_sel_id), None)
+    tab_conf, tab_novo = st.tabs(["📋 Conferir Pedidos Atuais", "➕ Inserir Novo Pedido"])
+    
+    with tab_novo:
+        st.markdown("#### Inserir Novo Pedido ou Mapa de Separação")
+        tipo_entrada = st.radio("Método de Entrada:", ["Colar Linhas de Texto", "Carregar Arquivo (Excel/TXT)"])
         
-        if pedido_ativo:
-            st.markdown(f"**Cliente/Destino:** {pedido_ativo.get('cliente', 'Geral')} | **Status Atual:** {pedido_ativo.get('status', 'Pendente')}")
+        with st.form("form_novo_pedido_matriz"):
+            id_pedido = st.text_input("ID ou Código do Pedido/Mapa", value=f"PED-{len(st.session_state.pedidos)+1:03d}")
+            cliente_pedido = st.text_input("Nome do Cliente / Destino").strip().title()
             
-            with st.form("form_conferencia_item", clear_on_submit=True):
-                st.markdown("#### Conferir Item por Nome / Código de Barras")
-                busca_conf = st.text_input("Nome do Vinho ou Código de Barras").strip()
-                qtd_input = st.number_input("Quantidade Separada Encontrada", min_value=0, value=1)
+            texto_colado = ""
+            arquivo_subido = None
+            
+            if tipo_entrada == "Colar Linhas de Texto":
+                texto_colado = st.text_area("Cole as linhas do pedido (ex: Campana Merlot 2024 / 5 caixas):")
+            else:
+                arquivo_subido = st.file_uploader("Selecione o arquivo Excel ou TXT", type=["xlsx", "xls", "txt"])
                 
-                btn_bipar = st.form_submit_button("✅ Registrar / Conferir Item")
+            btn_cad_pedido = st.form_submit_button("Cadastrar e Iniciar Conferência")
+            
+            if btn_cad_pedido:
+                novos_itens = []
+                if tipo_entrada == "Colar Linhas de Texto" and texto_colado:
+                    linhas = [l.strip() for l in texto_colado.split("\n") if l.strip()]
+                    for l in linhas:
+                        novos_itens.append(interpretar_linha_pedido(l))
+                elif tipo_entrada == "Carregar Arquivo (Excel/TXT)" and arquivo_subido:
+                    novos_itens = extrair_pedidos_de_arquivo(arquivo_subido)
                 
-                if btn_bipar:
-                    encontrou = False
-                    for item in pedido_ativo['itens']:
-                        match_nome = busca_conf.lower() in item['nome'].lower()
-                        match_bc = busca_conf and busca_conf in item.get('codigo_barras', '')
-                        
-                        if match_nome or match_bc:
-                            encontrou = True
-                            item['qtd_separada'] = int(qtd_input)
-                            item['divergencia'] = item['qtd_separada'] - item['quantidade']
-                            
-                            if item['divergencia'] == 0:
-                                item['autorizado_divergencia'] = True
-                                item['separado'] = True
-                            else:
-                                item['autorizado_divergencia'] = False
-                                item['separado'] = False
-                                dif_tipo = "mais" if item['divergencia'] > 0 else "menos"
-                                st.warning(f"⚠️ Atenção! Quantidade separada ({item['qtd_separada']}) diverge para {dif_tipo} da pedida ({item['quantidade']}) para o item '{item['nome']}'. O item foi bloqueado até a digitação da senha.")
-                            break
-                    
-                    if encontrou:
-                        if "codigo_bipado_checkout" in st.session_state:
-                            st.session_state.codigo_bipado_checkout = ""
-                        salvar_pedidos(st.session_state.pedidos)
-                        st.rerun()
-                    else:
-                        st.error("Produto não encontrado neste mapa ou código inválido.")
-
-            itens_com_divergencia_nao_autorizados = [i for i in pedido_ativo['itens'] if i.get('divergencia', 0) != 0 and not i.get('autorizado_divergencia', False)]
-            
-            if itens_com_divergencia_nao_autorizados:
-                st.markdown("---")
-                st.error("🔒 Existem itens com quantidade incorreta / divergente aguardando correção ou liberação de senha (Senha: 2026):")
-                for it_div in itens_com_divergencia_nao_autorizados:
-                    with st.form(f"form_senha_item_{it_div['nome']}"):
-                        st.markdown(f"**Item:** {it_div['nome']} | Pedido: {it_div['quantidade']} | Separado: {it_div['qtd_separada']} (Divergência: {it_div['divergencia']:+d})")
-                        st.info("Dica: Se foi erro de digitação, você pode corrigir clicando abaixo para ajustar a quantidade exata:")
-                        
-                        corrigir_para_pedida = st.form_submit_button("🔄 Corrigir e Ajustar para Qtd Pedida Automaticamente")
-                        if corrigir_para_pedida:
-                            it_div['qtd_separada'] = it_div['quantidade']
-                            it_div['divergencia'] = 0
-                            it_div['autorizado_divergencia'] = True
-                            it_div['separado'] = True
-                            salvar_pedidos(st.session_state.pedidos)
-                            st.success(f"Quantidade de '{it_div['nome']}' corrigida com sucesso para o valor do pedido!")
-                            st.rerun()
-
-                        senha_item = st.text_input("Ou digite a senha de liberação de divergência (2026):", type="password", key=f"pass_{it_div['nome']}")
-                        if st.form_submit_button("Autorizar Com Divergência"):
-                            if senha_item == SENHA_DIVERGENCIA:
-                                # CORREÇÃO APLICADA AQUI: Mantém exatamente o valor que o operador conferiu (qtd_separada) e apenas autoriza a quebra!
-                                it_div['autorizado_divergencia'] = True
-                                it_div['separado'] = True
-                                salvar_pedidos(st.session_state.pedidos)
-                                registrar_log(st.session_state.usuario_logado['nome'], "Liberou Divergência Item", f"{it_div['nome']} (Qtd: {it_div['qtd_separada']})")
-                                st.success(f"Divergência autorizada mantendo a quantidade contada ({it_div['qtd_separada']} unidades) para '{it_div['nome']}'!")
-                                st.rerun()
-                            else:
-                                st.error("Senha incorreta. Digite 2026.")
-
-            with st.expander("➕ Inserção Manual Extra (Solicitação de Trajeto / Adicionar Vinho Não Listado)"):
-                with st.form("form_vinho_extra", clear_on_submit=True):
-                    nome_extra = st.text_input("Nome do Vinho Extra").strip().title()
-                    qtd_extra = st.number_input("Quantidade", min_value=1, value=1)
-                    senha_extra = st.text_input("Senha de Liberação (2026)", type="password")
-                    if st.form_submit_button("Adicionar ao Pedido com Senha"):
-                        if nome_extra:
-                            if senha_extra == SENHA_DIVERGENCIA:
-                                novo_item_extra = {
-                                    "nome": nome_extra,
-                                    "safra": "Extra",
-                                    "quantidade": qtd_extra,
-                                    "separado": True,
-                                    "qtd_separada": qtd_extra,
-                                    "divergencia": 0,
-                                    "autorizado_divergencia": True,
-                                    "extra": True
-                                }
-                                pedido_ativo['itens'].append(novo_item_extra)
-                                salvar_pedidos(st.session_state.pedidos)
-                                st.success("Vinho extra incluído e autorizado com sucesso!")
-                                st.rerun()
-                            else:
-                                st.error("Senha incorreta para item extra. Digite 2026.")
-                        else:
-                            st.error("Informe o nome do vinho.")
-
-            st.markdown("---")
-            
-            col_esq, col_dir = st.columns(2)
-            
-            with col_esq:
-                st.markdown("<h4 style='color: #7A1C2E;'>PRODUTOS A CONFERIR</h4>", unsafe_allow_html=True)
-                pendentes = [i for i in pedido_ativo['itens'] if not i.get('separado', False)]
-                if not pendentes:
-                    st.success("🎉 Todos os produtos deste mapa foram conferidos!")
-                for item in pendentes:
-                    st.markdown(f"""
-                    <div style='background: #FFF; padding: 10px; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid #7A1C2E;'>
-                        <b>{item['nome']}</b> (Safra: {item.get('safra', 'N/A')})<br>
-                        Qtd Pedida: <b>{item['quantidade']}</b> | Separada: {item.get('qtd_separada', 0)}
-                    </div>
-                    """, unsafe_allow_html=True)
-                    
-            with col_dir:
-                st.markdown("<h4 style='color: #2E7D32;'>PRODUTOS CONFERIDOS</h4>", unsafe_allow_html=True)
-                conferidos = [i for i in pedido_ativo['itens'] if i.get('separado', False)]
-                if not conferidos:
-                    st.info("Nenhum produto conferido ainda.")
+                if novos_itens:
+                    novo_mapa = {
+                        "id": id_pedido,
+                        "cliente": cliente_pedido if cliente_pedido else "Geral",
+                        "status": "Pendente",
+                        "itens": novos_itens
+                    }
+                    st.session_state.pedidos.append(novo_mapa)
+                    salvar_pedidos(st.session_state.pedidos)
+                    sincronizar_estoque_com_pedidos(st.session_state.pedidos, st.session_state.estoque)
+                    registrar_log(st.session_state.usuario_logado['nome'], "Cadastrou Novo Pedido", id_pedido)
+                    st.success(f"Pedido {id_pedido} cadastrado com sucesso! Vá na aba de Conferência para realizá-la.")
+                    st.rerun()
                 else:
-                    conferidos_exibicao = [i for i in conferidos if i.get('divergencia', 0) != 0 or i.get('extra', False)]
-                    if not conferidos_exibicao:
-                        st.info("✅ Todos os itens conferidos foram validados perfeitamente sem divergências (ocultados para evitar poluição visual).")
+                    st.error("Nenhum item válido encontrado. Verifique os dados informados.")
+
+    with tab_conf:
+        pedidos_pendentes = [p for p in st.session_state.pedidos if "Concluído" not in p.get('status', '')]
+        
+        if not pedidos_pendentes:
+            st.info("Nenhum pedido pendente para conferência no momento. Utilize a aba 'Inserir Novo Pedido' acima para adicionar.")
+        else:
+            ids_pedidos = [p['id'] for p in pedidos_pendentes]
+            pedido_sel_id = st.selectbox("Selecione o Pedido/Mapa para Conferir:", ids_pedidos)
+            pedido_ativo = next((p for p in pedidos_pendentes if p['id'] == pedido_sel_id), None)
+            
+            if pedido_ativo:
+                st.markdown(f"**Cliente/Destino:** {pedido_ativo.get('cliente', 'Geral')} | **Status Atual:** {pedido_ativo.get('status', 'Pendente')}")
+                st.markdown("---")
+                
+                col_esq, col_dir = st.columns(2)
+                
+                with col_esq:
+                    st.markdown("<h4 style='color: #7A1C2E;'>📋 PRODUTOS A CONFERIR (PEDIDO)</h4>", unsafe_allow_html=True)
+                    pendentes = [i for i in pedido_ativo['itens'] if not i.get('separado', False)]
+                    if not pendentes:
+                        st.success("🎉 Todos os produtos deste mapa foram conferidos!")
                     else:
-                        for item in conferidos_exibicao:
+                        for idx, item in enumerate(pedido_ativo['itens']):
+                            if not item.get('separado', False):
+                                with st.container():
+                                    st.markdown(f"""
+                                    <div style='background: #FFF; padding: 12px; border-radius: 10px; margin-bottom: 10px; border-left: 4px solid #7A1C2E;'>
+                                        <b>{item['nome']}</b> (Safra: {item.get('safra', 'N/A')})<br>
+                                        Qtd Pedida: <b>{item['quantidade']}</b>
+                                    </div>
+                                    """, unsafe_allow_html=True)
+                                    
+                                    with st.form(f"form_conf_{pedido_ativo['id']}_{idx}"):
+                                        q_informada = st.number_input("Qtd Conferida/Separada", min_value=0, value=int(item['quantidade']), key=f"q_{pedido_ativo['id']}_{idx}")
+                                        btn_dar_baixa = st.form_submit_button("✅ Confirmar Este Item")
+                                        
+                                        if btn_dar_baixa:
+                                            item['qtd_separada'] = int(q_informada)
+                                            item['divergencia'] = item['qtd_separada'] - item['quantidade']
+                                            
+                                            if item['divergencia'] == 0:
+                                                item['autorizado_divergencia'] = True
+                                                item['separado'] = True
+                                            else:
+                                                item['autorizado_divergencia'] = False
+                                                item['separado'] = False
+                                                dif_tipo = "mais" if item['divergencia'] > 0 else "menos"
+                                                st.warning(f"⚠️ Atenção! Quantidade separada ({item['qtd_separada']}) diverge para {dif_tipo} da pedida ({item['quantidade']}) para o item '{item['nome']}'. Item bloqueado até liberação com senha.")
+                                            
+                                            salvar_pedidos(st.session_state.pedidos)
+                                            st.rerun()
+                                    st.write("")
+                        
+                with col_dir:
+                    st.markdown("<h4 style='color: #2E7D32;'>✅ PRODUTOS CONFERIDOS</h4>", unsafe_allow_html=True)
+                    conferidos = [i for i in pedido_ativo['itens'] if i.get('separado', False)]
+                    if not conferidos:
+                        st.info("Nenhum produto conferido ainda. Confirme os itens na coluna à esquerda.")
+                    else:
+                        for item in conferidos:
                             dif_val = item.get('divergencia', 0)
                             if item.get('extra', False):
                                 dif_texto = " (Extra)"
                             else:
-                                dif_texto = f" ({dif_val:+d})"
+                                dif_texto = f" ({dif_val:+d})" if dif_val != 0 else " (Correto)"
                             st.markdown(f"""
-                            <div style='background: #F1F8E9; padding: 10px; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid #2E7D32;'>
-                                ✅ <b>{item['nome']}</b> ({item.get('safra', 'N/A')}) - {item.get('qtd_separada', 0)} unidade(s) <b style='color: #C62828;'>{dif_texto}</b>
+                            <div style='background: #F1F8E9; padding: 12px; border-radius: 10px; margin-bottom: 10px; border-left: 4px solid #2E7D32;'>
+                                ✅ <b>{item['nome']}</b> ({item.get('safra', 'N/A')})<br>
+                                Qtd Separada: <b>{item.get('qtd_separada', 0)}</b> <span style='color: #C62828;'>{dif_texto}</span>
                             </div>
                             """, unsafe_allow_html=True)
-            
-            st.write("")
-            col_salvar1, col_salvar2 = st.columns(2)
-            with col_salvar1:
-                if st.button("💾 Salvar Pedido e Enviar Depois", use_container_width=True):
-                    pendentes_verificacao = [i for i in pedido_ativo['itens'] if not i.get('separado', False)]
-                    if pendentes_verificacao:
-                        pedido_ativo['status'] = "Em andamento / Parcial (Incompleto)"
-                        salvar_pedidos(st.session_state.pedidos)
-                        registrar_log(st.session_state.usuario_logado['nome'], "Salvou Pedido Incompleto", pedido_ativo['id'])
-                        st.warning(f"⚠️ Atenção: O pedido {pedido_ativo['id']} está **incompleto** (restam {len(pendentes_verificacao)} itens sem conferir). Progresso salvo!")
-                    else:
-                        pedido_ativo['status'] = "Salvo Parcialmente"
-                        salvar_pedidos(st.session_state.pedidos)
-                        registrar_log(st.session_state.usuario_logado['nome'], "Salvou Pedido Parcial", pedido_ativo['id'])
-                        st.success(f"Progresso do pedido {pedido_ativo['id']} salvo com sucesso!")
-            with col_salvar2:
-                if st.button("🚀 Finalizar e Enviar para Matriz", use_container_width=True):
-                    pendentes_verificacao = [i for i in pedido_ativo['itens'] if not i.get('separado', False)]
-                    divergencias_pendentes = [i for i in pedido_ativo['itens'] if i.get('divergencia', 0) != 0 and not i.get('autorizado_divergencia', False)]
-                    
-                    if pendentes_verificacao:
-                        st.error(f"❌ Impossível finalizar! O pedido está **incompleto**. Restam {len(pendentes_verificacao)} produtos pendentes.")
-                    elif divergencias_pendentes:
-                        st.error("⚠️ Não é possível finalizar! Existem itens divergentes sem liberação de senha.")
-                    else:
-                        tem_divergencia_geral = any(i.get('divergencia', 0) != 0 and not i.get('extra', False) for i in pedido_ativo['itens'])
-                        if tem_divergencia_geral:
-                            pedido_ativo['status'] = "Concluído / Expedido (Com Divergência)"
-                        else:
-                            pedido_ativo['status'] = "Concluído / Expedido"
+
+                itens_com_divergencia_nao_autorizados = [i for i in pedido_ativo['itens'] if i.get('divergencia', 0) != 0 and not i.get('autorizado_divergencia', False)]
+                
+                if itens_com_divergencia_nao_autorizados:
+                    st.markdown("---")
+                    st.error("🔒 Existem itens com quantidade incorreta / divergente aguardando correção ou liberação de senha (Senha: 2026):")
+                    for it_div in itens_com_divergencia_nao_autorizados:
+                        with st.form(f"form_senha_item_{it_div['nome']}"):
+                            st.markdown(f"**Item:** {it_div['nome']} | Pedido: {it_div['quantidade']} | Separado: {it_div['qtd_separada']} (Divergência: {it_div['divergencia']:+d})")
                             
-                        salvar_pedidos(st.session_state.pedidos)
-                        registrar_log(st.session_state.usuario_logado['nome'], "Finalizou e Enviou Pedido", pedido_ativo['id'])
-                        st.success(f"Pedido {pedido_ativo['id']} finalizado e enviado com sucesso!")
-                        st.rerun()
+                            corrigir_para_pedida = st.form_submit_button("🔄 Corrigir e Ajustar para Qtd Pedida Automaticamente")
+                            if corrigir_para_pedida:
+                                it_div['qtd_separada'] = it_div['quantidade']
+                                it_div['divergencia'] = 0
+                                it_div['autorizado_divergencia'] = True
+                                it_div['separado'] = True
+                                salvar_pedidos(st.session_state.pedidos)
+                                st.success(f"Quantidade de '{it_div['nome']}' corrigida com sucesso para o valor do pedido!")
+                                st.rerun()
+
+                            senha_item = st.text_input("Ou digite a senha de liberação de divergência (2026):", type="password", key=f"pass_{it_div['nome']}")
+                            if st.form_submit_button("Autorizar Com Divergência"):
+                                if senha_item == SENHA_DIVERGENCIA:
+                                    it_div['autorizado_divergencia'] = True
+                                    it_div['separado'] = True
+                                    salvar_pedidos(st.session_state.pedidos)
+                                    registrar_log(st.session_state.usuario_logado['nome'], "Liberou Divergência Item", f"{it_div['nome']} (Qtd: {it_div['qtd_separada']})")
+                                    st.success(f"Divergência autorizada mantendo a quantidade contada ({it_div['qtd_separada']} unidades) para '{it_div['nome']}'!")
+                                    st.rerun()
+                                else:
+                                    st.error("Senha incorreta. Digite 2026.")
+
+                with st.expander("➕ Inserção Manual Extra (Adicionar Vinho Não Listado no Pedido)"):
+                    with st.form("form_vinho_extra", clear_on_submit=True):
+                        nome_extra = st.text_input("Nome do Vinho Extra").strip().title()
+                        qtd_extra = st.number_input("Quantidade", min_value=1, value=1)
+                        senha_extra = st.text_input("Senha de Liberação (2026)", type="password")
+                        if st.form_submit_button("Adicionar ao Pedido com Senha"):
+                            if nome_extra:
+                                if senha_extra == SENHA_DIVERGENCIA:
+                                    novo_item_extra = {
+                                        "nome": nome_extra,
+                                        "safra": "Extra",
+                                        "quantidade": qtd_extra,
+                                        "separado": True,
+                                        "qtd_separada": qtd_extra,
+                                        "divergencia": 0,
+                                        "autorizado_divergencia": True,
+                                        "extra": True
+                                    }
+                                    pedido_ativo['itens'].append(novo_item_extra)
+                                    salvar_pedidos(st.session_state.pedidos)
+                                    st.success("Vinho extra incluído e autorizado com sucesso!")
+                                    st.rerun()
+                                else:
+                                    st.error("Senha incorreta para item extra. Digite 2026.")
+                            else:
+                                st.error("Informe o nome do vinho.")
+
+                st.markdown("---")
+                col_salvar1, col_salvar2 = st.columns(2)
+                with col_salvar1:
+                    if st.button("💾 Salvar Pedido e Enviar Depois", use_container_width=True):
+                        pendentes_verificacao = [i for i in pedido_ativo['itens'] if not i.get('separado', False)]
+                        if pendentes_verificacao:
+                            pedido_ativo['status'] = "Em andamento / Parcial (Incompleto)"
+                            salvar_pedidos(st.session_state.pedidos)
+                            registrar_log(st.session_state.usuario_logado['nome'], "Salvou Pedido Incompleto", pedido_ativo['id'])
+                            st.warning(f"⚠️ Atenção: O pedido {pedido_ativo['id']} está **incompleto** (restam {len(pendentes_verificacao)} itens sem conferir). Progresso salvo!")
+                        else:
+                            pedido_ativo['status'] = "Salvo Parcialmente"
+                            salvar_pedidos(st.session_state.pedidos)
+                            registrar_log(st.session_state.usuario_logado['nome'], "Salvou Pedido Parcial", pedido_ativo['id'])
+                            st.success(f"Progresso do pedido {pedido_ativo['id']} salvo com sucesso!")
+                with col_salvar2:
+                    if st.button("🚀 Finalizar e Enviar para Matriz", use_container_width=True):
+                        pendentes_verificacao = [i for i in pedido_ativo['itens'] if not i.get('separado', False)]
+                        divergencias_pendentes = [i for i in pedido_ativo['itens'] if i.get('divergencia', 0) != 0 and not i.get('autorizado_divergencia', False)]
+                        
+                        if pendentes_verificacao:
+                            st.error(f"❌ Impossível finalizar! O pedido está **incompleto**. Restam {len(pendentes_verificacao)} produtos pendentes.")
+                        elif divergencias_pendentes:
+                            st.error("⚠️ Não é possível finalizar! Existem itens divergentes sem liberação de senha.")
+                        else:
+                            tem_divergencia_geral = any(i.get('divergencia', 0) != 0 and not i.get('extra', False) for i in pedido_ativo['itens'])
+                            if tem_divergencia_geral:
+                                pedido_ativo['status'] = "Concluído / Expedido (Com Divergência)"
+                            else:
+                                pedido_ativo['status'] = "Concluído / Expedido"
+                                
+                            salvar_pedidos(st.session_state.pedidos)
+                            registrar_log(st.session_state.usuario_logado['nome'], "Finalizou e Enviou Pedido", pedido_ativo['id'])
+                            st.success(f"Pedido {pedido_ativo['id']} finalizado e enviado com sucesso!")
+                            st.rerun()
 
 elif st.session_state.menu_atual == "PainelMatriz":
     st.subheader("🏢 Painel da Matriz / Visão Geral de Pedidos")
@@ -576,7 +567,7 @@ elif st.session_state.menu_atual == "PainelMatriz":
         for p in st.session_state.pedidos:
             st.markdown(f"""
             <div class="wine-card">
-                <b>ID do Pedido:</b> {p.get('id', 'N/A')} | <b>Status:</b> {p.get('status', 'Pendente')}<br>
+                <b>ID do Pedido:</b> {p.get('id', 'N/A')} | <b>Cliente:</b> {p.get('cliente', 'Geral')} | <b>Status:</b> {p.get('status', 'Pendente')}<br>
                 <b>Itens Totais:</b> {len(p.get('itens', []))}
             </div>
             """, unsafe_allow_html=True)
