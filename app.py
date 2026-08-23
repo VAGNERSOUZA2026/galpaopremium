@@ -468,11 +468,17 @@ elif st.session_state.menu_atual == "PedidosMatriz":
         if not st.session_state.pedidos:
             st.warning("Nenhum pedido cadastrado no sistema. Cadastre na aba anterior.")
         else:
+            # Seleção otimizada: Ordena os pedidos e seleciona por padrão o último (mais recente) lançado
             mapas_disponiveis = [p['id'] for p in st.session_state.pedidos]
+            ultimo_pedido_id = mapas_disponiveis[-1] # O último da lista é o mais recente lançado
             
             c_top1, _ = st.columns([2, 2])
             with c_top1:
-                mapa_selecionado_id = st.selectbox("Código de Barras Mapa", mapas_disponiveis)
+                mapa_selecionado_id = st.selectbox(
+                    "🔍 Selecione o Pedido / Mapa para Conferir (Mais recente selecionado automaticamente):", 
+                    mapas_disponiveis, 
+                    index=len(mapas_disponiveis) - 1
+                )
             
             pedido_ativo = next((p for p in st.session_state.pedidos if p['id'] == mapa_selecionado_id), None)
             
@@ -560,12 +566,11 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     st.markdown("---")
                     st.error("🔒 Existem itens com quantidade incorreta / divergente aguardando correção ou liberação de senha (Senha: 2026):")
                     for it_div in itens_com_divergencia_nao_autorizados:
-                        # REESTRUTURADO TOTALMENTE SEM ST.FORM PARA ELIMINAR O PROBLEMA DO ENTER ACIDENTAL
                         st.markdown(f"**Item:** {it_div['nome']} | Pedido: {it_div['quantidade']} | Separado: {it_div['qtd_separada']} (Divergência: {it_div['divergencia']:+d})")
                         
                         c_acao1, c_acao2 = st.columns(2)
                         with c_acao1:
-                            if st.button("🔄 Corrigir para Qtd Pedida", key=f"corrigir_{it_div['nome']}"):
+                            if st.button("🔄 Corrigir para Qtd Pedida", key=f"corrigir_{it_div['nome']}_{pedido_ativo['id']}"):
                                 it_div['qtd_separada'] = it_div['quantidade']
                                 it_div['divergencia'] = 0
                                 it_div['autorizado_divergencia'] = True
@@ -574,10 +579,10 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                                 st.success(f"Quantidade de '{it_div['nome']}' corrigida com sucesso!")
                                 st.rerun()
                                 
-                        senha_chave_input = f"pass_{it_div['nome']}"
+                        senha_chave_input = f"pass_{it_div['nome']}_{pedido_ativo['id']}"
                         senha_item = st.text_input("Digite a senha de liberação de divergência (2026):", type="password", key=senha_chave_input)
                         
-                        if st.button("Autorizar Com Divergência", key=f"btn_autorizar_{it_div['nome']}"):
+                        if st.button("Autorizar Com Divergência", key=f"btn_autorizar_{it_div['nome']}_{pedido_ativo['id']}"):
                             if senha_item == SENHA_DIVERGENCIA:
                                 it_div['autorizado_divergencia'] = True
                                 it_div['separado'] = True
@@ -590,7 +595,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         st.markdown("---")
 
                 with st.expander("➕ Inserção Manual Extra (Solicitação de Trajeto / Adicionar Vinho Não Listado)"):
-                    with st.form("form_vinho_extra"):
+                    with st.form(f"form_vinho_extra_{pedido_ativo['id']}"):
                         nome_extra = st.text_input("Nome do Vinho Extra").strip().title()
                         qtd_extra = st.number_input("Quantidade", min_value=1, value=1)
                         senha_extra = st.text_input("Senha de Liberação (2026)", type="password")
@@ -679,7 +684,7 @@ elif st.session_state.menu_atual == "Filtros":
     
     resultados = []
     for v in estoque:
-        match_termo = termo.lower() in v['nome'].lower() or termo.lower() in v.get('safra', '').lower() or termo.lower() in v.get('tipo', '').lower()
+        match_termo = termo.lower() in v['nome'].lower() or termo.lower() in v.get('safra', '').lower() or termo.lower() in v.get('tipo', '').lower()  # noqa: E501
         match_tipo = tipo_filtro == "Todos" or v.get('tipo') == tipo_filtro
         
         if match_termo and match_tipo:
