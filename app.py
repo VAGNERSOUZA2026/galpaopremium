@@ -392,7 +392,6 @@ elif st.session_state.menu_atual == "PainelMatriz":
             df_itens = []
             for item in p['itens']:
                 dif = item.get('divergencia', 0)
-                # Formatação correta da divergência com sinal visível
                 if dif > 0:
                     dif_str = f"({dif:+d}) ⚠️ Excedente"
                 elif dif < 0:
@@ -530,6 +529,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         
                         if match_nome or match_bc:
                             encontrou = True
+                            # CORREÇÃO CRUCIAL AQUI: Captura exata do valor digitado em qtd_input
                             item['qtd_separada'] = int(qtd_input)
                             item['divergencia'] = item['qtd_separada'] - item['quantidade']
                             
@@ -576,7 +576,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                                 if senha_item == SENHA_DIVERGENCIA:
                                     it_div['autorizado_divergencia'] = True
                                     it_div['separado'] = True
-                                    salvar_pedidos(st.session_state.pedidos) # Mantém qtd_separada e divergencia calculada sem resetar
+                                    salvar_pedidos(st.session_state.pedidos)
                                     registrar_log(st.session_state.usuario_logado['nome'], "Liberou Divergência Item", it_div['nome'])
                                     st.success(f"Divergência autorizada para '{it_div['nome']}'!")
                                     st.rerun()
