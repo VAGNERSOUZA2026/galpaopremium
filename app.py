@@ -497,7 +497,6 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 
                 itens_pendentes_lista = [i['nome'] for i in pedido_ativo['itens'] if not i.get('separado', False)]
                 
-                # REMOVIDO st.form daqui para garantir que o número exato seja capturado em tempo real sem conflitos de foco ou cache
                 col_b1, col_b2, col_b3 = st.columns([2, 1, 1])
                 with col_b1:
                     if modo_leitura == "📷 Câmera do Celular":
@@ -521,7 +520,6 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 
                 if btn_conferir and cod_barras_input and cod_barras_input != "-- Selecione ou Digite --":
                     encontrou = False
-                    # CAPTURA BLINDADA DO VALOR ATUAL DO SESSION STATE
                     qtd_real_informada = int(st.session_state.get("input_qtd_checkout", 1))
                     
                     for item in pedido_ativo['itens']:
@@ -545,7 +543,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                                 item['autorizado_divergencia'] = False
                                 item['separado'] = False
                                 dif_tipo = "mais" if item['divergencia'] > 0 else "menos"
-                                st.warning(f"⚠️ Atenção! Quantidade separada ({item['qtd_separada']}) diverge para {dif_tipo} da pedida ({item['quantidade']}) para o item '{item['nome']}'. O item foi bloqueado até a digitação da senha.")
+                                st.warning(f"⚠️ Atenção! Quantidade separada ({item['qtd_separada']}) diverge para {dif_tipo} da pedida ({item['quantidade']}) para o item '{item['nome']}'. O item foi bloqueado até a digitação correta da senha.")
                             break
                     
                     if encontrou:
@@ -562,32 +560,34 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     st.markdown("---")
                     st.error("🔒 Existem itens com quantidade incorreta / divergente aguardando correção ou liberação de senha (Senha: 2026):")
                     for it_div in itens_com_divergencia_nao_autorizados:
-                        # Para os formulários de senha, mantemos st.form pois ali o input é de texto de senha
-                        with st.form(f"form_senha_item_{it_div['nome']}"):
-                            st.markdown(f"**Item:** {it_div['nome']} | Pedido: {it_div['quantidade']} | Separado: {it_div['qtd_separada']} (Divergência: {it_div['divergencia']:+d})")
-                            st.info("Dica: Se foi erro de digitação, você pode corrigir clicando abaixo para ajustar a quantidade exata:")
-                            
-                            corrigir_para_pedida = st.form_submit_button("🔄 Corrigir e Ajustar para Qtd Pedida Automaticamente")
-                            if corrigir_para_pedida:
+                        # REESTRUTURADO TOTALMENTE SEM ST.FORM PARA ELIMINAR O PROBLEMA DO ENTER ACIDENTAL
+                        st.markdown(f"**Item:** {it_div['nome']} | Pedido: {it_div['quantidade']} | Separado: {it_div['qtd_separada']} (Divergência: {it_div['divergencia']:+d})")
+                        
+                        c_acao1, c_acao2 = st.columns(2)
+                        with c_acao1:
+                            if st.button("🔄 Corrigir para Qtd Pedida", key=f"corrigir_{it_div['nome']}"):
                                 it_div['qtd_separada'] = it_div['quantidade']
                                 it_div['divergencia'] = 0
                                 it_div['autorizado_divergencia'] = True
                                 it_div['separado'] = True
                                 salvar_pedidos(st.session_state.pedidos)
-                                st.success(f"Quantidade de '{it_div['nome']}' corrigida com sucesso para o valor do pedido!")
+                                st.success(f"Quantidade de '{it_div['nome']}' corrigida com sucesso!")
                                 st.rerun()
-
-                            senha_item = st.text_input("Ou digite a senha de liberação de divergência (2026):", type="password", key=f"pass_{it_div['nome']}")
-                            if st.form_submit_button("Autorizar Com Divergência"):
-                                if senha_item == SENHA_DIVERGENCIA:
-                                    it_div['autorizado_divergencia'] = True
-                                    it_div['separado'] = True
-                                    salvar_pedidos(st.session_state.pedidos)
-                                    registrar_log(st.session_state.usuario_logado['nome'], "Liberou Divergência Item", it_div['nome'])
-                                    st.success(f"Divergência autorizada para '{it_div['nome']}'!")
-                                    st.rerun()
-                                else:
-                                    st.error("Senha incorreta. Digite 2026.")
+                                
+                        senha_chave_input = f"pass_{it_div['nome']}"
+                        senha_item = st.text_input("Digite a senha de liberação de divergência (2026):", type="password", key=senha_chave_input)
+                        
+                        if st.button("Autorizar Com Divergência", key=f"btn_autorizar_{it_div['nome']}"):
+                            if senha_item == SENHA_DIVERGENCIA:
+                                it_div['autorizado_divergencia'] = True
+                                it_div['separado'] = True
+                                salvar_pedidos(st.session_state.pedidos)
+                                registrar_log(st.session_state.usuario_logado['nome'], "Liberou Divergência Item", it_div['nome'])
+                                st.success(f"Divergência autorizada para '{it_div['nome']}'!")
+                                st.rerun()
+                            else:
+                                st.error("Senha incorreta ou em branco. Digite 2026 e clique explicitamente no botão.")
+                        st.markdown("---")
 
                 with st.expander("➕ Inserção Manual Extra (Solicitação de Trajeto / Adicionar Vinho Não Listado)"):
                     with st.form("form_vinho_extra"):
