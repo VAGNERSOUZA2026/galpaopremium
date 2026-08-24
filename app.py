@@ -1,25 +1,22 @@
 import streamlit as st
 
-# 1. Inicializar as chaves no session_state se não existirem
-if "codigo_barra" not in st.session_state:
-    st.session_state.codigo_barra = ""
-if "arquivo_pedido" not in st.session_state:
-    st.session_state.arquivo_pedido = None
-if "itens_manuais" not in st.session_state:
-    st.session_state.itens_manuais = ""
-
 st.title("Sistema de Gestão de Vinhos - Galpão")
 
-# 2. Vincular os widgets ao session_state usando o parâmetro `key`
+# 1. Inicializar o contador do file_uploader no session_state se não existir
+if "file_uploader_key" not in st.session_state:
+    st.session_state.file_uploader_key = 0
+
+# 2. Widgets de entrada vinculados ao session_state
 codigo_barra = st.text_input(
     "Código de Barras do Mapa (Ex: 1234552)", 
     key="codigo_barra"
 )
 
+# O file_uploader usa uma chave dinâmica baseada no contador
 arquivo_pedido = st.file_uploader(
     "Arquivo de Pedido (Excel ou TXT)", 
     type=["xlsx", "xls", "txt", "csv"], 
-    key="arquivo_pedido"
+    key=f"arquivo_pedido_{st.session_state.file_uploader_key}"
 )
 
 itens_manuais = st.text_area(
@@ -29,7 +26,7 @@ itens_manuais = st.text_area(
 
 # 3. Botão para salvar o pedido
 if st.button("💾 Salvar Pedido no Sistema"):
-    # Validação simples para garantir que há algo para salvar
+    # Validação simples
     if not codigo_barra and not arquivo_pedido and not itens_manuais:
         st.warning("Preencha ou envie pelo menos um campo antes de salvar!")
     else:
@@ -38,10 +35,14 @@ if st.button("💾 Salvar Pedido no Sistema"):
         
         st.success("Pedido salvo com sucesso!")
         
-        # 4. Limpar as variáveis do session_state
+        # 4. Limpar os campos normais via session_state
+        # (Nota: não definimos st.session_state.arquivo_pedido aqui)
         st.session_state.codigo_barra = ""
-        st.session_state.arquivo_pedido = None
         st.session_state.itens_manuais = ""
         
-        # 5. Forçar a atualização imediata da tela
+        # 5. Truque para limpar o file_uploader: 
+        # Incrementar o contador muda o ID do componente, recriando-o vazio.
+        st.session_state.file_uploader_key += 1
+        
+        # 6. Atualizar a tela imediatamente
         st.rerun()
