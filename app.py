@@ -412,7 +412,7 @@ if st.session_state.menu_atual == "🏠 Home":
 
 elif st.session_state.menu_atual == "PainelMatriz":
     st.subheader("🏢 Painel da Matriz - Acompanhamento de Pedidos")
-    st.markdown("Selecione abaixo o número do pedido que deseja visualizar (o mais recente aparece selecionado por padrão):")
+    st.markdown("Selecione abaixo o número do pedido que deseja visualizar:")
     
     if not st.session_state.pedidos:
         st.info("Nenhum pedido registrado no sistema.")
@@ -422,9 +422,9 @@ elif st.session_state.menu_atual == "PainelMatriz":
         c_sel1, _ = st.columns([2, 2])
         with c_sel1:
             pedido_selecionado_id = st.selectbox(
-                "🔍 Selecionar Pedido / Mapa para Conferir:",
+                "🔍 Selecionar Pedido / Mapa:",
                 mapas_disponiveis,
-                index=len(mapas_disponiveis) - 1
+                key="select_painel_matriz"
             )
             
         p = next((item for item in st.session_state.pedidos if item['id'] == pedido_selecionado_id), None)
@@ -527,8 +527,8 @@ elif st.session_state.menu_atual == "PedidosMatriz":
             with c_top1:
                 mapa_selecionado_id = st.selectbox(
                     "🔍 Selecione o Pedido / Mapa para Conferir:", 
-                    mapas_disponiveis, 
-                    index=len(mapas_disponiveis) - 1
+                    mapas_disponiveis,
+                    key="select_mapa_conferencia"
                 )
             
             pedido_ativo = next((p for p in st.session_state.pedidos if p['id'] == mapa_selecionado_id), None)
@@ -544,7 +544,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 </div>
                 """, unsafe_allow_html=True)
                 
-                modo_leitura = st.radio("Forma de Leitura:", ["⌨️ Seleção / Pistola USB", "📷 Câmera do Celular"], horizontal=True)
+                modo_leitura = st.radio("Forma de Leitura:", ["⌨️ Seleção / Pistola USB", "📷 Câmera do Celular"], horizontal=True, key=f"modo_leitura_{pedido_ativo['id']}")
                 
                 codigo_capturado = ""
                 if modo_leitura == "📷 Câmera do Celular":
@@ -718,7 +718,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 todas_divergencias_ok = all(i.get('autorizado_divergencia', False) for i in pedido_ativo['itens'] if i.get('divergencia', 0) != 0)
                 
                 if todos_conferidos and todas_divergencias_ok:
-                    if st.button("🚀 Concluir e Finalizar Expedição deste Mapa", use_container_width=True):
+                    if st.button(f"🚀 Concluir e Finalizar Expedição deste Mapa ({pedido_ativo['id']})", key=f"btn_concluir_mapa_{pedido_ativo['id']}"):
                         pedido_ativo['status'] = "Concluído / Expedido"
                         salvar_pedidos(st.session_state.pedidos)
                         registrar_log(st.session_state.usuario_logado['nome'], "Finalizou Expedição Mapa", pedido_ativo['id'])
