@@ -4,7 +4,6 @@ elif st.session_state.menu_atual == "Editar":
     if not st.session_state.estoque:
         st.info("Nenhum vinho cadastrado para editar.")
     else:
-        # Criamos um dicionário mapeando o rótulo para o índice real na lista para garantir a exclusão exata
         opcoes_vinhos = {f"{v['nome']} ({v.get('safra', 'S/ Safra')}) - Local: {v.get('localizacao', 'N/A')} [ID: {v.get('id', idx)}]": idx for idx, v in enumerate(st.session_state.estoque)}
         
         vinho_selecionado_label = st.selectbox("Selecione o Vinho para Editar/Excluir:", list(opcoes_vinhos.keys()), key="select_vinho_edicao")
@@ -54,12 +53,9 @@ elif st.session_state.menu_atual == "Editar":
         st.markdown("---")
         st.markdown("#### 🗑️ Exclusão Individual de Vinho")
         
-        # Botão fora do formulário para evitar conflitos de execução do Streamlit
         if st.button("🗑️ Excluir permanentemente este vinho selecionado", type="primary"):
             nome_removido = vinho_obj.get('nome', 'Desconhecido')
-            # Remove exatamente pelo índice da lista na sessão
             st.session_state.estoque.pop(idx_vinho)
-            # Salva o JSON atualizado em disco imediatamente
             salvar_dados(st.session_state.estoque)
             registrar_log(st.session_state.usuario_logado['nome'], "Excluiu Vinho", nome_removido)
             st.success(f"Vinho '{nome_removido}' excluído com sucesso do arquivo!")
