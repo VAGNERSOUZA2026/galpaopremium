@@ -489,44 +489,81 @@ elif st.session_state.menu_atual == "PainelMatriz":
             st.dataframe(pd.DataFrame(p['itens']), use_container_width=True)
 
 elif st.session_state.menu_atual == "PedidosMatriz":
-    st.subheader("📦 Checkout de Expedição - Separação de Vinho Galpão")
-    aba_ped1, aba_ped2 = st.tabs(["📋 Enviar / Cadastrar / Excluir Pedidos", "🔍 Conferência"])
-    with aba_ped1:
-        with st.form("form_novo_pedido", clear_on_submit=True):
-            id_pedido = st.text_input("Código de Barras do Mapa", value=f"123{len(st.session_state.pedidos)+1:03d}")
-            arq_pedido = st.file_uploader("Arquivo de Pedido (Excel ou TXT)", type=["xlsx", "xls", "txt"])
-            texto_manual_pedido = st.text_area("Ou digite um item por linha:", value="")
-            if st.form_submit_button("💾 Salvar Pedido no Sistema"):
-                itens_novos = []
-                if arq_pedido is not None: itens_novos = extrair_pedidos_de_arquivo(arq_pedido)
-                if texto_manual_pedido.strip():
-                    for linha in texto_manual_pedido.split("\n"):
-                        if linha.strip(): itens_novos.append(interpretar_linha_pedido(linha))
-                if itens_novos:
-                    st.session_state.pedidos.append({"id": str(id_pedido).strip(), "data": obter_horario_brasilia().strftime("%d/%m/%Y %H:%M"), "itens": itens_novos, "status": "Pendente"})
-                    salvar_pedidos(st.session_state.pedidos)
-                    sincronizar_estoque_com_pedidos(st.session_state.pedidos, st.session_state.estoque)
-                    st.success("Pedido cadastrado com sucesso!")
-                    st.rerun()
-                else: st.error("Adicione itens.")
-    with aba_ped2:
-        if not st.session_state.pedidos: st.info("Nenhum pedido pendente.")
-        else:
-            pedido_conf_id = st.selectbox("Selecione o Pedido para Conferência:", [p['id'] for p in st.session_state.pedidos])
-            pedido_obj = next((p for p in st.session_state.pedidos if p['id'] == pedido_conf_id), None)
-            if pedido_obj:
-                componente_leitor_barcode("checkout_camera")
+    st.subheader("📦 Conferência e Checkout de Pedidos (Matriz)")
+    
+    if not st.session_state.pedidos:
+        st.info("Nenhum pedido cadastrado no sistema.")
+    else:
+        ids_pedidos = [p['id'] for p in st.session_state.pedidos]
+        pedido_selecionado = st.selectbox("Selecione o Pedido para Conferência:", ids_pedidos)
+        
+        pedido_obj = next((p for p in st.session_state.pedidos if p['id'] == pedido_selecionado), None)
+        
+        if pedido_obj:
+            st.markdown(f"**Status Atual:** {pedido_obj.get('status', 'Pendente')} | **Data:** {pedido_obj.get('data', 'N/A')}")
+            
+            componente_leitor_barcode("checkout_camera")
+            
+            codigo_bipado = st.session_state.get("codigo_bipado_checkout", "")
+            if codigo_bipado:
+                encontrou = False
+                for item in pedido_obj['itens']:
+                    if codigo_bipado.lower() in item['nome'].lower():
+                        item['qtd_separada'] = item.get('qtd_separada', 0) + 1
+                        item['separado'] = True
+                        encontrou = True
+                
+                if encontrou:
+                    st.success(f"Item correspondente ao código '{codigo_bipado}' atualizado com sucesso!")
+                else:
+                    st.warning(f"Nenhum item do pedido corresponde ao código bipado: {codigo_bipado}")
+                
+                st.session_state.codigo_bipado_checkout = ""
+            
+            st.markdown("---")
+            st.markdown("#### 📋 Itens do Pedido:")
+            
+            with st.form("form_conferencia_pedido"):
                 for idx_i, item in enumerate(pedido_obj['itens']):
                     c1, c2, c3 = st.columns([3, 1.5, 1.5])
-                    with c1: st.markdown(f"**{item['nome']}** (Pedido: {item['quantidade']})")
-                    with c2: item['qtd_separada'] = st.number_input("Separado", min_value=0, value=int(item.get('qtd_separada', 0)), key=f"q_{idx_i}")
-                    with c3: item['divergencia'] = item['qtd_separada'] - item['quantidade']
-                if st.button("💾 Salvar Progresso"):
+                    with c1:
+                        status_icone = "✅" if item.get('separado', False) else "⏳"
+                        st.markdown(f"{status_icone} **{item['nome']}**<br><span style='color: #666; font-size: 0.85rem;'>Qtd Pedida: {item['quantidade']}</span>", unsafe_allow_html=True)
+                    with c2:
+                        item['qtd_separada'] = st.number_input("Qtd Separada", min_value=0, value=int(item.get('qtd_separada', 0)), key=f"q_sep_{idx_i}")
+                    with c3:
+                        dif = item['qtd_separada'] - item['quantidade']
+                        cor_dif = "red" if dif != 0 else "green"
+                        st.markdown(f"<br>Divergência: <b style='color: {cor_dif};'>{dif}</b>", unsafe_allow_html=True)
+                    
+                    if item['qtd_separada'] >= item['quantidade']:
+                        item['separado'] = True
+                    else:
+                        item['separado'] = False
+
+                col_b1, col_b2 = st.columns(2)
+                with col_b1:
+                    btn_salvar_progresso = st.form_submit_button("💾 Salvar Alterações / Progresso")
+                with col_b2:
+                    btn_finalizar = st.form_submit_button("🚀 Finalizar e Expedir Pedido", type="primary")
+                
+                if btn_salvar_progresso:
                     salvar_pedidos(st.session_state.pedidos)
-                    st.success("Salvo!")
+                    registrar_log(st.session_state.usuario_logado['nome'], "Atualizou Pedido", f"Pedido {pedido_obj['id']}")
+                    st.success("Progresso do pedido salvo com sucesso!")
                     st.rerun()
-                if st.button("🚀 Finalizar e Expedir Pedido", type="primary"):
+                    
+                if btn_finalizar:
                     pedido_obj['status'] = "Concluído / Expedido"
                     salvar_pedidos(st.session_state.pedidos)
-                    st.success("Expedido com sucesso!")
+                    registrar_log(st.session_state.usuario_logado['nome'], "Expediu Pedido", f"Pedido {pedido_obj['id']}")
+                    st.success("Pedido finalizado e expedido com sucesso!")
                     st.rerun()
+            
+            st.markdown("---")
+            if st.button("🗑️ Excluir este pedido inteiramente", type="secondary"):
+                st.session_state.pedidos.remove(pedido_obj)
+                salvar_pedidos(st.session_state.pedidos)
+                registrar_log(st.session_state.usuario_logado['nome'], "Excluiu Pedido", f"Pedido {pedido_obj['id']}")
+                st.success("Pedido excluído do sistema.")
+                st.rerun()
