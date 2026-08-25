@@ -84,7 +84,27 @@ def carregar_dados():
         except: 
             pass
     if not estoque:
-        estoque = [{"nome": "Campana Merlot", "tipo": "Tinto", "safra": "2024", "localizacao": "Corredor 01 - Pallet Item 01", "lado": "Direito", "caixa": "Caixa com 12 garrafas", "codigo_barras": "7891008116632", "foto": ""}]
+        estoque = [{
+            "id": "1", 
+            "nome": "Campana Merlot", 
+            "tipo": "Tinto", 
+            "safra": "2024", 
+            "localizacao": "Corredor 01 - Pallet Item 01", 
+            "lado": "Direito", 
+            "caixa": "Caixa com 12 garrafas", 
+            "codigo_barras": "7891008116632", 
+            "foto": ""
+        }]
+    
+    # Garante que todos os itens tenham um ID único para evitar falhas de exclusão/edição
+    alterado = False
+    for idx, item in enumerate(estoque):
+        if "id" not in item or not item["id"]:
+            item["id"] = f"vinho_{idx}_{int(obter_horario_brasilia().timestamp())}"
+            alterado = True
+    if alterado:
+        salvar_dados(estoque)
+
     return sorted(estoque, key=lambda x: x.get("nome", "").lower())
 
 def salvar_dados(estoque):
@@ -101,7 +121,9 @@ def sincronizar_estoque_com_pedidos(pedidos, estoque):
         for item in p.get('itens', []):
             nome_item = item.get('nome', '').strip()
             if nome_item and nome_item.lower() not in nomes_existentes:
+                novo_id = f"vinho_sinc_{len(estoque)}_{int(obter_horario_brasilia().timestamp())}"
                 novo_v = {
+                    "id": novo_id,
                     "nome": nome_item.title(),
                     "safra": item.get('safra', ''),
                     "tipo": "Tinto",
@@ -489,7 +511,9 @@ elif st.session_state.menu_atual == "Cadastrar":
         if btn_salvar_novo:
             if nome_c:
                 localizacao_completa = f"{corredor_c} - {tipo_local_c} {numero_local_c}"
+                novo_id = f"vinho_{len(st.session_state.estoque)}_{int(obter_horario_brasilia().timestamp())}"
                 novo_vinho = {
+                    "id": novo_id,
                     "nome": nome_c,
                     "tipo": tipo_c,
                     "safra": safra_c,
@@ -513,10 +537,13 @@ elif st.session_state.menu_atual == "Editar":
     if not st.session_state.estoque:
         st.info("Nenhum vinho cadastrado para editar.")
     else:
-        nomes_vinhos = [v['nome'] for v in st.session_state.estoque]
-        vinho_selecionado_nome = st.selectbox("Selecione o Vinho para Editar:", nomes_vinhos, key="select_vinho_edicao")
+        # Criamos um dicionário para mapear o nome visível ao ID único do vinho
+        opcoes_vinhos = {f"{v['nome']} ({v.get('safra', 'S/ Safra')}) - Local: {v.get('localizacao', 'N/A')}": v['id'] for v in st.session_state.estoque}
         
-        vinho_obj = next((v for v in st.session_state.estoque if v['nome'] == vinho_selecionado_nome), None)
+        vinho_selecionado_label = st.selectbox("Selecione o Vinho para Editar:", list(opcoes_vinhos.keys()), key="select_vinho_edicao")
+        id_vinho_selecionado = opcoes_vinhos[vinho_selecionado_label]
+        
+        vinho_obj = next((v for v in st.session_state.estoque if v['id'] == id_vinho_selecionado), None)
         
         if vinho_obj:
             with st.form("form_editar_vinho_completo"):
@@ -561,11 +588,11 @@ elif st.session_state.menu_atual == "Editar":
 
             st.markdown("---")
             st.markdown("#### 🗑️ Exclusão Individual de Vinho")
-            if st.button(f"🗑️ Excluir permanentemente '{vinho_selecionado_nome}'"):
-                st.session_state.estoque = [v for v in st.session_state.estoque if v['nome'] != vinho_selecionado_nome]
+            if st.button(f"🗑️ Excluir permanentemente este vinho selecionado"):
+                st.session_state.estoque = [v for v in st.session_state.estoque if v['id'] != id_vinho_selecionado]
                 salvar_dados(st.session_state.estoque)
-                registrar_log(st.session_state.usuario_logado['nome'], "Excluiu Vinho", vinho_selecionado_nome)
-                st.success(f"Vinho '{vinho_selecionado_nome}' excluído com sucesso!")
+                registrar_log(st.session_state.usuario_logado['nome'], "Excluiu Vinho ID", id_vinho_selecionado)
+                st.success("Vinho excluído com sucesso!")
                 st.rerun()
 
 elif st.session_state.menu_atual == "Historico":
