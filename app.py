@@ -696,65 +696,80 @@ elif st.session_state.menu_atual == "PedidosMatriz":
             if itens_novos:
                 # Verifica ID duplicado
                 ids_existentes = [p['id'] for p in st.session_state.pedidos]
-                id_pedido_limpo = str(id_pedido).strip()
-                if id_pedido_limpo in ids_existentes:
-                    st.error(f"⚠️ O Pedido ID '{id_pedido_limpo}' já está cadastrado!")
+                if id_pedido in ids_existentes:
+                    st.error(f"O ID de pedido '{id_pedido}' já existe. Escolha outro código.")
                 else:
-                    novo_registro_pedido = {
-                        "id": id_pedido_limpo,
+                    novo_pedido = {
+                        "id": id_pedido,
                         "data": obter_horario_brasilia().strftime("%d/%m/%Y %H:%M"),
-                        "itens": itens_novos,
-                        "status": "Pendente"
+                        "status": "Pendente",
+                        "itens": itens_novos
                     }
-                    st.session_state.pedidos.append(novo_registro_pedido)
+                    st.session_state.pedidos.append(novo_pedido)
                     salvar_pedidos(st.session_state.pedidos)
+                    registrar_log(st.session_state.usuario_logado['nome'], "Cadastrou Pedido Matriz", id_pedido)
                     sincronizar_estoque_com_pedidos(st.session_state.pedidos, st.session_state.estoque)
-                    registrar_log(st.session_state.usuario_logado['nome'], "Cadastrou Pedido", f"Pedido {id_pedido_limpo} com {len(itens_novos)} itens")
-                    st.success(f"✅ Pedido {id_pedido_limpo} salvo com {len(itens_novos)} itens!")
+                    st.success(f"Pedido {id_pedido} salvo com sucesso!")
                     st.rerun()
             else:
-                st.warning("⚠️ Nenhum item foi encontrado no arquivo ou texto digitado.")
-    
-    with aba_ped2:
-        st.markdown("🔍 **Conferência de Separação** — Selecione o pedido e confira item por item.")
+                st.warning("Adicione itens via arquivo ou texto manual.")
+                
+        st.markdown("---")
+        st.markdown("#### 🗑️ Gerenciar / Excluir Pedidos Existentes")
         if not st.session_state.pedidos:
-            st.info("Nenhum pedido registrado.")
+            st.info("Nenhum pedido cadastrado para excluir.")
         else:
-            lista_ids = [p['id'] for p in st.session_state.pedidos]
-            sel_id = st.selectbox("Selecione o Pedido para Conferência:", lista_ids)
-            pedido = next((x for x in st.session_state.pedidos if x['id'] == sel_id), None)
-            if pedido:
-                st.markdown(f"**Status:** {pedido.get('status', 'Pendente')} | **Data:** {pedido['data']}")
-                st.divider()
-                houve_alteracao = False
-                for idx, item in enumerate(pedido['itens']):
-                    dif = item.get('divergencia', 0)
-                    st.markdown(f"**{item['nome']}** ({item.get('safra', 's/ safra')}) — Pedido: {item['quantidade']}")
-                    col1, col2, col3 = st.columns([1,1,2])
-                    with col1:
-                        qtd_sep = st.number_input(f"Separado", min_value=0, value=item.get('qtd_separada', 0), key=f"qsep_{sel_id}_{idx}")
-                    with col2:
-                        aut_div = st.checkbox("Ok", value=item.get('autorizado_divergencia', False), key=f"aut_{sel_id}_{idx}")
-                    with col3:
-                        diver = qtd_sep - item['quantidade']
-                        if diver != item.get('divergencia', 0):
-                            item['qtd_separada'] = qtd_sep
-                            item['divergencia'] = diver
-                            item['autorizado_divergencia'] = aut_div
-                            houve_alteracao = True
-                        if diver > 0:
-                            st.info(f"Excedente: +{diver}")
-                        elif diver < 0:
-                            st.warning(f"Falta: {diver}")
-                        else:
-                            st.success("✅ Quantidade correta")
-                    st.divider()
-                if houve_alteracao:
+            opcoes_ped_exc = {f"Pedido Nº {p['id']} - Data: {p['data']}": p['id'] for p in st.session_state.pedidos}
+            ped_exc_selecionado = st.selectbox("Selecione o pedido para excluir:", list(opcoes_ped_exc.keys()))
+            id_exc = opcoes_ped_exc[ped_exc_selecionado]
+            if st.button("🗑️ Excluir Pedido Selecionado"):
+                st.session_state.pedidos = [p for p in st.session_state.pedidos if p['id'] != id_exc]
+                salvar_pedidos(st.session_state.pedidos)
+                registrar_log(st.session_state.usuario_logado['nome'], "Excluiu Pedido Matriz", id_exc)
+                st.success("Pedido excluído com sucesso!")
+                st.rerun()
+
+    with aba_ped2:
+        st.markdown("Faça a conferência física e o checkout dos itens dos pedidos pendentes.")
+        pedidos_pendentes = [p for p in st.session_state.pedidos if p.get('status') != "Concluído / Expedido"]
+        
+        if not pedidos_pendentes:
+            st.success("🎉 Todos os pedidos já foram concluídos e expedidos!")
+        else:
+            ids_pendentes = [p['id'] for p in pedidos_pendentes]
+            id_conf = st.selectbox("Selecione o Pedido para Conferência:", ids_pendentes, key="select_conf_pedido")
+            pedido_ativo = next((p for p in pedidos_pendentes if p['id'] == id_conf), None)
+            
+            if pedido_ativo:
+                st.markdown(f"**Status atual do Pedido {pedido_ativo['id']}:** {pedido_ativo.get('status', 'Pendente')}")
+                
+                for idx, item in enumerate(pedido_ativo['itens']):
+                    st.markdown(f"""
+                    <div class='wine-card'>
+                        <b>Produto:</b> {item['nome']} ({item.get('safra', 'N/A')})<br>
+                        <b>Quantidade Pedida:</b> {item['quantidade']} | <b>Separada:</b> {item.get('qtd_separada', 0)}
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    col_inc, col_dec = st.columns(2)
+                    with col_inc:
+                        if st.button(f"➕ Adicionar 1 un", key=f"inc_{id_conf}_{idx}"):
+                            item['qtd_separada'] = item.get('qtd_separada', 0) + 1
+                            item['divergencia'] = item['qtd_separada'] - item['quantidade']
+                            salvar_pedidos(st.session_state.pedidos)
+                            st.rerun()
+                    with col_dec:
+                        if st.button(f"➖ Remover 1 un", key=f"dec_{id_conf}_{idx}"):
+                            if item.get('qtd_separada', 0) > 0:
+                                item['qtd_separada'] -= 1
+                                item['divergencia'] = item['qtd_separada'] - item['quantidade']
+                                salvar_pedidos(st.session_state.pedidos)
+                                st.rerun()
+                
+                st.markdown("---")
+                if st.button("🚀 Finalizar e Concluir Checkout do Pedido", use_container_width=True):
+                    pedido_ativo['status'] = "Concluído / Expedido"
                     salvar_pedidos(st.session_state.pedidos)
+                    registrar_log(st.session_state.usuario_logado['nome'], "Concluiu Expedição Pedido", pedido_ativo['id'])
+                    st.success("Checkout concluído com sucesso!")
                     st.rerun()
-                if pedido.get('status') != "Concluído / Expedido":
-                    if st.button("✅ Marcar como Expedido / Concluído"):
-                        pedido['status'] = "Concluído / Expedido"
-                        salvar_pedidos(st.session_state.pedidos)
-                        registrar_log(st.session_state.usuario_logado['nome'], "Concluiu Pedido", f"Pedido {sel_id}")
-                        st.rerun()
