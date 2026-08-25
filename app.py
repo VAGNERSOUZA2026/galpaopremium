@@ -47,7 +47,6 @@ ARQUIVO_PEDIDOS = "pedidos_matriz.json"
 PASTA_BACKUP = "backups_estoque"
 PASTA_FOTOS = "fotos_vinhos"
 SENHA_DEV = "1980"
-SENHA_DIVERGENCIA = "2026"
 
 if not os.path.exists(PASTA_BACKUP):
     os.makedirs(PASTA_BACKUP)
@@ -169,32 +168,6 @@ def carregar_pedidos():
 
 def salvar_pedidos(pedidos):
     with open(ARQUIVO_PEDIDOS, "w", encoding="utf-8") as f: json.dump(pedidos, f, ensure_ascii=False, indent=4)
-
-def interpretar_linha_pedido(texto_linha):
-    texto = texto_linha.strip()
-    safra = ""
-    quantidade = 1
-    partes = re.split(r'[/\|–\-]', texto)
-    partes = [p.strip() for p in partes if p.strip()]
-    nome = partes[0] if partes else texto
-    return {"nome": nome.title(), "safra": safra, "quantidade": quantidade, "separado": False, "qtd_separada": 0, "divergencia": 0}
-
-def extrair_pedidos_de_arquivo(arq):
-    itens = []
-    ext = arq.name.split('.')[-1].lower()
-    try:
-        if ext in ['xlsx', 'xls']:
-            df = pd.read_excel(arq)
-            for _, row in df.iterrows():
-                nome_bruto = str(row.get('Nome', row.iloc[0] if len(row) > 0 else '')).strip()
-                if nome_bruto and nome_bruto != 'Nan':
-                    itens.append({"nome": nome_bruto.title(), "safra": "", "quantidade": 1, "separado": False, "qtd_separada": 0, "divergencia": 0})
-        elif ext == 'txt':
-            linhas = [l.strip() for l in arq.getvalue().decode("utf-8").split("\n") if l.strip()]
-            for l in linhas:
-                itens.append(interpretar_linha_pedido(l))
-    except: pass
-    return itens
 
 def componente_leitor_barcode(chave_sessao):
     html_code = f"""
