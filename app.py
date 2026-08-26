@@ -15,7 +15,6 @@ try:
 except ImportError:
     OPENCV_DISPONIVEL = False
 
-# Configuração da Página
 st.set_page_config(
     page_title="Premium Wines - Galpão",
     page_icon="imagem premium.jpeg",
@@ -23,7 +22,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-# Estilos
 st.markdown(
     """
     <style>
@@ -42,7 +40,6 @@ st.markdown(
 """, unsafe_allow_html=True,
 )
 
-# Constantes
 NOME_ARQUIVO = "estoque_galpao_pro.json"
 ARQUIVO_USUARIOS = "usuarios_galpao.json"
 ARQUIVO_LOGS = "logs_auditoria.json"
@@ -52,20 +49,17 @@ PASTA_FOTOS = "fotos_vinhos"
 SENHA_DEV = "1980"
 SENHA_DIVERGENCIA = "2026"
 
-# Cria pastas se não existirem
 if not os.path.exists(PASTA_BACKUP):
     os.makedirs(PASTA_BACKUP)
 if not os.path.exists(PASTA_FOTOS):
     os.makedirs(PASTA_FOTOS)
 
-# Listas de opções
 LISTA_CORREDORES = [f"Corredor {i:02d}" for i in range(1, 26)]
 LISTA_LOCAIS_TIPO = ["Pallet", "Prateleira"]
 LISTA_NUMEROS_LOCAL = [f"Item {i:02d}" for i in range(1, 26)]
 LISTA_LADOS = ["Direito", "Esquerdo", "Centro / Único"]
 OPCOES_CAIXA = ["Caixa com 12 garrafas", "Caixa com 6 garrafas", "Caixa com 3 garrafas", "Caixa com 2 garrafas", "Garrafa Avulsa (1 un)", "Outra quantidade"]
 
-# Funções de Data e Hora
 def obter_horario_brasilia():
     fuso_brasilia = timezone(timedelta(hours=-3))
     return datetime.now(fuso_brasilia)
@@ -76,13 +70,11 @@ def obter_saudacao():
     elif 12 <= hora < 18: return "Boa tarde"
     else: return "Boa noite"
 
-# Backup
 def realizar_backup(nome):
     if os.path.exists(nome):
         ts = obter_horario_brasilia().strftime("%Y%m%d_%H%M%S")
         shutil.copy(nome, os.path.join(PASTA_BACKUP, f"backup_{ts}_{nome}"))
 
-# Estoque
 def carregar_dados():
     estoque = []
     if os.path.exists(NOME_ARQUIVO):
@@ -94,7 +86,7 @@ def carregar_dados():
     if not estoque:
         estoque = [{
             "id": "1", 
-            "estoque": "Campana Merlot", 
+            "nome": "Campana Merlot", 
             "tipo": "Tinto", 
             "safra": "2024", 
             "localizacao": "Corredor 01 - Pallet Item 01", 
@@ -104,7 +96,6 @@ def carregar_dados():
             "foto": ""
         }]
     
-    # Garante IDs únicos
     alterado = False
     for idx, item in enumerate(estoque):
         if "id" not in item or not item["id"]:
@@ -112,6 +103,7 @@ def carregar_dados():
             alterado = True
     if alterado:
         salvar_dados(estoque)
+
     return sorted(estoque, key=lambda x: x.get("nome", "").lower())
 
 def salvar_dados(estoque):
@@ -121,7 +113,6 @@ def salvar_dados(estoque):
     realizar_backup(NOME_ARQUIVO)
     st.session_state.estoque = estoque_ordenado
 
-# Sincronização
 def sincronizar_estoque_com_pedidos(pedidos, estoque):
     nomes_existentes = {v['nome'].lower() for v in estoque}
     alterado = False
@@ -147,7 +138,6 @@ def sincronizar_estoque_com_pedidos(pedidos, estoque):
     if alterado:
         salvar_dados(estoque)
 
-# Usuários
 def carregar_usuarios():
     if os.path.exists(ARQUIVO_USUARIOS):
         try:
@@ -158,7 +148,6 @@ def carregar_usuarios():
 def salvar_usuarios(usuarios):
     with open(ARQUIVO_USUARIOS, "w", encoding="utf-8") as f: json.dump(usuarios, f, ensure_ascii=False, indent=4)
 
-# Logs
 def carregar_logs():
     if os.path.exists(ARQUIVO_LOGS):
         try:
@@ -171,7 +160,6 @@ def registrar_log(usuario, acao, detalhes):
     logs.insert(0, {"data_hora": obter_horario_brasilia().strftime("%d/%m/%Y %H:%M:%S"), "usuario": usuario, "acao": acao, "detalhes": detalhes})
     with open(ARQUIVO_LOGS, "w", encoding="utf-8") as f: json.dump(logs, f, ensure_ascii=False, indent=4)
 
-# Pedidos
 def carregar_pedidos():
     pedidos = []
     if os.path.exists(ARQUIVO_PEDIDOS):
@@ -196,7 +184,6 @@ def carregar_pedidos():
 def salvar_pedidos(pedidos):
     with open(ARQUIVO_PEDIDOS, "w", encoding="utf-8") as f: json.dump(pedidos, f, ensure_ascii=False, indent=4)
 
-# Interpretação de Pedidos
 def interpretar_linha_pedido(texto_linha):
     texto = texto_linha.strip()
     safra = ""
@@ -235,6 +222,7 @@ def interpretar_linha_pedido(texto_linha):
             texto_limpo = texto.replace(safra, "")
         else:
             texto_limpo = texto
+
         match_qtd = re.search(r'(?:/|\bcaixas?|\bqt[d]?\.?)\s*(\d+)', texto_limpo, re.IGNORECASE)
         if match_qtd:
             quantidade = int(match_qtd.group(1))
@@ -244,8 +232,10 @@ def interpretar_linha_pedido(texto_linha):
             if numeros_soltos and numeros_soltos[-1] != safra:
                 quantidade = int(numeros_soltos[-1])
                 texto_limpo = texto_limpo.replace(numeros_soltos[-1], "")
+
         texto_limpo = re.sub(r'\bcaixas?\b', '', texto_limpo, flags=re.IGNORECASE)
         nome = re.sub(r'[/\|\-\–]+', '', texto_limpo).strip()
+
     return {
         "nome": nome.title(), 
         "safra": safra, 
@@ -286,7 +276,6 @@ def extrair_pedidos_de_arquivo(arq):
     except: pass
     return itens
 
-# Leitor de Código de Barras
 def componente_leitor_barcode(chave_sessao):
     html_code = f"""
     <div style="text-align: center; background: #FFF; padding: 10px; border-radius: 12px; border: 1px solid #E9ECEF;">
@@ -315,9 +304,9 @@ def componente_leitor_barcode(chave_sessao):
     """
     components.html(html_code, height=260)
 
-# Inicialização de Sessão
 if "usuarios" not in st.session_state:
     st.session_state.usuarios = carregar_usuarios()
+
 st.session_state.estoque = carregar_dados()
 st.session_state.pedidos = carregar_pedidos()
 sincronizar_estoque_com_pedidos(st.session_state.pedidos, st.session_state.estoque)
@@ -325,8 +314,8 @@ sincronizar_estoque_com_pedidos(st.session_state.pedidos, st.session_state.estoq
 if "menu_atual" not in st.session_state: st.session_state.menu_atual = "🏠 Home"
 if "termo_busca" not in st.session_state: st.session_state.termo_busca = ""
 
-# Processa parâmetros de leitura de código de barras
 qp = st.query_params
+
 for key, val in list(qp.items()):
     if key.startswith("scanned_"):
         sess_key = key.replace("scanned_", "")
@@ -339,9 +328,9 @@ for key, val in list(qp.items()):
         del st.query_params[key]
         st.rerun()
 
-# Login
 user_url = qp.get("user", None)
 cargo_url = qp.get("cargo", "Operador")
+
 if "usuario_logado" not in st.session_state or st.session_state.usuario_logado is None:
     if user_url:
         st.session_state.usuario_logado = {"nome": user_url, "cargo": cargo_url}
@@ -397,7 +386,6 @@ if st.session_state.usuario_logado is None:
                     else: st.error("Senha incorreta.")
     st.stop()
 
-# Cabeçalho e Navegação
 ct1, ct2, ct3 = st.columns([3, 2, 1])
 with ct1: st.markdown(f"🍷 <b>PREMIUM WINES</b> | Usuário: {st.session_state.usuario_logado['nome']} ({st.session_state.usuario_logado.get('cargo', 'Operador')})", unsafe_allow_html=True)
 with ct2:
@@ -409,9 +397,9 @@ with ct3:
         st.query_params.clear()
         st.session_state.menu_atual = "🏠 Home"
         st.rerun()
+
 st.markdown("---")
 
-# ==================== MENU PRINCIPAL ====================
 if st.session_state.menu_atual == "🏠 Home":
     st.markdown(f"<p style='text-align: center; color: #666; margin-bottom: 0px;'>{obter_saudacao()},</p>", unsafe_allow_html=True)
     st.markdown(f"<h1 style='text-align: center; color: #7A1C2E; margin-top: 0px;'>{st.session_state.usuario_logado['nome']}! 👋</h1>", unsafe_allow_html=True)
@@ -442,6 +430,7 @@ if st.session_state.menu_atual == "🏠 Home":
         if st.button("➕ Cadastrar Vinho", use_container_width=True): st.session_state.menu_atual = "Cadastrar"; st.rerun()
     with c9:
         if st.button("✏️ Editar Vinho", use_container_width=True): st.session_state.menu_atual = "Editar"; st.rerun()
+
     st.write("")
     c10, c11, _ = st.columns(3)
     with c10:
@@ -594,6 +583,7 @@ elif st.session_state.menu_atual == "Editar":
                         st.rerun()
                     else:
                         st.error("O nome do vinho não pode ficar em branco.")
+
             st.markdown("---")
             st.markdown("#### 🗑️ Exclusão Individual de Vinho")
             if st.button(f"🗑️ Excluir permanentemente este vinho selecionado"):
@@ -668,30 +658,171 @@ elif st.session_state.menu_atual == "PainelMatriz":
             st.dataframe(pd.DataFrame(df_itens), use_container_width=True)
 
 elif st.session_state.menu_atual == "PedidosMatriz":
-    st.subheader("📦 Checkout de Expedição - Separação de Vinho Galpão")
+    st.subheader("📦 Gestão de Pedidos - Separação de Vinho Galpão")
     
     aba_ped1, aba_ped2 = st.tabs(["📋 Enviar / Cadastrar / Excluir Pedidos", "🔍 Conferência (Checkout de Expedição)"])
     
     with aba_ped1:
-        st.markdown("Cadastre o mapa de separação enviado pela matriz (via arquivo Excel, TXT ou digitação manual rápida).")
+        st.markdown("Cadastre o mapa de separação e use o leitor de código de barras para caminhar pelo corredor adicionando os vinhos que precisam descer do galpão.")
         proximo_numero = len(st.session_state.pedidos) + 1
         id_sugerido = f"123{proximo_numero:03d}"
         
-        with st.form("form_novo_pedido", clear_on_submit=True):
-            id_pedido = st.text_input("Código de Barras do Mapa (Ex: 1234552)", value=id_sugerido)
-            arq_pedido = st.file_uploader("Arquivo de Pedido (Excel ou TXT)", type=["xlsx", "xls", "txt"])
-            texto_manual_pedido = st.text_area("Ou digite um item por linha no formato rápido (Nome / Safra / Qtd):", value="")
-            btn_salvar_pedido = st.form_submit_button("💾 Salvar Pedido no Sistema")
+        if "itens_novo_pedido_temp" not in st.session_state:
+            st.session_state.itens_novo_pedido_temp = []
+
+        id_pedido = st.text_input("Código de Barras do Mapa (Ex: 1234552)", value=id_sugerido)
         
-        if btn_salvar_pedido:
-            itens_novos = []
+        st.markdown("---")
+        st.markdown("#### 📷 Adicionar Vinho via Leitor (Caminhando pelo Corredor)")
+        componente_leitor_barcode("cadastro_pedido_camera")
+        
+        codigo_lido_cadastro = st.session_state.get("codigo_bipado_cadastro_pedido_camera", "")
+        if "scanned_cadastro_pedido_camera" in st.query_params:
+            codigo_lido_cadastro = st.query_params["scanned_cadastro_pedido_camera"]
+            del st.query_params["scanned_cadastro_pedido_camera"]
+
+        if codigo_lido_cadastro:
+            cod_limpo = str(codigo_lido_cadastro).strip()
+            vinho_cad = next((v for v in st.session_state.estoque if str(v.get('codigo_barras', '')).strip() == cod_limpo), None)
+            if vinho_cad:
+                encontrado_temp = False
+                for it in st.session_state.itens_novo_pedido_temp:
+                    if it['nome'].lower() == vinho_cad['nome'].lower():
+                        it['quantidade'] += 1
+                        encontrado_temp = True
+                        break
+                if not encontrado_temp:
+                    st.session_state.itens_novo_pedido_temp.append({
+                        "nome": vinho_cad['nome'],
+                        "safra": vinho_cad.get('safra', ''),
+                        "quantidade": 1,
+                        "separado": False,
+                        "qtd_separada": 0,
+                        "divergencia": 0,
+                        "autorizado_divergencia": False
+                    })
+                st.success(f"✅ Adicionado à lista: **{vinho_cad['nome']}** (Local: {vinho_cad.get('localizacao')})")
+            else:
+                st.error(f"❌ Código de barras '{cod_limpo}' não encontrado no estoque do galpão!")
+
+        st.markdown("---")
+        arq_pedido = st.file_uploader("Ou envie Arquivo de Pedido (Excel ou TXT)", type=["xlsx", "xls", "txt"])
+        texto_manual_pedido = st.text_area("Ou digite um item por linha (Nome / Safra / Qtd):", value="")
+
+        if st.session_state.itens_novo_pedido_temp:
+            st.markdown("##### 🛒 Itens na Lista do Novo Pedido:")
+            for idx_t, it_t in enumerate(st.session_state.itens_novo_pedido_temp):
+                st.write(f"- **{it_t['nome']}** (Safra: {it_t.get('safra', 'N/A')}) - Qtd: {it_t['quantidade']}")
+            if st.button("🧹 Limpar Lista Temporária"):
+                st.session_state.itens_novo_pedido_temp = []
+                st.rerun()
+
+        if st.button("💾 Salvar Pedido Completo no Sistema", use_container_width=True):
+            itens_finais = list(st.session_state.itens_novo_pedido_temp)
             if arq_pedido is not None:
-                itens_novos = extrair_pedidos_de_arquivo(arq_pedido)
+                itens_finais.extend(extrair_pedidos_de_arquivo(arq_pedido))
             if texto_manual_pedido.strip():
                 for linha in texto_manual_pedido.split("\n"):
                     if linha.strip():
-                        item_interpretado = interpretar_linha_pedido(linha)
-                        itens_novos.append(item_interpretado)
-            
-            # Validação de itens
-            if not itens_novos:
+                        itens_finais.append(interpretar_linha_pedido(linha))
+
+            if itens_finais:
+                novo_registro_pedido = {
+                    "id": str(id_pedido).strip(),
+                    "data": obter_horario_brasilia().strftime("%d/%m/%Y %H:%M"),
+                    "itens": itens_finais,
+                    "status": "Pendente"
+                }
+                st.session_state.pedidos.append(novo_registro_pedido)
+                salvar_pedidos(st.session_state.pedidos)
+                sincronizar_estoque_com_pedidos(st.session_state.pedidos, st.session_state.estoque)
+                registrar_log(st.session_state.usuario_logado['nome'], "Cadastrou Pedido via Leitor/Manual", str(id_pedido))
+                st.session_state.itens_novo_pedido_temp = []
+                st.success(f"Pedido {id_pedido} salvo com sucesso!")
+                st.rerun()
+            else:
+                st.error("Adicione itens usando o leitor de código de barras, arquivo ou digitação.")
+
+        st.markdown("---")
+        st.markdown("#### 🗑️ Excluir Pedidos Registrados")
+        if st.session_state.pedidos:
+            ids_pedidos_existentes = [p['id'] for p in st.session_state.pedidos]
+            pedido_a_excluir = st.selectbox("Selecione o Pedido para Excluir:", ids_pedidos_existentes, key="select_excluir_pedido")
+            if st.button("🗑️ Excluir Pedido Selecionado"):
+                st.session_state.pedidos = [p for p in st.session_state.pedidos if p['id'] != pedido_a_excluir]
+                salvar_pedidos(st.session_state.pedidos)
+                registrar_log(st.session_state.usuario_logado['nome'], "Excluiu Pedido", str(pedido_a_excluir))
+                st.success(f"Pedido {pedido_a_excluir} excluído com sucesso!")
+                st.rerun()
+        else:
+            st.info("Nenhum pedido para excluir.")
+
+    with aba_ped2:
+        st.markdown("Faça a conferência bipando ou conferindo os itens para liberação da expedição.")
+        if not st.session_state.pedidos:
+            st.info("Nenhum pedido ativo para conferência.")
+        else:
+            ids_ativos = [p['id'] for p in st.session_state.pedidos if p.get('status') != "Concluído / Expedido"]
+            if not ids_ativos:
+                st.success("Todos os pedidos cadastrados já foram concluídos e expedidos!")
+            else:
+                pedido_conf_id = st.selectbox("Selecione o Pedido para Conferência:", ids_ativos, key="select_conf_pedido")
+                pedido_obj = next((p for p in st.session_state.pedidos if p['id'] == pedido_conf_id), None)
+
+                if pedido_obj:
+                    st.markdown(f"**Status Atual:** {pedido_obj.get('status', 'Pendente')}")
+                    
+                    st.markdown("##### 📷 Leitor Câmera (Checkout)")
+                    componente_leitor_barcode("checkout_camera")
+
+                    codigo_bipado = st.session_state.get("codigo_bipado_checkout", "")
+                    if "scanned_checkout_camera" in st.query_params:
+                        codigo_bipado = st.query_params["scanned_checkout_camera"]
+                        del st.query_params["scanned_checkout_camera"]
+
+                    if codigo_bipado:
+                        st.info(f"Último código capturado: {codigo_bipado}")
+                        st.session_state.codigo_bipado_checkout = ""
+
+                    st.markdown("---")
+                    st.markdown("##### 📋 Itens do Pedido:")
+                    
+                    for idx, item in enumerate(pedido_obj['itens']):
+                        col_i1, col_i2, col_i3 = st.columns([3, 1, 1])
+                        with col_i1:
+                            st.markdown(f"**{item['nome']}** (Safra: {item.get('safra', 'N/A')})<br>Qtd Pedida: <b>{item['quantidade']}</b>", unsafe_allow_html=True)
+                        with col_i2:
+                            qtd_sep = st.number_input(f"Qtd Sep. #{idx}", min_value=0, max_value=100, value=item.get('qtd_separada', item['quantidade']), key=f"qtd_sep_{pedido_conf_id}_{idx}")
+                            item['qtd_separada'] = qtd_sep
+                            item['divergencia'] = qtd_sep - item['quantidade']
+                        with col_i3:
+                            st.write("")
+                            st.write("")
+                            if item['divergencia'] != 0 and not item.get('autorizado_divergencia', False):
+                                senha_div = st.text_input(f"Senha Diverg. #{idx}", type="password", key=f"pwd_div_{pedido_conf_id}_{idx}")
+                                if st.button(f"Liberar #{idx}", key=f"btn_div_{pedido_conf_id}_{idx}"):
+                                    if senha_div == SENHA_DIVERGENCIA:
+                                        item['autorizado_divergencia'] = True
+                                        st.success("Liberado!")
+                                        st.rerun()
+                                    else:
+                                        st.error("Senha incorreta.")
+                            else:
+                                st.markdown("✅ OK")
+                        st.markdown("<hr style='margin: 5px 0;'>", unsafe_allow_html=True)
+
+                    if st.button("🚀 Finalizar e Expedir Pedido", use_container_width=True):
+                        bloqueio = False
+                        for it in pedido_obj['itens']:
+                            if it['divergencia'] != 0 and not it.get('autorizado_divergencia', False):
+                                bloqueio = True
+                                break
+                        
+                        if bloqueio:
+                            st.error("Existem itens com divergência não autorizados pela gerência (Senha 2026).")
+                        else:
+                            pedido_obj['status'] = "Concluído / Expedido"
+                            salvar_pedidos(st.session_state.pedidos)
+                            registrar_log(st.session_state.usuario_logado['nome'], "Expediu Pedido", str(pedido_conf_id))
+                            st.success(f"Pedido {pedido_conf_id} expedido com sucesso!")
+                            st.rerun()
