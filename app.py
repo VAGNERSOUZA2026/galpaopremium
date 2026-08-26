@@ -673,7 +673,6 @@ elif st.session_state.menu_atual == "PedidosMatriz":
         id_pedido = st.text_input("Código de Barras do Mapa (Ex: 1234552)", value=id_sugerido)
         
         st.markdown("---")
-        # ADICIONADO: Seletor para ligar ou desligar o leitor de código de barras conforme a necessidade
         modo_adicao = st.radio(
             "Como deseja adicionar os itens neste pedido?",
             ["📷 Usar Leitor de Código de Barras (Câmera)", "📝 Digitação Manual / Arquivo (Caixas sem código)"],
@@ -771,7 +770,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
             st.info("Nenhum pedido para excluir.")
 
     with aba_ped2:
-        st.markdown("Faça a conferência bipando ou conferindo os itens para liberação da expedição.")
+        st.markdown("Faça a conferência estilo WMS (separado à esquerda e conferido à direita) com controle de divergências.")
         if not st.session_state.pedidos:
             st.info("Nenhum pedido ativo para conferência.")
         else:
@@ -785,45 +784,95 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 if pedido_obj:
                     st.markdown(f"**Status Atual:** {pedido_obj.get('status', 'Pendente')}")
                     
-                    st.markdown("##### 📷 Leitor Câmera (Checkout)")
-                    componente_leitor_barcode("checkout_camera")
+                    modo_checkout = st.radio(
+                        "Modo de Conferência:",
+                        ["📝 Conferência Manual / Visual (WMS)", "📷 Usar Leitor de Código de Barras para Conferir"],
+                        horizontal=True,
+                        key=f"radio_modo_checkout_{pedido_conf_id}"
+                    )
 
-                    codigo_bipado = st.session_state.get("codigo_bipado_checkout", "")
-                    if "scanned_checkout_camera" in st.query_params:
-                        codigo_bipado = st.query_params["scanned_checkout_camera"]
-                        del st.query_params["scanned_checkout_camera"]
+                    if "📷" in modo_checkout:
+                        st.markdown("##### 📷 Leitor Ativo para Checkout")
+                        componente_leitor_barcode("checkout_camera")
 
-                    if codigo_bipado:
-                        st.info(f"Último código capturado: {codigo_bipado}")
-                        st.session_state.codigo_bipado_checkout = ""
+                        codigo_bipado = st.session_state.get("codigo_bipado_checkout", "")
+                        if "scanned_checkout_camera" in st.query_params:
+                            codigo_bipado = st.query_params["scanned_checkout_camera"]
+                            del st.query_params["scanned_checkout_camera"]
+
+                        if codigo_bipado:
+                            cod_bip_limpo = str(codigo_bipado).strip()
+                            vinho_achado_est = next((v for v in st.session_state.estoque if str(v.get('codigo_barras', '')).strip() == cod_bip_limpo), None)
+                            
+                            encontrou_no_pedido = False
+                            for item in pedido_obj['itens']:
+                                nome_vinho_est = vinho_achado_est['nome'].lower() if vinho_achado_est else ""
+                                if (vinho_achado_est and item['nome'].lower() == nome_vinho_est) or (cod_bip_limpo.lower() in item['nome'].lower()):
+                                    item['qtd_separada'] = item.get('qtd_separada', 0) + 1
+                                    item['divergencia'] = item['qtd_separada'] - item['quantidade']
+                                    encontrou_no_pedido = True
+                                    st.success(f"➕ Item conferido: **{item['nome']}** (Qtd Separada: {item['qtd_separada']})")
+                                    break
+                            
+                            if not encontrou_no_pedido:
+                                st.warning(f"⚠️ O código '{cod_bip_limpo}' não corresponde a nenhum item pendente neste pedido.")
+                            
+                            st.session_state.codigo_bipado_checkout = ""
 
                     st.markdown("---")
-                    st.markdown("##### 📋 Itens do Pedido:")
                     
-                    for idx, item in enumerate(pedido_obj['itens']):
-                        col_i1, col_i2, col_i3 = st.columns([3, 1, 1])
-                        with col_i1:
-                            st.markdown(f"**{item['nome']}** (Safra: {item.get('safra', 'N/A')})<br>Qtd Pedida: <b>{item['quantidade']}</b>", unsafe_allow_html=True)
-                        with col_i2:
-                            qtd_sep = st.number_input(f"Qtd Sep. #{idx}", min_value=0, max_value=100, value=item.get('qtd_separada', item['quantidade']), key=f"qtd_sep_{pedido_conf_id}_{idx}")
+                    col_wms_esq, col_wms_dir = st.columns(2)
+                    
+                    with col_wms_esq:
+                        st.markdown("#### 📋 Pedido Original (Matriz)")
+                        for idx, item in enumerate(pedido_obj['itens']):
+                            st.markdown(f"""
+                            <div style='background: #FFF; padding: 10px; border-radius: 8px; border: 1px solid #E9ECEF; margin-bottom: 8px;'>
+                                <b>{idx+1}. {item['nome']}</b> (Safra: {item.get('safra', 'N/A')})<br>
+                                Qtd Pedida: <b style='color: #7A1C2E;'>{item['quantidade']}</b>
+                            </div>
+                            """, unsafe_allow_html=True)
+
+                    with col_wms_dir:
+                        st.markdown("#### 📦 Conferência Galpão (WMS)")
+                        for idx, item in enumerate(pedido_obj['itens']):
+                            st.markdown(f"<div style='background: #F8F9FA; padding: 10px; border-radius: 8px; border: 1px solid #E9ECEF; margin-bottom: 8px;'>", unsafe_allow_html=True)
+                            st.markdown(f"<b>{item['nome']}</b>", unsafe_allow_html=True)
+                            
+                            qtd_sep = st.number_input(
+                                f"Qtd Separada #{idx+1}", 
+                                min_value=0, 
+                                max_value=200, 
+                                value=int(item.get('qtd_separada', item['quantidade'])), 
+                                key=f"wms_qtd_sep_{pedido_conf_id}_{idx}"
+                            )
                             item['qtd_separada'] = qtd_sep
                             item['divergencia'] = qtd_sep - item['quantidade']
-                        with col_i3:
-                            st.write("")
-                            st.write("")
-                            if item['divergencia'] != 0 and not item.get('autorizado_divergencia', False):
-                                senha_div = st.text_input(f"Senha Diverg. #{idx}", type="password", key=f"pwd_div_{pedido_conf_id}_{idx}")
-                                if st.button(f"Liberar #{idx}", key=f"btn_div_{pedido_conf_id}_{idx}"):
+                            
+                            dif = item['divergencia']
+                            if dif > 0:
+                                st.markdown(f"<span style='color: #E65100; font-weight: bold;'>⚠️ Excedente: +{dif} un</span>", unsafe_allow_html=True)
+                            elif dif < 0:
+                                st.markdown(f"<span style='color: #C62828; font-weight: bold;'>⚠️ Falta: {dif} un</span>", unsafe_allow_html=True)
+                            else:
+                                st.markdown("<span style='color: #2E7D32; font-weight: bold;'>✅ Conferido Corretamente</span>", unsafe_allow_html=True)
+
+                            if dif != 0 and not item.get('autorizado_divergencia', False):
+                                st.markdown("<p style='color: #C62828; font-size: 0.85rem; margin: 4px 0;'>Divergência detectada! Necessária senha gerencial.</p>", unsafe_allow_html=True)
+                                senha_div = st.text_input(f"Senha Divergência #{idx+1}", type="password", key=f"wms_pwd_{pedido_conf_id}_{idx}")
+                                if st.button(f"🔑 Liberar Divergência #{idx+1}", key=f"wms_btn_{pedido_conf_id}_{idx}"):
                                     if senha_div == SENHA_DIVERGENCIA:
                                         item['autorizado_divergencia'] = True
-                                        st.success("Liberado!")
+                                        st.success("Divergência autorizada com sucesso!")
                                         st.rerun()
                                     else:
-                                        st.error("Senha incorreta.")
-                            else:
-                                st.markdown("✅ OK")
-                        st.markdown("<hr style='margin: 5px 0;'>", unsafe_allow_html=True)
+                                        st.error("Senha de divergência incorreta.")
+                            elif dif != 0 and item.get('autorizado_divergencia', False):
+                                st.markdown("<span style='color: #2E7D32; font-size: 0.85rem;'>🔒 Divergência Liberada pela Gerência</span>", unsafe_allow_html=True)
 
+                            st.markdown("</div>", unsafe_allow_html=True)
+
+                    st.markdown("---")
                     if st.button("🚀 Finalizar e Expedir Pedido", use_container_width=True):
                         bloqueio = False
                         for it in pedido_obj['itens']:
@@ -832,7 +881,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                                 break
                         
                         if bloqueio:
-                            st.error("Existem itens com divergência não autorizados pela gerência (Senha 2026).")
+                            st.error("Existem itens com divergência que não foram liberados com a senha da gerência (Senha: 2026).")
                         else:
                             pedido_obj['status'] = "Concluído / Expedido"
                             salvar_pedidos(st.session_state.pedidos)
