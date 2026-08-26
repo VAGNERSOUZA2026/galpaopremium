@@ -462,13 +462,9 @@ elif st.session_state.menu_atual == "MapaSeparacao":
     else:
         estoque_ordenado_local = sorted(estoque_mapa, key=lambda x: (x.get('localizacao', ''), x.get('nome', '')))
         for vinho in estoque_ordenado_local:
-            local_val = vinho.get('localizacao', 'Sem Local')
-            lado_val = vinho.get('lado', 'N/A')
-            nome_val = vinho['nome']
-            safra_val = vinho.get('safra', 'N/A')
-            tipo_val = vinho.get('tipo', 'N/A')
-            caixa_val = vinho.get('caixa', 'N/A')
-            cod_val = vinho.get('codigo_barras', 'Não cadastrado')
-            
             st.markdown(f"""
-           
+            <div class='wine-card'>
+                <div class='wine-title'>📍 {vinho.get('localizacao', 'Sem Local')} - Lado: {vinho.get('lado', 'N/A')}</div>
+                <b>Vinho:</b> {vinho['nome']} ({vinho.get('safra', 'N/A')})<br>
+                <b>Tipo:</b> {vinho.get('tipo', 'N/A')} | <b>Embalagem:</b> {vinho.get('caixa', 'N/A')}<br>
+                <b>Cód. Barras:</b> {v
