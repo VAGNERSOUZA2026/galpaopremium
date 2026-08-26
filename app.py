@@ -1,76 +1,85 @@
-elif st.session_state.menu_atual == "PedidosMatriz":
-    st.subheader("📦 Separação no Corredor por Leitor de Código de Barras")
-    st.markdown("Caminhe pelo galpão escaneando os códigos de barras dos produtos para identificá-los instantaneamente no pedido ativo.")
-
-    if not st.session_state.pedidos:
-        st.info("Nenhum pedido ativo no sistema.")
-    else:
-        ids_ativos = [p['id'] for p in st.session_state.pedidos if p.get('status') != "Concluído / Expedido"]
+with aba_ped1:
+        st.markdown("Cadastre o mapa de separação enviado pela matriz ou adicione itens escaneando os códigos de barras.")
+        proximo_numero = len(st.session_state.pedidos) + 1
+        id_sugerido = f"123{proximo_numero:03d}"
         
-        if not ids_ativos:
-            st.success("Todos os pedidos já foram concluídos!")
-        else:
-            # Seleção do pedido que está sendo separado no momento
-            pedido_sep_id = st.selectbox("Selecione o Pedido em Separação:", ids_ativos, key="select_sep_corredor")
-            pedido_obj = next((p for p in st.session_state.pedidos if p['id'] == pedido_sep_id), None)
+        # Inicializa a lista de itens temporária do novo pedido na sessão se não existir
+        if "itens_novo_pedido_temp" not in st.session_state:
+            st.session_state.itens_novo_pedido_temp = []
 
-            if pedido_obj:
-                st.markdown("---")
-                st.markdown("#### 📷 Aponte a câmera para o Código de Barras da Garrafa / Caixa")
-                
-                # Componente de leitura contínua
-                componente_leitor_barcode("leitor_corredor")
+        id_pedido = st.text_input("Código de Barras do Mapa (Ex: 1234552)", value=id_sugerido)
+        
+        st.markdown("---")
+        st.markdown("#### 📷 Adicionar Vinho via Leitor de Código de Barras")
+        componente_leitor_barcode("cadastro_pedido_camera")
+        
+        # Captura o código lido pela câmera do celular no cadastro
+        codigo_lido_cadastro = st.session_state.get("codigo_bipado_cadastro_pedido_camera", "")
+        if "scanned_cadastro_pedido_camera" in st.query_params:
+            codigo_lido_cadastro = st.query_params["scanned_cadastro_pedido_camera"]
+            del st.query_params["scanned_cadastro_pedido_camera"]
 
-                # Captura o código bipado pela URL/Query Params que o componente injeta
-                codigo_bipado = st.session_state.get("codigo_bipado_corredor", "")
-                
-                # Verificamos também se veio via parâmetro de query do Streamlit recarregado
-                if "scanned_leitor_corredor" in st.query_params:
-                    codigo_bipado = st.query_params["scanned_leitor_corredor"]
-                    del st.query_params["scanned_leitor_corredor"]
+        if codigo_lido_cadastro:
+            cod_limpo = str(codigo_lido_cadastro).strip()
+            # Busca no estoque pelo código de barras
+            vinho_cad = next((v for v in st.session_state.estoque if str(v.get('codigo_barras', '')).strip() == cod_limpo), None)
+            if vinho_cad:
+                # Verifica se já está na lista temporária para somar a quantidade
+                encontrado_temp = False
+                for it in st.session_state.itens_novo_pedido_temp:
+                    if it['nome'].lower() == vinho_cad['nome'].lower():
+                        it['quantidade'] += 1
+                        encontrado_temp = True
+                        break
+                if not encontrado_temp:
+                    st.session_state.itens_novo_pedido_temp.append({
+                        "nome": vinho_cad['nome'],
+                        "safra": vinho_cad.get('safra', ''),
+                        "quantidade": 1,
+                        "separado": False,
+                        "qtd_separada": 0,
+                        "divergencia": 0,
+                        "autorizado_divergencia": False
+                    })
+                st.success(f"✅ Vinho adicionado à lista: **{vinho_cad['nome']}**")
+            else:
+                st.error(f"❌ Código de barras '{cod_limpo}' não encontrado no estoque do galpão!")
 
-                if codigo_bipado:
-                    codigo_limpo = str(codigo_bipado).strip()
-                    st.success(f"🔍 Código escaneado: **{codigo_limpo}**")
+        st.markdown("---")
+        arq_pedido = st.file_uploader("Ou envie Arquivo de Pedido (Excel ou TXT)", type=["xlsx", "xls", "txt"])
+        texto_manual_pedido = st.text_area("Ou digite um item por linha (Nome / Safra / Qtd):", value="")
 
-                    # 1. Buscar no Estoque qual vinho tem esse código de barras
-                    vinho_encontrado = next((v for v in st.session_state.estoque if str(v.get('codigo_barras', '')).strip() == codigo_limpo), None)
+        # Exibe os itens adicionados até o momento via leitor/manual
+        if st.session_state.itens_novo_pedido_temp:
+            st.markdown("##### 🛒 Itens na Lista do Novo Pedido:")
+            for idx_t, it_t in enumerate(st.session_state.itens_novo_pedido_temp):
+                st.write(f"- **{it_t['nome']}** (Safra: {it_t.get('safra', 'N/A')}) - Qtd: {it_t['quantidade']}")
+            if st.button("🧹 Limpar Lista Temporária"):
+                st.session_state.itens_novo_pedido_temp = []
+                st.rerun()
 
-                    if vinho_encontrado:
-                        nome_vinho_estoque = vinho_encontrado['nome'].lower()
-                        st.info(f"📍 Localização no Galpão: **{vinho_encontrado.get('localizacao')}** (Lado: {vinho_encontrado.get('lado')})")
-                        
-                        # 2. Procurar se esse vinho está no pedido ativo
-                        encontrado_no_pedido = False
-                        for item in pedido_obj['itens']:
-                            if item['nome'].lower() in nome_vinho_estoque or nome_vinho_estoque in item['nome'].lower():
-                                encontrado_no_pedido = True
-                                item['qtd_separada'] = item.get('qtd_separada', 0) + 1
-                                item['divergencia'] = item['qtd_separada'] - item['quantidade']
-                                salvar_pedidos(st.session_state.pedidos)
-                                st.toast(f"✅ Item atualizado no pedido: {item['nome']} (Sep.: {item['qtd_separada']}/{item['quantidade']})", icon="🍷")
-                                break
-                        
-                        if not encontrado_no_pedido:
-                            st.warning(f"⚠️ O vinho '{vinho_encontrado['nome']}' foi encontrado no estoque ({vinho_encontrado.get('localizacao')}), mas ele **não consta** neste pedido!")
-                    else:
-                        st.error(f"❌ Nenhum vinho cadastrado no estoque com o código de barras: {codigo_limpo}")
+        if st.button("💾 Salvar Pedido Completo no Sistema", use_container_width=True):
+            itens_finais = list(st.session_state.itens_novo_pedido_temp)
+            if arq_pedido is not None:
+                itens_finais.extend(extrair_pedidos_de_arquivo(arq_pedido))
+            if texto_manual_pedido.strip():
+                for linha in texto_manual_pedido.split("\n"):
+                    if linha.strip():
+                        itens_finais.append(interpretar_linha_pedido(linha))
 
-                st.markdown("---")
-                st.markdown("#### 📋 Acompanhamento da Separação deste Pedido:")
-                
-                for idx, item in enumerate(pedido_obj['itens']):
-                    cor_status = "#2E7D32" if item.get('qtd_separada', 0) >= item['quantidade'] else "#C62828"
-                    st.markdown(f"""
-                    <div style='background: #FFF; padding: 10px; border-radius: 8px; border: 1px solid #E9ECEF; margin-bottom: 8px;'>
-                        <b>{item['nome']}</b> (Safra: {item.get('safra', 'N/A')})<br>
-                        Pedido: <b>{item['quantidade']}</b> | Separado: <b style='color: {cor_status};'>{item.get('qtd_separada', 0)}</b>
-                    </div>
-                    """, unsafe_allow_html=True)
-
-                if st.button("🚀 Finalizar Separação e Enviar para Expedição", use_container_width=True):
-                    pedido_obj['status'] = "Concluído / Expedido"
-                    salvar_pedidos(st.session_state.pedidos)
-                    registrar_log(st.session_state.usuario_logado['nome'], "Separação Concluída via Leitor", str(pedido_sep_id))
-                    st.success("Pedido finalizado com sucesso!")
-                    st.rerun()
+            if itens_finais:
+                novo_registro_pedido = {
+                    "id": str(id_pedido).strip(),
+                    "data": obter_horario_brasilia().strftime("%d/%m/%Y %H:%M"),
+                    "itens": itens_finais,
+                    "status": "Pendente"
+                }
+                st.session_state.pedidos.append(novo_registro_pedido)
+                salvar_pedidos(st.session_state.pedidos)
+                sincronizar_estoque_com_pedidos(st.session_state.pedidos, st.session_state.estoque)
+                registrar_log(st.session_state.usuario_logado['nome'], "Cadastrou Pedido via Leitor/Manual", str(id_pedido))
+                st.session_state.itens_novo_pedido_temp = []
+                st.success(f"Pedido {id_pedido} salvo com sucesso!")
+                st.rerun()
+            else:
+                st.error("Adicione itens usando o leitor de código de barras, arquivo ou digitação.")
