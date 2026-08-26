@@ -184,12 +184,6 @@ def carregar_pedidos():
 def salvar_pedidos(pedidos):
     with open(ARQUIVO_PEDIDOS, "w", encoding="utf-8") as f: json.dump(pedidos, f, ensure_ascii=False, indent=4)
 
-def gerar_proximo_id_diario(pedidos):
-    hoje_str = obter_horario_brasilia().strftime("%d/%m/%Y")
-    pedidos_hoje = [p for p in pedidos if p.get('data', '').startswith(hoje_str)]
-    proximo_num = len(pedidos_hoje) + 1
-    return f"{proximo_num:03d}"
-
 def interpretar_linha_pedido(texto_linha):
     texto = texto_linha.strip()
     safra = ""
@@ -467,4 +461,10 @@ elif st.session_state.menu_atual == "MapaSeparacao":
                 <div class='wine-title'>📍 {vinho.get('localizacao', 'Sem Local')} - Lado: {vinho.get('lado', 'N/A')}</div>
                 <b>Vinho:</b> {vinho['nome']} ({vinho.get('safra', 'N/A')})<br>
                 <b>Tipo:</b> {vinho.get('tipo', 'N/A')} | <b>Embalagem:</b> {vinho.get('caixa', 'N/A')}<br>
-                <b>Cód. Barras:</b> {v
+                <b>Cód. Barras:</b> {vinho.get('codigo_barras', 'Não cadastrado')}
+            </div>
+            """, unsafe_allow_html=True)
+
+elif st.session_state.menu_atual == "Filtros":
+    st.subheader("🔍 Buscar / Filtros no Estoque")
+    busca = st.text_input("Pesquisar por nome ou c
