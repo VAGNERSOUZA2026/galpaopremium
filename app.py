@@ -265,6 +265,8 @@ for key, val in list(qp.items()):
         valor_limpo = str(val).strip()
         if sess_key == "checkout_camera":
             st.session_state.codigo_bipado_checkout = valor_limpo
+        elif sess_key == "consulta_camera":
+            st.session_state.codigo_bipado_consulta = valor_limpo
         del st.query_params[key]
         st.rerun()
 
@@ -367,8 +369,15 @@ if st.session_state.menu_atual == "🏠 Home":
     with c7:
         if st.button("✏️ Editar Vinho", use_container_width=True): st.session_state.menu_atual = "Editar"; st.rerun()
     with c8:
-        if st.button("📋 Histórico", use_container_width=True): st.session_state.menu_atual = "Historico"; st.rerun()
+        if st.button("📱 Gerar QR Code Pallet", use_container_width=True): st.session_state.menu_atual = "GerarQRCode"; st.rerun()
     with c9:
+        if st.button("📷 Ler QR Code (Corredor)", use_container_width=True): st.session_state.menu_atual = "LerQRCode"; st.rerun()
+
+    st.write("")
+    c10, c11 = st.columns(2)
+    with c10:
+        if st.button("📋 Histórico", use_container_width=True): st.session_state.menu_atual = "Historico"
+    with c11:
         if st.session_state.usuario_logado.get('cargo') == "Desenvolvedor":
             if st.button("⚙️ Gerenciar Contas", use_container_width=True):
                 st.session_state.menu_atual = "GerenciarUsuarios"
@@ -734,6 +743,72 @@ elif st.session_state.menu_atual == "Cadastrar":
                 st.success("Vinho cadastrado com sucesso! Formulário limpo para o próximo.")
             else:
                 st.error("Informe o nome do vinho.")
+
+elif st.session_state.menu_atual == "GerarQRCode":
+    st.subheader("📱 Gerar QR Code de Identificação do Pallet / Vinho")
+    st.markdown("Selecione um vinho abaixo para gerar o seu QR Code detalhado para colar no pallet ou prateleira do galpão.")
+    
+    if not st.session_state.estoque:
+        st.info("Nenhum vinho cadastrado no estoque.")
+    else:
+        nomes_qr = [f"{v['nome']} ({v.get('safra', 'N/A')}) - {v.get('localizacao', 'N/A')}" for v in sorted(st.session_state.estoque, key=lambda x: x.get('nome', '').lower())]
+        vinho_qr_sel = st.selectbox("Selecione o Vinho / Pallet:", nomes_qr)
+        
+        vinho_alvo = next((v for v in st.session_state.estoque if f"{v['nome']} ({v.get('safra', 'N/A')}) - {v.get('localizacao', 'N/A')}" == vinho_qr_sel), None)
+        
+        if vinho_alvo:
+            info_texto = f"VINHO: {vinho_alvo['nome']}\\nSAFRA: {vinho_alvo.get('safra', 'N/A')}\\nTIPO: {vinho_alvo.get('tipo', 'N/A')}\\nEMBALAGEM: {vinho_alvo.get('caixa', 'N/A')}\\nLOCAL: {vinho_alvo.get('localizacao', 'N/A')} ({vinho_alvo.get('lado', 'N/A')})"
+            if vinho_alvo.get('codigo_barras'):
+                info_texto += f"\\nCODBARRAS: {vinho_alvo.get('codigo_barras')}"
+                
+            url_qr = f"https://api.qrserver.com/v1/create-qr-code/?size=220x220&data={urllib.parse.quote(info_texto)}"
+            
+            c_qr1, c_qr2 = st.columns([1, 2])
+            with c_qr1:
+                st.image(url_qr, width=200)
+            with c_qr2:
+                st.markdown(f"""
+                <div style='background: #FFF; padding: 15px; border-radius: 10px; border: 1px solid #E9ECEF;'>
+                    <h4 style='color: #7A1C2E; margin-top: 0;'>{vinho_alvo['nome']}</h4>
+                    <p><b>Safra:</b> {vinho_alvo.get('safra', 'N/A')}</p>
+                    <p><b>Tipo:</b> {vinho_alvo.get('tipo', 'N/A')}</p>
+                    <p><b>Embalagem:</b> {vinho_alvo.get('caixa', 'N/A')}</p>
+                    <p><b>Localização:</b> {vinho_alvo.get('localizacao', 'N/A')} - {vinho_alvo.get('lado', 'N/A')}</p>
+                    <p><b>Código de Barras:</b> {vinho_alvo.get('codigo_barras', 'Não informado')}</p>
+                </div>
+                """, unsafe_allow_html=True)
+
+elif st.session_state.menu_atual == "LerQRCode":
+    st.subheader("📷 Leitor de QR Code / Código de Barras (Consulta nos Corredores)")
+    st.markdown("Use a câmera do seu celular ou pistola USB para ler a etiqueta do pallet e consultar imediatamente todas as informações do vinho.")
+    
+    modo_consulta = st.radio("Método de Consulta:", ["📷 Câmera do Celular", "⌨️ Digitar / Pistola USB"], horizontal=True)
+    
+    codigo_consultado = ""
+    if modo_consulta == "📷 Câmera do Celular":
+        componente_leitor_barcode("consulta_camera")
+        codigo_consultado = st.session_state.get("codigo_bipado_consulta", "")
+    else:
+        codigo_consultado = st.text_input("Digite o código, nome ou parte dele para consultar:", value="")
+        
+    if codigo_consultado.strip():
+        termo_busca_limpo = codigo_consultado.strip().lower()
+        vinho_encontrado = next((v for v in st.session_state.estoque if termo_busca_limpo in v['nome'].lower() or termo_busca_limpo in str(v.get('codigo_barras', '')) or termo_busca_limpo in v.get('localizacao', '').lower()), None)
+        
+        if vinho_encontrado:
+            st.success("✅ Vinho / Pallet Encontrado com Sucesso!")
+            st.markdown(f"""
+            <div class="wine-card" style="border-left: 6px solid #7A1C2E; padding: 20px;">
+                <div class="wine-title" style="font-size: 1.4rem;">{vinho_encontrado['nome']} ({vinho_encontrado.get('safra', 'N/A')})</div>
+                <hr style="margin: 10px 0;">
+                <p style="font-size: 1.05rem; margin: 6px 0;">🍷 <b>Tipo:</b> {vinho_encontrado.get('tipo', 'N/A')}</p>
+                <p style="font-size: 1.05rem; margin: 6px 0;">📦 <b>Embalagem:</b> {vinho_encontrado.get('caixa', 'N/A')}</p>
+                <p style="font-size: 1.05rem; margin: 6px 0;">📍 <b>Localização Física:</b> {vinho_encontrado.get('localizacao', 'N/A')} - Lado: {vinho_encontrado.get('lado', 'N/A')}</p>
+                <p style="font-size: 1.05rem; margin: 6px 0;">🏷️ <b>Código de Barras / QR:</b> {vinho_encontrado.get('codigo_barras', 'Não cadastrado')}</p>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.warning("Nenhum vinho correspondente encontrado no estoque do galpão.")
 
 elif st.session_state.menu_atual == "Editar":
     st.subheader("✏️ Editar ou Excluir Vinho do Estoque")
