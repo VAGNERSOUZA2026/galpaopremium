@@ -14,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# Constantes e Listas
+# Constantes e Listas Globais
 SENHA_DIVERGENCIA = "2026"
 LISTA_CORREDORES = [f"Corredor {i:02d}" for i in range(1, 21)]
 LISTA_LOCAIS_TIPO = ["Pallet", "Estante", "Pilha"]
@@ -30,6 +30,7 @@ OPCOES_CAIXA = [
 ARQUIVO_ESTOQUE = "estoque_vinhos.json"
 ARQUIVO_PEDIDOS = "pedidos_vinhos.json"
 ARQUIVO_LOGS = "logs_vinhos.json"
+ARQUIVO_USUARIOS = "usuarios_vinhos.json"
 
 # Estilos CSS Customizados
 st.markdown("""
@@ -53,10 +54,17 @@ st.markdown("""
         border-radius: 8px;
         font-weight: 500;
     }
+    .wms-box {
+        background-color: #ffffff;
+        border: 1px solid #ced4da;
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 10px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# Funções Utilitárias e de Horário
+# Funções Utilitárias e Fuso Horário
 def obter_horario_brasilia():
     fuso = pytz.timezone("America/Sao_Paulo")
     return datetime.now(fuso)
@@ -70,13 +78,13 @@ def obter_saudacao():
     else:
         return "Boa noite"
 
-# Gerenciamento de Dados (JSON)
+# Persistência de Dados (JSON)
 def carregar_dados():
     if os.path.exists(ARQUIVO_ESTOQUE):
         try:
             with open(ARQUIVO_ESTOQUE, "r", encoding="utf-8") as f:
                 return json.load(f)
-        except:
+        except Exception:
             return []
     return []
 
@@ -89,7 +97,7 @@ def carregar_pedidos():
         try:
             with open(ARQUIVO_PEDIDOS, "r", encoding="utf-8") as f:
                 return json.load(f)
-        except:
+        except Exception:
             return []
     return []
 
@@ -102,7 +110,7 @@ def carregar_logs():
         try:
             with open(ARQUIVO_LOGS, "r", encoding="utf-8") as f:
                 return json.load(f)
-        except:
+        except Exception:
             return []
     return []
 
@@ -116,18 +124,32 @@ def registrar_log(usuario, acao, detalhes):
     }
     logs.insert(0, novo_log)
     with open(ARQUIVO_LOGS, "w", encoding="utf-8") as f:
-        json.dump(logs[:200], f, ensure_ascii=False, indent=4)
+        json.dump(logs[:300], f, ensure_ascii=False, indent=4)
 
-def sincronizar_estoque_com_pedidos(pedidos, estoque):
-    pass
+def carregar_usuarios():
+    if os.path.exists(ARQUIVO_USUARIOS):
+        try:
+            with open(ARQUIVO_USUARIOS, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return [
+        {"nome": "Desenvolvedor", "cargo": "Desenvolvedor", "senha": "123"},
+        {"nome": "Operador Galpão", "cargo": "Operador", "senha": "123"}
+    ]
 
+def salvar_usuarios(usuarios):
+    with open(ARQUIVO_USUARIOS, "w", encoding="utf-8") as f:
+        json.dump(usuarios, f, ensure_ascii=False, indent=4)
+
+# Processamento de Texto e Pedidos
 def interpretar_linha_pedido(linha):
     partes = linha.split("/")
     nome = partes[0].strip() if len(partes) > 0 else "Vinho Desconhecido"
     safra = partes[1].strip() if len(partes) > 1 else "N/A"
     try:
         qtd = int(partes[2].strip()) if len(partes) > 2 else 1
-    except:
+    except Exception:
         qtd = 1
     return {
         "nome": nome,
@@ -149,7 +171,10 @@ def extrair_pedidos_de_arquivo(arquivo):
                     "nome": str(row.iloc[0]).strip(),
                     "safra": str(row.iloc[1]).strip() if len(row) > 1 else "N/A",
                     "quantidade": int(row.iloc[2]) if len(row) > 2 and pd.notna(row.iloc[2]) else 1,
-                    "separado": False, "qtd_separada": 0, "divergencia": 0, "autorizado_divergencia": False
+                    "separado": False,
+                    "qtd_separada": 0,
+                    "divergencia": 0,
+                    "autorizado_divergencia": False
                 })
         elif arquivo.name.endswith('.txt'):
             linhas = arquivo.getvalue().decode("utf-8").splitlines()
@@ -157,21 +182,23 @@ def extrair_pedidos_de_arquivo(arquivo):
                 if linha.strip():
                     itens.append(interpretar_linha_pedido(linha))
     except Exception as e:
-        st.error(f"Erro ao processar arquivo: {e}")
+        st.error(f"Erro ao ler arquivo: {e}")
     return itens
 
-# Componente de Leitor de Código de Barras (Câmera desligada por padrão + Digitação)
+# Leitor de Código de Barras (Câmera sob demanda + Leitor/Digitável)
 def componente_leitor_barcode(chave_estado):
-    col_ativar, _ = st.columns([1, 2])
-    with col_ativar:
-        ativar_cam = st.toggle("📷 Ligar Câmera do Leitor", key=f"toggle_cam_{chave_estado}")
+    st.markdown("##### 🔍 Leitor de Código de Barras / Digitação")
     
-    if ativar_cam:
-        st.info("Câmera ativada. Aponte para o código de barras.")
+    codigo_manual = st.text_input("Digite ou bipe o código de barras aqui:", key=f"manual_input_{chave_estado}")
+    if codigo_manual:
+        st.session_state[f"codigo_bipado_{chave_estado}"] = codigo_manual
     
-    codigo_digitado = st.text_input("Ou digite / bipar código de barras manualmente:", key=f"input_manual_{chave_estado}")
-    if codigo_digitado:
-        st.session_state[f"codigo_bipado_{chave_estado}"] = codigo_digitado
+    ativar_camera = st.checkbox("📷 Ligar Câmera para Leitura", key=f"cam_toggle_{chave_estado}")
+    if ativar_camera:
+        st.info("Aponte a câmera para o código de barras ou QR Code.")
+        foto_cam = st.camera_input("Capturar Rótulo/Código", key=f"cam_input_{chave_estado}")
+        if foto_cam:
+            st.success("Imagem capturada com sucesso!")
 
 # Inicialização de Session State
 if "estoque" not in st.session_state:
@@ -179,15 +206,13 @@ if "estoque" not in st.session_state:
 if "pedidos" not in st.session_state:
     st.session_state.pedidos = carregar_pedidos()
 if "usuarios" not in st.session_state:
-    st.session_state.usuarios = [{"nome": "Administrador", "cargo": "Desenvolvedor"}]
+    st.session_state.usuarios = carregar_usuarios()
 if "usuario_logado" not in st.session_state:
-    st.session_state.usuario_logado = {"nome": "Operador Galpão", "cargo": "Operador"}
+    st.session_state.usuario_logado = st.session_state.usuarios[0]
 if "menu_atual" not in st.session_state:
     st.session_state.menu_atual = "🏠 Home"
-if "termo_busca" not in st.session_state:
-    st.session_state.termo_busca = ""
 
-# Barra Superior / Navegação
+# Cabeçalho Principal
 st.markdown(f"""
 <div style='display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #7A1C2E; padding-bottom: 10px; margin-bottom: 20px;'>
     <h3 style='color: #7A1C2E; margin: 0;'>🍷 Separação de Vinho Galpão</h3>
@@ -202,47 +227,69 @@ if st.session_state.menu_atual != "🏠 Home":
 
 st.markdown("---")
 
-# MENU PRINCIPAL
+# NAVEGAÇÃO E TELAS
 if st.session_state.menu_atual == "🏠 Home":
     st.markdown(f"<p style='text-align: center; color: #666; margin-bottom: 0px;'>{obter_saudacao()},</p>", unsafe_allow_html=True)
     st.markdown(f"<h1 style='text-align: center; color: #7A1C2E; margin-top: 0px;'>{st.session_state.usuario_logado['nome']}! 👋</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #444; font-size: 0.95rem; margin-bottom: 25px;'>Separação de Vinho Galpão - Escolha a opção abaixo:</p>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center; color: #444; font-size: 0.95rem; margin-bottom: 25px;'>Painel de Operações de Separação - Selecione a opção desejada:</p>", unsafe_allow_html=True)
     
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        if st.button("📦 Checkout de Expedição", use_container_width=True): st.session_state.menu_atual = "PedidosMatriz"; st.rerun()
-    with c2:
-        if st.button("🏢 Painel da Matriz", use_container_width=True): st.session_state.menu_atual = "PainelMatriz"; st.rerun()
-    with c3:
-        if st.button("🔍 Buscar / Filtros", use_container_width=True): st.session_state.menu_atual = "Filtros"; st.rerun()
-    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        if st.button("📦 Checkout de Expedição", use_container_width=True):
+            st.session_state.menu_atual = "PedidosMatriz"
+            st.rerun()
+    with col2:
+        if st.button("🏢 Painel da Matriz", use_container_width=True):
+            st.session_state.menu_atual = "PainelMatriz"
+            st.rerun()
+    with col3:
+        if st.button("🔍 Buscar / Filtros", use_container_width=True):
+            st.session_state.menu_atual = "Filtros"
+            st.rerun()
+            
     st.write("")
-    c4, c5, c6 = st.columns(3)
-    with c4:
-        if st.button("🗺️ Mapa de Separação", use_container_width=True): st.session_state.menu_atual = "MapaSeparacao"; st.rerun()
-    with c5:
-        if st.button("📷 Leitor / QR Code", use_container_width=True): st.session_state.menu_atual = "LeitorQR"; st.rerun()
-    with c6:
-        if st.button("🖨️ Gerar QR Codes", use_container_width=True): st.session_state.menu_atual = "GerarQR"; st.rerun()
-        
+    col4, col5, col6 = st.columns(3)
+    with col4:
+        if st.button("🗺️ Mapa de Separação", use_container_width=True):
+            st.session_state.menu_atual = "MapaSeparacao"
+            st.rerun()
+    with col5:
+        if st.button("📷 Leitor / QR Code", use_container_width=True):
+            st.session_state.menu_atual = "LeitorQR"
+            st.rerun()
+    with col6:
+        if st.button("🖨️ Gerar QR Codes", use_container_width=True):
+            st.session_state.menu_atual = "GerarQR"
+            st.rerun()
+            
     st.write("")
-    c7, c8, c9 = st.columns(3)
-    with c7:
-        if st.button("🍷 Estoque Completo", use_container_width=True): st.session_state.menu_atual = "Estoque"; st.rerun()
-    with c8:
-        if st.button("➕ Cadastrar Vinho", use_container_width=True): st.session_state.menu_atual = "Cadastrar"; st.rerun()
-    with c9:
-        if st.button("✏️ Editar Vinho", use_container_width=True): st.session_state.menu_atual = "Editar"; st.rerun()
+    col7, col8, col9 = st.columns(3)
+    with col7:
+        if st.button("🍷 Estoque Completo", use_container_width=True):
+            st.session_state.menu_atual = "Estoque"
+            st.rerun()
+    with col8:
+        if st.button("➕ Cadastrar Vinho", use_container_width=True):
+            st.session_state.menu_atual = "Cadastrar"
+            st.rerun()
+    with col9:
+        if st.button("✏️ Editar Vinho", use_container_width=True):
+            st.session_state.menu_atual = "Editar"
+            st.rerun()
 
     st.write("")
-    c10, c11, _ = st.columns(3)
-    with c10:
-        if st.button("📋 Histórico", use_container_width=True): st.session_state.menu_atual = "Historico"; st.rerun()
-    with c11:
+    col10, col11, _ = st.columns(3)
+    with col10:
+        if st.button("📋 Histórico & Logs", use_container_width=True):
+            st.session_state.menu_atual = "Historico"
+            st.rerun()
+    with col11:
         if st.session_state.usuario_logado.get('cargo') == "Desenvolvedor":
             if st.button("⚙️ Gerenciar Contas", use_container_width=True):
                 st.session_state.menu_atual = "GerenciarUsuarios"
-                st.rerun()elif st.session_state.menu_atual == "MapaSeparacao":
+                st.rerun()
+
+elif st.session_state.menu_atual == "MapaSeparacao":
     st.subheader("🗺️ Mapa de Separação por Localização")
     termo_mapa = st.text_input("🔍 Digite o nome do vinho para buscar no mapa:", value="")
     estoque_mapa = st.session_state.estoque
@@ -430,7 +477,6 @@ elif st.session_state.menu_atual == "PedidosMatriz":
             pedido_obj = next((p for p in st.session_state.pedidos if p['id'] == pedido_conf_id), None)
             
             if pedido_obj:
-                # Opções de Entrada em ordem solicitada (Digitação manual primeiro)
                 modo_conferencia = st.radio("Método de Entrada:", ["⌨️ Digitação Manual / Código de Barras", "📷 Leitor por Câmera"], horizontal=True)
                 
                 if "⌨️" in modo_conferencia:
@@ -441,7 +487,6 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     componente_leitor_barcode("checkout_wms")
                 
                 st.markdown("---")
-                # Layout WMS: Esquerdo (Lista Original) vs Direito (Conferidos)
                 col_wms_esq, col_wms_dir = st.columns(2)
                 
                 with col_wms_esq:
@@ -452,7 +497,6 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         
                 with col_wms_dir:
                     st.markdown("#### 📦 Conferidos (WMS)")
-                    # Seleção flutuante de vinhos da lista para evitar digitação manual do nome
                     nomes_disponiveis = [i['nome'] for i in pedido_obj['itens']]
                     vinho_selecionado_flutuante = st.selectbox("Selecionar Vinho Flutuante:", nomes_disponiveis, key=f"flu_{pedido_conf_id}")
                     
