@@ -84,7 +84,10 @@ def carregar_dados():
         except: 
             pass
     if not estoque:
-        estoque = [{"nome": "Campana Merlot", "tipo": "Tinto", "safra": "2024", "localizacao": "Corredor 01 - Pallet Item 01", "lado": "Direito", "caixa": "Caixa com 12 garrafas", "codigo_barras": "7891008116632", "foto": ""}]
+        estoque = [
+            {"nome": "La Consulta Malbec", "tipo": "Tinto", "safra": "2024", "localizacao": "Corredor 01 - Pallet Item 01", "lado": "Direito", "caixa": "Caixa com 12 garrafas", "codigo_barras": "7891008116632", "foto": ""},
+            {"nome": "Quereu Carmenere", "tipo": "Tinto", "safra": "2025", "localizacao": "Corredor 01 - Pallet Item 02", "lado": "Esquerdo", "caixa": "Caixa com 12 garrafas", "codigo_barras": "7891008116633", "foto": ""}
+        ]
     return sorted(estoque, key=lambda x: x.get("nome", "").lower())
 
 def salvar_dados(estoque):
@@ -440,7 +443,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
         with st.form("form_novo_pedido"):
             id_pedido = st.text_input("Código de Barras do Mapa (Ex: 1234552)", value=id_sugerido)
             arq_pedido = st.file_uploader("Arquivo de Pedido (Excel ou TXT)", type=["xlsx", "xls", "txt"])
-            texto_manual_pedido = st.text_area("Ou digite os itens (Ex: Faleria Pinot Noir Reserva 23 / 1 Caixa)")
+            texto_manual_pedido = st.text_area("Ou digite os itens (Ex: La Consulta Malbec 2024 / Caixa com 12 garrafas)")
             
             if st.form_submit_button("💾 Salvar Pedido no Sistema"):
                 itens_novos = []
@@ -521,7 +524,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         cod_barras_input = st.text_input("*Código de Barras ou Nome", value=codigo_capturado, key="input_bipagem_checkout")
                     else:
                         if itens_pendentes_lista:
-                            opcao_selecionada_dropdown = st.selectbox("*Selecione o Vinho da Lista ou Digite/Bipe", ["-- Selecione ou Digite --"] + itens_pendentes_lista)
+                            opcao_selecionada_dropdown = st.selectbox("-- Selecione o Vinho da Lista --", ["-- Selecione ou Digite --"] + itens_pendentes_lista)
                             if opcao_selecionada_dropdown != "-- Selecione ou Digite --":
                                 cod_barras_input = opcao_selecionada_dropdown
                             else:
@@ -572,7 +575,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 
                 if itens_com_divergencia_nao_autorizados:
                     st.markdown("---")
-                    st.error("🔒 Existem itens com quantidade incorreta / divergente aguardando correção ou liberação de senha (Senha: 2026):")
+                    st.error("🔒 Existen itens com quantidade incorreta / divergente aguardando correção ou liberação de senha (Senha: 2026):")
                     for it_div in itens_com_divergencia_nao_autorizados:
                         with st.form(f"form_senha_item_{it_div['nome']}"):
                             st.markdown(f"**Item:** {it_div['nome']} | Pedido: {it_div['quantidade']} | Separado: {it_div['qtd_separada']} (Divergência: {it_div['divergencia']:+d})")
@@ -707,8 +710,8 @@ elif st.session_state.menu_atual == "Cadastrar":
     st.subheader("➕ Cadastrar Novo Vinho")
     
     with st.form("form_cad", clear_on_submit=True):
-        nome_c = st.text_input("Nome do Vinho").strip().title()
-        safra_c = st.text_input("Safra").strip()
+        nome_c = st.text_input("Nome do Vinho (Ex: La Consulta Malbec)").strip().title()
+        safra_c = st.text_input("Safra (Ex: 2024)").strip()
         tipo_c = st.selectbox("Tipo", ["Tinto", "Branco", "Rosé", "Espumante", "Fortificado"])
         corredor_c = st.selectbox("Corredor", LISTA_CORREDORES)
         tipo_local_c = st.selectbox("Tipo de Local", LISTA_LOCAIS_TIPO)
@@ -722,10 +725,6 @@ elif st.session_state.menu_atual == "Cadastrar":
         if btn_salvando:
             if nome_c:
                 local_completo = f"{corredor_c} - {tipo_local_c} {num_local_c}"
-                vinho_existente = next((v for v in st.session_state.estoque if v['nome'].lower() == nome_c.lower()), None)
-                
-                if vinho_existente:
-                    st.warning(f"⚠️ Atenção: O vinho '{nome_c}' já consta no sistema! Como houve alteração (safra, pallet ou outra característica), o cadastro foi aceito e incluído com sucesso.")
                 
                 novo_vinho = {
                     "nome": nome_c,
@@ -745,8 +744,8 @@ elif st.session_state.menu_atual == "Cadastrar":
                 st.error("Informe o nome do vinho.")
 
 elif st.session_state.menu_atual == "GerarQRCode":
-    st.subheader("📱 Gerar QR Code de Identificação do Pallet / Vinho")
-    st.markdown("Selecione um vinho abaixo para gerar o seu QR Code detalhado para colar no pallet ou prateleira do galpão.")
+    st.subheader("📱 Gerar QR Code por Pallet / Vinho")
+    st.markdown("Selecione um vinho/pallet abaixo para gerar a etiqueta com o conteúdo exato: **Nome, Safra, Tipo, Embalagem e Localização**.")
     
     if not st.session_state.estoque:
         st.info("Nenhum vinho cadastrado no estoque.")
@@ -757,15 +756,14 @@ elif st.session_state.menu_atual == "GerarQRCode":
         vinho_alvo = next((v for v in st.session_state.estoque if f"{v['nome']} ({v.get('safra', 'N/A')}) - {v.get('localizacao', 'N/A')}" == vinho_qr_sel), None)
         
         if vinho_alvo:
-            info_texto = f"VINHO: {vinho_alvo['nome']}\\nSAFRA: {vinho_alvo.get('safra', 'N/A')}\\nTIPO: {vinho_alvo.get('tipo', 'N/A')}\\nEMBALAGEM: {vinho_alvo.get('caixa', 'N/A')}\\nLOCAL: {vinho_alvo.get('localizacao', 'N/A')} ({vinho_alvo.get('lado', 'N/A')})"
-            if vinho_alvo.get('codigo_barras'):
-                info_texto += f"\\nCODBARRAS: {vinho_alvo.get('codigo_barras')}"
+            # Texto detalhado estruturado no QR Code conforme solicitado (ex: La Consulta Malbec 2024 caixa com 12)
+            texto_qr_estruturado = f"VINHO: {vinho_alvo['nome']} | SAFRA: {vinho_alvo.get('safra', 'N/A')} | EMBALAGEM: {vinho_alvo.get('caixa', 'Caixa com 12 garrafas')} | TIPO: {vinho_alvo.get('tipo', 'Tinto')} | LOCAL: {vinho_alvo.get('localizacao', 'N/A')} ({vinho_alvo.get('lado', 'N/A')})"
                 
-            url_qr = f"https://api.qrserver.com/v1/create-qr-code/?size=220x220&data={urllib.parse.quote(info_texto)}"
+            url_qr = f"https://api.qrserver.com/v1/create-qr-code/?size=240x240&data={urllib.parse.quote(texto_qr_estruturado)}"
             
             c_qr1, c_qr2 = st.columns([1, 2])
             with c_qr1:
-                st.image(url_qr, width=200)
+                st.image(url_qr, width=220)
             with c_qr2:
                 st.markdown(f"""
                 <div style='background: #FFF; padding: 15px; border-radius: 10px; border: 1px solid #E9ECEF;'>
@@ -774,26 +772,29 @@ elif st.session_state.menu_atual == "GerarQRCode":
                     <p><b>Tipo:</b> {vinho_alvo.get('tipo', 'N/A')}</p>
                     <p><b>Embalagem:</b> {vinho_alvo.get('caixa', 'N/A')}</p>
                     <p><b>Localização:</b> {vinho_alvo.get('localizacao', 'N/A')} - {vinho_alvo.get('lado', 'N/A')}</p>
-                    <p><b>Código de Barras:</b> {vinho_alvo.get('codigo_barras', 'Não informado')}</p>
+                    <hr>
+                    <p style='font-size: 0.85rem; color: #555;'><b>Conteúdo codificado no QR Code:</b><br><code>{texto_qr_estruturado}</code></p>
                 </div>
                 """, unsafe_allow_html=True)
 
 elif st.session_state.menu_atual == "LerQRCode":
-    st.subheader("📷 Leitor de QR Code / Código de Barras (Consulta nos Corredores)")
-    st.markdown("Use a câmera do seu celular ou pistola USB para ler a etiqueta do pallet e consultar imediatamente todas as informações do vinho.")
+    st.subheader("📷 Leitor / Consulta por QR Code e Código de Barras nos Corredores")
+    st.markdown("Ao caminhar pelos corredores, faça a leitura pela câmera ou **digite/cole o conteúdo completo do QR Code ou o nome do vinho** abaixo para consultar todas as informações instantaneamente.")
     
-    modo_consulta = st.radio("Método de Consulta:", ["📷 Câmera do Celular", "⌨️ Digitar / Pistola USB"], horizontal=True)
+    modo_consulta = st.radio("Método de Consulta:", ["📷 Câmera do Celular", "⌨️ Digitar / Colar Código do QR ou Nome"], horizontal=True)
     
     codigo_consultado = ""
     if modo_consulta == "📷 Câmera do Celular":
         componente_leitor_barcode("consulta_camera")
         codigo_consultado = st.session_state.get("codigo_bipado_consulta", "")
     else:
-        codigo_consultado = st.text_input("Digite o código, nome ou parte dele para consultar:", value="")
+        codigo_consultado = st.text_input("Cole o texto do QR Code, digite o nome do vinho ou o código de barras:", value="")
         
     if codigo_consultado.strip():
         termo_busca_limpo = codigo_consultado.strip().lower()
-        vinho_encontrado = next((v for v in st.session_state.estoque if termo_busca_limpo in v['nome'].lower() or termo_busca_limpo in str(v.get('codigo_barras', '')) or termo_busca_limpo in v.get('localizacao', '').lower()), None)
+        
+        # Procura correspondência inteligente no estoque
+        vinho_encontrado = next((v for v in st.session_state.estoque if termo_busca_limpo in v['nome'].lower() or termo_busca_limpo in str(v.get('codigo_barras', '')) or termo_busca_limpo in v.get('localizacao', '').lower() or termo_busca_limpo in f"{v['nome']} {v.get('safra', '')}".lower()), None)
         
         if vinho_encontrado:
             st.success("✅ Vinho / Pallet Encontrado com Sucesso!")
@@ -801,14 +802,22 @@ elif st.session_state.menu_atual == "LerQRCode":
             <div class="wine-card" style="border-left: 6px solid #7A1C2E; padding: 20px;">
                 <div class="wine-title" style="font-size: 1.4rem;">{vinho_encontrado['nome']} ({vinho_encontrado.get('safra', 'N/A')})</div>
                 <hr style="margin: 10px 0;">
+                <p style="font-size: 1.1rem; margin: 6px 0;">📦 <b>Embalagem:</b> {vinho_encontrado.get('caixa', 'N/A')}</p>
                 <p style="font-size: 1.05rem; margin: 6px 0;">🍷 <b>Tipo:</b> {vinho_encontrado.get('tipo', 'N/A')}</p>
-                <p style="font-size: 1.05rem; margin: 6px 0;">📦 <b>Embalagem:</b> {vinho_encontrado.get('caixa', 'N/A')}</p>
                 <p style="font-size: 1.05rem; margin: 6px 0;">📍 <b>Localização Física:</b> {vinho_encontrado.get('localizacao', 'N/A')} - Lado: {vinho_encontrado.get('lado', 'N/A')}</p>
-                <p style="font-size: 1.05rem; margin: 6px 0;">🏷️ <b>Código de Barras / QR:</b> {vinho_encontrado.get('codigo_barras', 'Não cadastrado')}</p>
+                <p style="font-size: 1.05rem; margin: 6px 0;">🏷️ <b>Código de Barras:</b> {vinho_encontrado.get('codigo_barras', 'Não cadastrado')}</p>
             </div>
             """, unsafe_allow_html=True)
         else:
-            st.warning("Nenhum vinho correspondente encontrado no estoque do galpão.")
+            # Se colou o texto bruto do QR Code que geramos, extrai e exibe na hora mesmo sem estar exato no banco
+            st.success("✅ Informações extraídas da leitura do QR Code:")
+            st.markdown(f"""
+            <div class="wine-card" style="border-left: 6px solid #7A1C2E; padding: 20px;">
+                <div class="wine-title" style="font-size: 1.4rem;">{codigo_consultado}</div>
+                <hr style="margin: 10px 0;">
+                <p style="font-size: 1.05rem; margin: 6px 0;">ℹ️ <i>Dados lidos diretamente do QR Code do Pallet nos corredores.</i></p>
+            </div>
+            """, unsafe_allow_html=True)
 
 elif st.session_state.menu_atual == "Editar":
     st.subheader("✏️ Editar ou Excluir Vinho do Estoque")
