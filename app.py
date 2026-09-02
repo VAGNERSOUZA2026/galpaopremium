@@ -381,27 +381,42 @@ elif st.session_state.menu_atual == "PainelMatriz":
     if not st.session_state.pedidos:
         st.info("Nenhum pedido registrado no sistema.")
     else:
-        for p in st.session_state.pedidos:
-            status_col = "#2E7D32" if p.get('status') == "Concluído / Expedido" else "#7A1C2E"
-            st.markdown(f"""
-            <div style='background: #FFF; padding: 15px; border-radius: 10px; border: 1px solid #E9ECEF; margin-bottom: 15px;'>
-                <b>Mapa / Pedido Nº {p['id']}</b> | Data: {p['data']} | Status: <b style='color: {status_col};'>{p.get('status', 'Pendente')}</b>
-            </div>
-            """, unsafe_allow_html=True)
+        col_f1, col_f2 = st.columns(2)
+        with col_f1:
+            filtro_num_pedido = st.text_input("🔍 Filtrar por Número do Pedido / Mapa", value="")
+        with col_f2:
+            filtro_data = st.text_input("📅 Filtrar por Data (Ex: DD/MM/AAAA ou parte dela)", value="")
             
-            df_itens = []
-            for item in p['itens']:
-                dif = item.get('divergencia', 0)
-                dif_str = f"({dif:+d})" if dif != 0 else "(0)"
-                df_itens.append({
-                    "Produto": item['nome'],
-                    "Safra": item.get('safra', 'N/A'),
-                    "Qtd Pedida": item['quantidade'],
-                    "Qtd Separada": item.get('qtd_separada', 0),
-                    "Divergência": dif_str
-                })
-            st.dataframe(pd.DataFrame(df_itens), use_container_width=True)
-            st.markdown("---") 
+        pedidos_filtrados = st.session_state.pedidos
+        if filtro_num_pedido.strip():
+            pedidos_filtrados = [p for p in pedidos_filtrados if filtro_num_pedido.strip().lower() in str(p.get('id', '')).lower()]
+        if filtro_data.strip():
+            pedidos_filtrados = [p for p in pedidos_filtrados if filtro_data.strip() in str(p.get('data', ''))]
+            
+        if not pedidos_filtrados:
+            st.warning("Nenhum pedido corresponde aos filtros informados.")
+        else:
+            for p in pedidos_filtrados:
+                status_col = "#2E7D32" if p.get('status') == "Concluído / Expedido" else "#7A1C2E"
+                st.markdown(f"""
+                <div style='background: #FFF; padding: 15px; border-radius: 10px; border: 1px solid #E9ECEF; margin-bottom: 15px;'>
+                    <b>Mapa / Pedido Nº {p['id']}</b> | Data: {p['data']} | Status: <b style='color: {status_col};'>{p.get('status', 'Pendente')}</b>
+                </div>
+                """, unsafe_allow_html=True)
+                
+                df_itens = []
+                for item in p['itens']:
+                    dif = item.get('divergencia', 0)
+                    dif_str = f"({dif:+d})" if dif != 0 else "(0)"
+                    df_itens.append({
+                        "Produto": item['nome'],
+                        "Safra": item.get('safra', 'N/A'),
+                        "Qtd Pedida": item['quantidade'],
+                        "Qtd Separada": item.get('qtd_separada', 0),
+                        "Divergência": dif_str
+                    })
+                st.dataframe(pd.DataFrame(df_itens), use_container_width=True)
+                st.markdown("---")
 
 elif st.session_state.menu_atual == "PedidosMatriz":
     st.subheader("📦 Checkout de Expedição - Separação de Vinho Galpão")
@@ -660,14 +675,24 @@ elif st.session_state.menu_atual == "PedidosMatriz":
 
 elif st.session_state.menu_atual == "Estoque":
     st.subheader("🍷 Estoque Completo do Galpão (Ordem Alfabética)")
+    
+    termo_estoque = st.text_input("🔍 Buscar no estoque por nome ou safra:", value="", key="busca_estoque_geral")
+    
     estoque_ordenado = sorted(st.session_state.estoque, key=lambda x: x.get("nome", "").lower())
-    for vinho in estoque_ordenado:
-        st.markdown(f"""
-        <div class="wine-card">
-            <div class="wine-title">{vinho['nome']} ({vinho.get('safra', 'N/A')})</div>
-            <div>Tipo: {vinho.get('tipo', 'N/A')} | Local: {vinho.get('localizacao', 'N/A')} - Lado: {vinho.get('lado', 'N/A')} | Caixa: {vinho.get('caixa', 'N/A')}</div>
-        </div>
-        """, unsafe_allow_html=True)
+    
+    if termo_estoque.strip():
+        estoque_ordenado = [v for v in estoque_ordenado if termo_estoque.lower() in v['nome'].lower() or termo_estoque in str(v.get('safra', ''))]
+    
+    if not estoque_ordenado:
+        st.info("Nenhum vinho encontrado com esse termo.")
+    else:
+        for vinho in estoque_ordenado:
+            st.markdown(f"""
+            <div class="wine-card">
+                <div class="wine-title">{vinho['nome']} ({vinho.get('safra', 'N/A')})</div>
+                <div>Tipo: {vinho.get('tipo', 'N/A')} | Local: {vinho.get('localizacao', 'N/A')} - Lado: {vinho.get('lado', 'N/A')} | Caixa: {vinho.get('caixa', 'N/A')}</div>
+            </div>
+            """, unsafe_allow_html=True)
 
 elif st.session_state.menu_atual == "Cadastrar":
     st.subheader("➕ Cadastrar Novo Vinho")
