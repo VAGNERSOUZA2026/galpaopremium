@@ -160,15 +160,14 @@ def extrair_pedidos_de_arquivo(arquivo):
         st.error(f"Erro ao processar arquivo: {e}")
     return itens
 
-# Componente de Leitor de Código de Barras customizado (com ativação manual de câmera)
+# Componente de Leitor de Código de Barras (Câmera desligada por padrão + Digitação)
 def componente_leitor_barcode(chave_estado):
     col_ativar, _ = st.columns([1, 2])
     with col_ativar:
         ativar_cam = st.toggle("📷 Ligar Câmera do Leitor", key=f"toggle_cam_{chave_estado}")
     
     if ativar_cam:
-        st.info("Aponte a câmera para o código de barras.")
-        # Simulação ou componente visual para captura de câmera HTML5 se integrado
+        st.info("Câmera ativada. Aponte para o código de barras.")
     
     codigo_digitado = st.text_input("Ou digite / bipar código de barras manualmente:", key=f"input_manual_{chave_estado}")
     if codigo_digitado:
@@ -244,8 +243,7 @@ if st.session_state.menu_atual == "🏠 Home":
             if st.button("⚙️ Gerenciar Contas", use_container_width=True):
                 st.session_state.menu_atual = "GerenciarUsuarios"
                 st.rerun()
-
-elif st.session_state.menu_atual == "MapaSeparacao":
+                elif st.session_state.menu_atual == "MapaSeparacao":
     st.subheader("🗺️ Mapa de Separação por Localização")
     termo_mapa = st.text_input("🔍 Digite o nome do vinho para buscar no mapa:", value="")
     estoque_mapa = st.session_state.estoque
@@ -433,7 +431,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
             pedido_obj = next((p for p in st.session_state.pedidos if p['id'] == pedido_conf_id), None)
             
             if pedido_obj:
-                # Opções de Entrada em ordem solicitada
+                # Opções de Entrada em ordem solicitada (Digitação manual primeiro)
                 modo_conferencia = st.radio("Método de Entrada:", ["⌨️ Digitação Manual / Código de Barras", "📷 Leitor por Câmera"], horizontal=True)
                 
                 if "⌨️" in modo_conferencia:
