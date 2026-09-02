@@ -250,7 +250,7 @@ def componente_leitor_barcode(key_name):
     st.components.v1.html(html_code, height=90)
 
 # ==========================================
-# TELA DE LOGIN
+# TELA DE LOGIN (LAYOUT ORIGINAL CENTRALIZADO)
 # ==========================================
 if st.session_state.usuario_logado is None:
     st.markdown("<h2 style='text-align: center; color: #7A1C2E;'>🍷 Galpão Premium - Login</h2>", unsafe_allow_html=True)
@@ -367,19 +367,16 @@ if st.session_state.menu_atual == "PedidosMatriz":
             st.warning("Nenhum pedido cadastrado no sistema. Cadastre na aba anterior.")
         else:
             mapas_disponiveis = [p['id'] for p in st.session_state.pedidos]
-            
-            c_top1, _ = st.columns([2, 2])
-            with c_top1:
-                mapa_selecionado_id = st.selectbox("Código de Barras Mapa", mapas_disponiveis)
+            mapa_selecionado_id = st.selectbox("Código de Barras Mapa", mapas_disponiveis)
             
             pedido_ativo = next((p for p in st.session_state.pedidos if p['id'] == mapa_selecionado_id), None)
             
             if pedido_ativo:
                 status_atual = pedido_ativo.get('status', 'Pendente')
-                cor_status = "#2E7D32" if status_atual == "Concluído / Expedido" else "#7A1C2E"
+                cor_status = "#2E7D32" if "Concluído" in status_atual else "#7A1C2E"
                 
                 st.markdown(f"""
-                <div style='background: #FFF; padding: 10px; border-radius: 8px; border: 1px solid #E9ECEF; margin-bottom: 15px;'>
+                <div style='background: #FFF; padding: 12px; border-radius: 8px; border: 1px solid #E9ECEF; margin-bottom: 15px;'>
                     <b>Conferência do Mapa cod. {pedido_ativo['id']}</b> | Expedição Nº 41542 | Carga(s) Nº 114971<br>
                     Data/Carga: {pedido_ativo['data']} | Status: <b style='color: {cor_status};'>{status_atual}</b>
                 </div>
@@ -414,7 +411,7 @@ if st.session_state.menu_atual == "PedidosMatriz":
                     st.write("")
                     btn_conferir = st.button("Conferir", use_container_width=True)
                 
-                # CORREÇÃO APLICADA: Tratamento exato da divergência (ex: 9 conferidos para 10 pedidos resulta em -1 e bloqueia)
+                # CORREÇÃO DA DIVERGÊNCIA APLICADA
                 if btn_conferir and cod_barras_input and cod_barras_input != "-- Selecione ou Digite --":
                     encontrou = False
                     for item in pedido_ativo['itens']:
@@ -454,7 +451,6 @@ if st.session_state.menu_atual == "PedidosMatriz":
                     for it_div in itens_com_divergencia_nao_autorizados:
                         with st.form(f"form_senha_item_{it_div['nome']}"):
                             st.markdown(f"**Item:** {it_div['nome']} | Pedido: {it_div['quantidade']} | Separado: {it_div['qtd_separada']} (Divergência: {it_div['divergencia']:+d})")
-                            st.info("Dica: Se foi erro de digitação, você pode corrigir clicando abaixo para ajustar a quantidade exata:")
                             
                             corrigir_para_pedida = st.form_submit_button("🔄 Corrigir e Ajustar para Qtd Pedida Automaticamente")
                             if corrigir_para_pedida:
@@ -463,7 +459,7 @@ if st.session_state.menu_atual == "PedidosMatriz":
                                 it_div['autorizado_divergencia'] = True
                                 it_div['separado'] = True
                                 salvar_pedidos(st.session_state.pedidos)
-                                st.success(f"Quantidade de '{it_div['nome']}' corrigida com sucesso para o valor do pedido!")
+                                st.success(f"Quantidade de '{it_div['nome']}' corrigida com sucesso!")
                                 st.rerun()
 
                             senha_item = st.text_input("Ou digite a senha de liberação de divergência (2026):", type="password", key=f"pass_{it_div['nome']}")
