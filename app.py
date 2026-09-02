@@ -242,8 +242,7 @@ if st.session_state.menu_atual == "🏠 Home":
         if st.session_state.usuario_logado.get('cargo') == "Desenvolvedor":
             if st.button("⚙️ Gerenciar Contas", use_container_width=True):
                 st.session_state.menu_atual = "GerenciarUsuarios"
-                st.rerun()
-                elif st.session_state.menu_atual == "MapaSeparacao":
+                st.rerun()elif st.session_state.menu_atual == "MapaSeparacao":
     st.subheader("🗺️ Mapa de Separação por Localização")
     termo_mapa = st.text_input("🔍 Digite o nome do vinho para buscar no mapa:", value="")
     estoque_mapa = st.session_state.estoque
