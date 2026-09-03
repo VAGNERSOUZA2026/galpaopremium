@@ -525,28 +525,40 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 </div>
                 """, unsafe_allow_html=True)
                 
-                # Seletor da forma de leitura (Pistola ou Câmera com botão liga/desliga)
                 forma_leitura = st.radio("Forma de Leitura:", ["Seleção / Pistola USB", "Câmera do Celular"], horizontal=True)
                 
                 if forma_leitura == "Câmera do Celular":
                     componente_leitor_barcode("checkout_camera")
                 
-                # Entrada de código de barras ou nome + quantidade + botão conferir
                 col_inp1, col_inp2, col_inp3 = st.columns([3, 1.5, 1])
                 with col_inp1:
-                    codigo_inputado = st.text_input("Código de Barras ou Nome", value="", key="input_conferencia_manual")
+                    codigo_inputado = st.text_input("*Código de Barras ou Nome (Opcional se clicar no card abaixo)", value="", key="input_conferencia_manual")
                 with col_inp2:
                     qtd_inputada = st.number_input("*Qtd", min_value=1, value=1, key="input_conferencia_qtd")
                 with col_inp3:
-                    st.write("") # espaçamento visual
+                    st.write("")
                     btn_conferir = st.button("Conferir", use_container_width=True)
 
-                # Processar leitura por câmera se houver
                 codigo_bipado = st.session_state.get("codigo_bipado_checkout", "")
                 if codigo_bipado:
                     codigo_inputado = codigo_bipado
                     btn_conferir = True
                     st.session_state.codigo_bipado_checkout = ""
+
+                # Função auxiliar para processar a conferência de um item
+                def processar_conferencia_item(item_alvo, qtd_a_somar):
+                    nova_qtd_sep = item_alvo.get('qtd_separada', 0) + int(qtd_a_somar)
+                    item_alvo['qtd_separada'] = nova_qtd_sep
+                    
+                    if nova_qtd_sep != item_alvo['quantidade']:
+                        item_alvo['divergencia'] = nova_qtd_sep - item_alvo['quantidade']
+                        st.session_state.item_com_divergencia_pendente = item_alvo
+                    else:
+                        item_alvo['divergencia'] = 0
+                        item_alvo['autorizado_divergencia'] = True
+                        salvar_pedidos(st.session_state.pedidos)
+                        st.success(f"✅ Item '{item_alvo['nome']}' conferido com sucesso!")
+                        st.rerun()
 
                 if btn_conferir and codigo_inputado.strip():
                     termo_pesquisa = codigo_inputado.strip().lower()
@@ -555,21 +567,37 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     item_pedido = next((item for item in pedido_obj['itens'] if termo_pesquisa in item['nome'].lower() or (vinho_encontrado and vinho_encontrado['nome'].lower() in item['nome'].lower())), None)
                     
                     if item_pedido:
-                        item_pedido['qtd_separada'] = item_pedido.get('qtd_separada', 0) + int(qtd_inputada)
-                        if item_pedido['qtd_separada'] > item_pedido['quantidade']:
-                            item_pedido['divergencia'] = item_pedido['qtd_separada'] - item_pedido['quantidade']
-                        salvar_pedidos(st.session_state.pedidos)
-                        st.success(f"✅ Item '{item_pedido['nome']}' atualizado com sucesso!")
-                        st.rerun()
+                        processar_conferencia_item(item_pedido, qtd_inputada)
                     else:
                         st.warning(f"⚠️ O item '{codigo_inputado}' não foi encontrado neste pedido.")
 
-                with st.expander("➕ Inserção Manual Extra (Solicitação de Trajeto / Adicionar Vinho Não Listado)"):
-                    st.markdown("Caso precise adicionar um item fora da lista original do mapa.")
+                # BLOCO DE AUTORIZAÇÃO DE SENHA PARA DIVERGÊNCIAS
+                if st.session_state.get("item_com_divergencia_pendente"):
+                    item_div = st.session_state.item_com_divergencia_pendente
+                    st.markdown(f"""
+                    <div style='background: #FFF3CD; color: #856404; padding: 15px; border-radius: 8px; border: 1px solid #FFEEBA; margin-top: 15px;'>
+                        <b>⚠️ DIVERGÊNCIA DETECTADA!</b><br>
+                        Produto: <b>{item_div['nome']}</b> | Pedido: {item_div['quantidade']} | Separado: {item_div['qtd_separada']} (Diferença: {item_div['divergencia']:+d})<br>
+                        <i>Insira a senha de liberação/administrador para autorizar a divergência.</i>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    with st.form("form_senha_divergencia"):
+                        senha_divergencia = st.text_input("Senha de Autorização de Divergência", type="password")
+                        if st.form_submit_button("Autorizar e Salvar Divergência"):
+                            senha_correta_usuario = st.session_state.usuario_logado.get('senha', '')
+                            if senha_divergencia == senha_correta_usuario or senha_divergencia == SENHA_DEV:
+                                item_div['autorizado_divergencia'] = True
+                                salvar_pedidos(st.session_state.pedidos)
+                                registrar_log(st.session_state.usuario_logado['nome'], "Autorizar Divergência", f"Divergência autorizada para o item {item_div['nome']}.")
+                                st.session_state.item_com_divergencia_pendente = None
+                                st.success("✅ Divergência autorizada e registrada com sucesso!")
+                                st.rerun()
+                            else:
+                                st.error("❌ Senha incorreta para autorizar divergência.")
 
                 st.markdown("---")
                 
-                # ESTRUTURA EXATA DO PRINT: Lado esquerdo (Produtos a Conferir) e Lado direito (Produtos Conferidos)
                 col_esq, col_dir = st.columns(2)
                 
                 with col_esq:
@@ -578,7 +606,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     if not pendentes_lista:
                         st.markdown("<div style='background: #D4EDDA; color: #155724; padding: 12px; border-radius: 8px; border: 1px solid #C3E6CB;'>✨ Todos os produtos deste mapa foram conferidos!</div>", unsafe_allow_html=True)
                     else:
-                        for item in pendentes_lista:
+                        for idx_p, item in enumerate(pendentes_lista):
                             falta = item['quantidade'] - item.get('qtd_separada', 0)
                             st.markdown(f"""
                             <div class='wine-card'>
@@ -586,6 +614,9 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                                 <div><b>Qtd Pedida:</b> {item['quantidade']} | <b>Falta:</b> {falta}</div>
                             </div>
                             """, unsafe_allow_html=True)
+                            # Botão de clique rápido para conferir o item diretamente na lista
+                            if st.button(f"✓ Conferir {item['nome']} ({item.get('safra', 'NV')})", key=f"btn_card_{idx_p}_{item['nome']}"):
+                                processar_conferencia_item(item, 1)
 
                 with col_dir:
                     st.markdown("### PRODUTOS CONFERIDOS")
@@ -595,15 +626,16 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     else:
                         for item in conferidos_lista:
                             qtd_sep = item.get('qtd_separada', 0)
+                            div = item.get('divergencia', 0)
+                            div_txt = f" <b style='color: red;'>({div:+d})</b>" if div != 0 else ""
                             st.markdown(f"""
                             <div class='wine-card'>
-                                <div class='wine-title' style='color: #2E7D32;'>✔ {item['nome']} ({item.get('safra', 'NV')}) - {qtd_sep} unidade(s) conferida(s)</div>
+                                <div class='wine-title' style='color: #2E7D32;'>✔ {item['nome']} ({item.get('safra', 'NV')}) - {qtd_sep} un{div_txt}</div>
                             </div>
                             """, unsafe_allow_html=True)
 
                 st.markdown("---")
                 
-                # Dois botões inferiores idênticos ao print
                 col_b_inf1, col_b_inf2 = st.columns(2)
                 with col_b_inf1:
                     if st.button("💾 Salvar Pedido e Enviar Depois", use_container_width=True):
