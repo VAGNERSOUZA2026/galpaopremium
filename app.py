@@ -222,32 +222,48 @@ def extrair_pedidos_de_arquivo(arq):
     return itens
 
 def componente_leitor_barcode(chave_sessao):
-    html_code = f"""
-    <div style="text-align: center; background: #FFF; padding: 10px; border-radius: 12px; border: 1px solid #E9ECEF;">
-        <div id="reader_{chave_sessao}" style="width: 100%; max-width: 350px; margin: auto; border-radius: 8px; overflow: hidden;"></div>
-        <p id="resultado_{chave_sessao}" style="font-weight: bold; color: #7A1C2E; margin-top: 8px; font-size: 0.9rem;"></p>
-    </div>
-    <script src="https://unpkg.com/html5-qrcode"></script>
-    <script>
-      function onScanSuccess(decodedText, decodedResult) {{
-        document.getElementById("resultado_{chave_sessao}").innerText = "✅ Lido: " + decodedText;
-        const url = new URL(window.parent.location.href);
-        url.searchParams.set('scanned_{chave_sessao}', decodedText);
-        window.parent.history.replaceState({{}}, '', url);
-        
-        if (window.html5QrCode_{chave_sessao}) {{
-            window.html5QrCode_{chave_sessao}.stop().catch(err => {{}});
-        }}
-      }}
-      
-      try {{
-          const html5QrCode = new Html5Qrcode("reader_{chave_sessao}");
-          window.html5QrCode_{chave_sessao} = html5QrCode;
-          html5QrCode.start({{ facingMode: "environment" }}, {{ fps: 10, qrbox: {{ width: 250, height: 120 }} }}, onScanSuccess).catch(err => {{}});
-      }} catch (e) {{}}
-    </script>
-    """
-    components.html(html_code, height=260)
+    ativo_key = f"camera_ativa_{chave_sessao}"
+    if ativo_key not in st.session_state:
+        st.session_state[ativo_key] = False
+
+    col_btn1, col_btn2 = st.columns([1, 2])
+    with col_btn1:
+        if not st.session_state[ativo_key]:
+            if st.button("📷 Abrir Câmera", key=f"btn_on_{chave_sessao}"):
+                st.session_state[ativo_key] = True
+                st.rerun()
+        else:
+            if st.button("❌ Fechar Câmera", key=f"btn_off_{chave_sessao}"):
+                st.session_state[ativo_key] = False
+                st.rerun()
+
+    if st.session_state[ativo_key]:
+        html_code = f"""
+        <div style="text-align: center; background: #FFF; padding: 10px; border-radius: 12px; border: 1px solid #E9ECEF; margin-top: 10px;">
+            <div id="reader_{chave_sessao}" style="width: 100%; max-width: 350px; margin: auto; border-radius: 8px; overflow: hidden;"></div>
+            <p id="resultado_{chave_sessao}" style="font-weight: bold; color: #7A1C2E; margin-top: 8px; font-size: 0.9rem;"></p>
+        </div>
+        <script src="https://unpkg.com/html5-qrcode"></script>
+        <script>
+          function onScanSuccess(decodedText, decodedResult) {{
+            document.getElementById("resultado_{chave_sessao}").innerText = "✅ Lido: " + decodedText;
+            const url = new URL(window.parent.location.href);
+            url.searchParams.set('scanned_{chave_sessao}', decodedText);
+            window.parent.history.replaceState({{}}, '', url);
+            
+            if (window.html5QrCode_{chave_sessao}) {{
+                window.html5QrCode_{chave_sessao}.stop().catch(err => {{}});
+            }}
+          }}
+          
+          try {{
+              const html5QrCode = new Html5Qrcode("reader_{chave_sessao}");
+              window.html5QrCode_{chave_sessao} = html5QrCode;
+              html5QrCode.start({{ facingMode: "environment" }}, {{ fps: 10, qrbox: {{ width: 250, height: 120 }} }}, onScanSuccess).catch(err => {{}});
+          }} catch (e) {{}}
+        </script>
+        """
+        components.html(html_code, height=260)
 
 if "usuarios" not in st.session_state:
     st.session_state.usuarios = carregar_usuarios()
@@ -267,10 +283,13 @@ for key, val in list(qp.items()):
         valor_limpo = str(val).strip()
         if sess_key == "checkout_camera":
             st.session_state.codigo_bipado_checkout = valor_limpo
+            st.session_state["camera_ativa_checkout_camera"] = False
         elif sess_key == "consulta_camera":
             st.session_state.codigo_bipado_consulta = valor_limpo
+            st.session_state["camera_ativa_consulta_camera"] = False
         elif sess_key == "cadastro_camera":
             st.session_state.codigo_barras_cadastrado = valor_limpo
+            st.session_state["camera_ativa_cadastro_camera"] = False
         del st.query_params[key]
         st.rerun()
 
@@ -502,7 +521,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 st.markdown(f"**Status Atual:** `{pedido_obj.get('status', 'Pendente')}` | **Data:** {pedido_obj.get('data', '')}")
                 
                 st.markdown("---")
-                st.markdown("#### 📷 Ler Código de Barras (Câmera)")
+                st.markdown("#### 📷 Leitor de Código de Barras")
                 componente_leitor_barcode("checkout_camera")
                 
                 codigo_bipado = st.session_state.get("codigo_bipado_checkout", "")
@@ -526,26 +545,29 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         st.warning(f"⚠️ Nenhum vinho cadastrado no estoque possui o código de barras '{codigo_bipado}'.")
 
                 st.markdown("---")
-                st.markdown("#### 📋 Lista de Itens do Pedido")
                 
-                for idx, item in enumerate(pedido_obj['itens']):
-                    col_i1, col_i2, col_i3, col_i4 = st.columns([3, 1.5, 1.5, 1.5])
-                    with col_i1:
-                        st.markdown(f"**{item['nome']}**<br><small>Safra: {item.get('safra', 'N/A')}</small>", unsafe_allow_html=True)
-                    with col_i2:
-                        st.markdown(f"Qtd Pedida: **{item['quantidade']}**")
-                    with col_i3:
+                # ESTRUTURA ANTERIOR RESTAURADA: Lado esquerdo (Itens da Lista) e Lado direito (Conferidos/Progresso)
+                col_esq, col_dir = st.columns(2)
+                
+                with col_esq:
+                    st.markdown("#### 📋 Itens da Lista (Pedida)")
+                    for idx, item in enumerate(pedido_obj['itens']):
+                        st.markdown(f"""
+                        <div class='wine-card'>
+                            <div class='wine-title'>{item['nome']}</div>
+                            <div><b>Safra:</b> {item.get('safra', 'N/A')} | <b>Qtd Pedida:</b> {item['quantidade']}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+                with col_dir:
+                    st.markdown("#### ✅ Conferidos / Ajuste de Quantidade")
+                    for idx, item in enumerate(pedido_obj['itens']):
                         qtd_atual = item.get('qtd_separada', 0)
-                        nova_qtd = st.number_input(f"Separada ({idx})", min_value=0, value=int(qtd_atual), key=f"qtd_sep_{pedido_selecionado_id}_{idx}")
+                        nova_qtd = st.number_input(f"Separada: {item['nome']}", min_value=0, value=int(qtd_atual), key=f"qtd_sep_{pedido_selecionado_id}_{idx}")
                         if nova_qtd != qtd_atual:
                             item['qtd_separada'] = nova_qtd
                             item['divergencia'] = nova_qtd - item['quantidade']
                             salvar_pedidos(st.session_state.pedidos)
-                    with col_i4:
-                        if item.get('qtd_separada', 0) == item['quantidade']:
-                            st.markdown("✅ OK", unsafe_allow_html=True)
-                        else:
-                            st.markdown("⚠️ Divergência", unsafe_allow_html=True)
 
                 st.markdown("---")
                 if st.button("🚀 Finalizar e Concluir Checkout do Pedido", use_container_width=True):
