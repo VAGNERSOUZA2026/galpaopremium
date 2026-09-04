@@ -112,7 +112,6 @@ PASTA_FOTOS = "fotos_vinhos"
 SENHA_DEV = "1980"
 SENHA_DIVERGENCIA = "2026"
 
-
 os.makedirs(PASTA_BACKUP, exist_ok=True)
 os.makedirs(PASTA_FOTOS, exist_ok=True)
 
@@ -171,7 +170,6 @@ def obter_horario_brasilia():
 
 def obter_saudacao():
     hora = obter_horario_brasilia().hour
-
     if 0 <= hora < 12:
         return "Bom dia"
     elif 12 <= hora < 18:
@@ -212,7 +210,6 @@ def nome_seguro_arquivo(nome):
 def salvar_foto_vinho(arquivo, nome_vinho):
     if arquivo is None:
         return ""
-
     try:
         extensao = os.path.splitext(arquivo.name)[1].lower()
         if extensao not in [".jpg", ".jpeg", ".png", ".webp"]:
@@ -250,7 +247,6 @@ def foto_existe(vinho):
 
 def carregar_dados():
     estoque = []
-
     if os.path.exists(NOME_ARQUIVO):
         try:
             with open(NOME_ARQUIVO, "r", encoding="utf-8") as f:
@@ -287,10 +283,8 @@ def carregar_dados():
 
 def salvar_dados(estoque):
     estoque_ordenado = sorted(estoque, key=lambda x: x.get("nome", "").lower())
-
     with open(NOME_ARQUIVO, "w", encoding="utf-8") as f:
         json.dump(estoque_ordenado, f, ensure_ascii=False, indent=4)
-
     realizar_backup(NOME_ARQUIVO)
     st.session_state.estoque = estoque_ordenado
 
@@ -336,7 +330,6 @@ def carregar_usuarios():
                 return json.load(f)
         except Exception:
             pass
-
     return [
         {
             "nome": "Vagner Souza",
@@ -376,7 +369,6 @@ def registrar_log(usuario, acao, detalhes):
             "detalhes": detalhes
         }
     )
-
     with open(ARQUIVO_LOGS, "w", encoding="utf-8") as f:
         json.dump(logs, f, ensure_ascii=False, indent=4)
 
@@ -450,14 +442,9 @@ def interpretar_linha_pedido(texto_linha):
     }
 
 
-# ============================================================
-# IMPORTAÇÃO DE PEDIDOS
-# ============================================================
-
 def extrair_pedidos_de_arquivo(arq):
     itens = []
     ext = arq.name.split(".")[-1].lower()
-
     try:
         if ext in ["xlsx", "xls"]:
             df = pd.read_excel(arq)
@@ -486,7 +473,6 @@ def extrair_pedidos_de_arquivo(arq):
                 itens.append(interpretar_linha_pedido(l))
     except Exception:
         pass
-
     return itens
 
 
@@ -756,6 +742,65 @@ if st.session_state.menu_atual == "🏠 Home":
 
 
 # ============================================================
+# CHECKOUT DE EXPEDIÇÃO / PEDIDOS MATRIZ
+# ============================================================
+
+elif st.session_state.menu_atual == "PedidosMatriz":
+    st.subheader("📦 Checkout e Pedidos da Matriz")
+    
+    # Importação de novos pedidos
+    with st.expander("📥 Importar Novo Pedido / Lista (Excel ou TXT)"):
+        arq_sub = st.file_uploader("Selecione o arquivo", type=["xlsx", "xls", "txt"])
+        if arq_sub and st.button("Processar e Salvar Pedido"):
+            itens_extraidos = extrair_pedidos_de_arquivo(arq_sub)
+            if itens_extraidos:
+                novo_pedido = {
+                    "id": len(st.session_state.pedidos) + 1,
+                    "data": obter_horario_brasilia().strftime("%d/%m/%Y %H:%M"),
+                    "status": "Pendente",
+                    "itens": itens_extraidos
+                }
+                st.session_state.pedidos.append(novo_pedido)
+                salvar_pedidos(st.session_state.pedidos)
+                sincronizar_estoque_com_pedidos(st.session_state.pedidos, st.session_state.estoque)
+                registrar_log(st.session_state.usuario_logado["nome"], "Importar Pedido", f"Pedido #{novo_pedido['id']}")
+                st.success("Pedido importado com sucesso!")
+                st.rerun()
+            else:
+                st.error("Não foi possível extrair itens do arquivo.")
+
+    if not st.session_state.pedidos:
+        st.info("Nenhum pedido ativo no momento.")
+    else:
+        for idx, pedido in enumerate(st.session_state.pedidos):
+            with st.container():
+                st.markdown(
+                    f"""
+                    <div style="background:#FFF; padding:15px; border-radius:12px; border:1px solid #E9ECEF; margin-bottom:15px;">
+                        <h4>Pedido #{pedido.get('id', idx+1)} - Status: {pedido.get('status', 'Pendente')}</h4>
+                        <p>Data: {pedido.get('data', 'N/D')}</p>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+                
+                for i_idx, item in enumerate(pedido.get("itens", [])):
+                    c_i1, c_i2, c_i3 = st.columns([3, 1, 1])
+                    with c_i1:
+                        st.markdown(f"**{item.get('nome')}** (Safra: {item.get('safra', 'N/D')}) | Qtd Pedida: **{item.get('quantidade')}**")
+                    with c_i2:
+                        sep = st.checkbox("Separado", value=item.get("separado", False), key=f"sep_{idx}_{i_idx}")
+                        if sep != item.get("separado", False):
+                            item["separado"] = sep
+                            salvar_pedidos(st.session_state.pedidos)
+                    with c_i3:
+                        qtd_sep = st.number_input("Qtd Sep.", value=int(item.get("qtd_separada", item.get("quantidade"))), min_value=0, key=f"qtd_s_{idx}_{i_idx}")
+                        if qtd_sep != item.get("qtd_separada", 0):
+                            item["qtd_separada"] = qtd_sep
+                            salvar_pedidos(st.session_state.pedidos)
+
+
+# ============================================================
 # PAINEL DA MATRIZ
 # ============================================================
 
@@ -795,4 +840,183 @@ elif st.session_state.menu_atual == "PainelMatriz":
                 unsafe_allow_html=True
             )
 
-# Adicione outras rotas ou telas adicionais se necessário abaixo.
+
+# ============================================================
+# FILTROS / BUSCA
+# ============================================================
+
+elif st.session_state.menu_atual == "Filtros":
+    st.subheader("🔍 Buscar e Filtrar Vinhos no Galpão")
+    termo = st.text_input("Digite o nome do vinho ou código de barras:", value=st.session_state.termo_busca)
+    st.session_state.termo_busca = termo
+
+    resultados = [
+        v for v in st.session_state.estoque
+        if termo.lower() in v.get("nome", "").lower() or termo in v.get("codigo_barras", "")
+    ] if termo else st.session_state.estoque
+
+    st.write(f"Encontrados: {len(resultados)} vinhos.")
+    for vinho in resultados:
+        with st.container():
+            st.markdown(
+                f"""
+                <div class="wine-card">
+                    <div class="wine-title">{vinho.get('nome')} ({vinho.get('safra', 'NV')})</div>
+                    <p><b>Tipo:</b> {vinho.get('tipo')} | <b>Local:</b> {vinho.get('localizacao')} ({vinho.get('lado')})</p>
+                    <p><b>Caixa:</b> {vinho.get('caixa')} | <b>Código de Barras:</b> {vinho.get('codigo_barras', 'N/D')}</p>
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+
+# ============================================================
+# MAPA DE SEPARAÇÃO
+# ============================================================
+
+elif st.session_state.menu_atual == "MapaSeparacao":
+    st.subheader("🗺️ Mapa de Separação por Corredor")
+    corredor_escolhido = st.selectbox("Selecione o Corredor:", LISTA_CORREDORES)
+    
+    vinhos_corredor = [
+        v for v in st.session_state.estoque
+        if corredor_escolhido.lower() in v.get("localizacao", "").lower()
+    ]
+    
+    st.write(f"Vinhos no {corredor_escolhido}: {len(vinhos_corredor)}")
+    for vinho in vinhos_corredor:
+        st.markdown(
+            f"""
+            <div class="wine-card">
+                <div class="wine-title">{vinho.get('nome')} ({vinho.get('safra', 'NV')})</div>
+                <p><b>Localização:</b> {vinho.get('localizacao')} - Lado: {vinho.get('lado')}</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+
+# ============================================================
+# ESTOQUE COMPLETO
+# ============================================================
+
+elif st.session_state.menu_atual == "Estoque":
+    st.subheader("🍷 Estoque Completo do Galpão")
+    if not st.session_state.estoque:
+        st.info("Estoque vazio.")
+    else:
+        df_est = pd.DataFrame(st.session_state.estoque)
+        st.dataframe(df_est, use_container_width=True)
+
+
+# ============================================================
+# CADASTRAR VINHO
+# ============================================================
+
+elif st.session_state.menu_atual == "Cadastrar":
+    st.subheader("➕ Cadastrar Novo Vinho no Estoque")
+    with st.form("form_cad"):
+        nome_c = st.text_input("Nome do Vinho").strip().title()
+        tipo_c = st.selectbox("Tipo", TIPOS_VINHO)
+        safra_c = st.text_input("Safra (ex: 2023)").strip()
+        corredor_c = st.selectbox("Corredor", LISTA_CORREDORES)
+        tipo_local_c = st.selectbox("Tipo de Local", LISTA_LOCAIS_TIPO)
+        num_local_c = st.selectbox("Número do Local", LISTA_NUMEROS_LOCAL)
+        lado_c = st.selectbox("Lado", LISTA_LADOS)
+        caixa_c = st.selectbox("Embalagem", OPCOES_CAIXA)
+        codigo_c = st.text_input("Código de Barras").strip()
+        foto_c = st.file_uploader("Foto do Vinho", type=["jpg", "jpeg", "png", "webp"])
+
+        if st.form_submit_button("Salvar Cadastro"):
+            if nome_c:
+                caminho_foto = salvar_foto_vinho(foto_c, nome_c)
+                novo_vinho = {
+                    "nome": nome_c,
+                    "tipo": tipo_c,
+                    "safra": safra_c,
+                    "localizacao": f"{corredor_c} - {tipo_local_c} {num_local_c}",
+                    "lado": lado_c,
+                    "caixa": caixa_c,
+                    "codigo_barras": codigo_c,
+                    "foto": caminho_foto
+                }
+                st.session_state.estoque.append(novo_vinho)
+                salvar_dados(st.session_state.estoque)
+                registrar_log(st.session_state.usuario_logado["nome"], "Cadastrar Vinho", nome_c)
+                st.success("Vinho cadastrado com sucesso!")
+                st.rerun()
+            else:
+                st.error("Informe o nome do vinho.")
+
+
+# ============================================================
+# EDITAR VINHO
+# ============================================================
+
+elif st.session_state.menu_atual == "Editar":
+    st.subheader("✏️ Editar ou Excluir Vinho")
+    nomes_vinhos = [v["nome"] for v in st.session_state.estoque]
+    if not nomes_vinhos:
+        st.info("Nenhum vinho para editar.")
+    else:
+        vinho_selecionado = st.selectbox("Selecione o Vinho", nomes_vinhos)
+        v_obj = next((v for v in st.session_state.estoque if v["nome"] == vinho_selecionado), None)
+
+        if v_obj:
+            with st.form("form_edit"):
+                novo_nome = st.text_input("Nome", value=v_obj.get("nome", "")).strip().title()
+                nova_safra = st.text_input("Safra", value=v_obj.get("safra", "")).strip()
+                novo_codigo = st.text_input("Código de Barras", value=v_obj.get("codigo_barras", "")).strip()
+
+                col_e1, col_e2 = st.columns(2)
+                with col_e1:
+                    if st.form_submit_button("Salvar Alterações"):
+                        v_obj["nome"] = novo_nome
+                        v_obj["safra"] = nova_safra
+                        v_obj["codigo_barras"] = novo_codigo
+                        salvar_dados(st.session_state.estoque)
+                        registrar_log(st.session_state.usuario_logado["nome"], "Editar Vinho", novo_nome)
+                        st.success("Alterações salvas!")
+                        st.rerun()
+                with col_e2:
+                    if st.form_submit_button("🗑️ Excluir Vinho"):
+                        excluir_foto(v_obj.get("foto", ""))
+                        st.session_state.estoque.remove(v_obj)
+                        salvar_dados(st.session_state.estoque)
+                        registrar_log(st.session_state.usuario_logado["nome"], "Excluir Vinho", v_obj.get("nome"))
+                        st.success("Vinho excluído!")
+                        st.rerun()
+
+
+# ============================================================
+# HISTÓRICO DE LOGS
+# ============================================================
+
+elif st.session_state.menu_atual == "Historico":
+    st.subheader("📋 Histórico de Auditoria e Ações")
+    logs = carregar_logs()
+    if not logs:
+        st.info("Nenhum registro no histórico.")
+    else:
+        for l in logs:
+            st.markdown(
+                f"""
+                <div style="background:#FFF; padding:10px; border-radius:8px; border:1px solid #E9ECEF; margin-bottom:8px; font-size:0.9rem;">
+                    <b>{l.get('data_hora')}</b> - <b>{l.get('usuario')}</b> executou <b>{l.get('acao')}</b>: {l.get('detalhes')}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
+
+
+# ============================================================
+# GERENCIAR USUÁRIOS (DEV)
+# ============================================================
+
+elif st.session_state.menu_atual == "GerenciarUsuarios":
+    st.subheader("⚙️ Gerenciamento de Contas e Usuários")
+    if st.session_state.usuario_logado.get("cargo") != "Desenvolvedor":
+        st.error("Acesso restrito a Desenvolvedores.")
+    else:
+        for idx, u_acc in enumerate(st.session_state.usuarios):
+            st.write(f"👤 **{u_acc.get('nome')}** ({u_acc.get('cargo', 'Operador')})")
