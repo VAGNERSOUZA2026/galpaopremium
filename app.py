@@ -889,11 +889,51 @@ def criar_ou_atualizar_pallet(
 # ============================================================
 
 def gerar_qr_pallet(
-    pallet_id
+    pallet_id,
+    pallet=None
 ):
 
     if not QRCODE_DISPONIVEL:
         return None
+
+    # O QR Code passa a carregar também as informações
+    # dos vinhos que estão cadastrados naquele pallet.
+    # Assim, um leitor comum de QR Code já consegue
+    # mostrar nome e safra, sem depender do sistema.
+    if pallet is None:
+        pallet = obter_pallet(
+            st.session_state.get("pallets", []),
+            pallet_id
+        )
+
+    if pallet:
+        linhas_qr = [
+            "PREMIUM WINES",
+            "INFORMACOES DO PALLET",
+            f"Codigo: {pallet_id}",
+            f"Corredor: {pallet.get('corredor', '')}",
+            f"Pallet: {pallet.get('pallet', '')}",
+            f"Lado: {pallet.get('lado', '')}",
+            "",
+            "VINHOS:"
+        ]
+
+        vinhos_qr = pallet.get("vinhos", [])
+
+        if vinhos_qr:
+            for indice, vinho in enumerate(vinhos_qr, start=1):
+                nome = str(vinho.get("nome", "")).strip()
+                safra = str(vinho.get("safra", "N/A")).strip() or "N/A"
+                linhas_qr.append(
+                    f"{indice}. {nome} | Safra: {safra}"
+                )
+        else:
+            linhas_qr.append("Nenhum vinho cadastrado neste pallet.")
+
+        conteudo_qr = "\n".join(linhas_qr)
+    else:
+        # Mantém compatibilidade com QR Codes antigos.
+        conteudo_qr = pallet_id
 
     caminho = os.path.join(
         PASTA_QR,
@@ -907,7 +947,7 @@ def gerar_qr_pallet(
         border=4
     )
 
-    qr.add_data(pallet_id)
+    qr.add_data(conteudo_qr)
     qr.make(fit=True)
 
     img = qr.make_image(
@@ -918,6 +958,34 @@ def gerar_qr_pallet(
     img.save(caminho)
 
     return caminho
+
+
+def extrair_id_do_qr(conteudo):
+    """
+    Aceita tanto o código antigo (C01-P01-D) quanto
+    o novo conteúdo completo do QR Code.
+    """
+    texto = str(conteudo or "").strip()
+
+    match = re.search(
+        r"(?:Codigo|Código)\s*:\s*(C\d{2}-P\d{2}-[DEC])",
+        texto,
+        re.IGNORECASE
+    )
+
+    if match:
+        return match.group(1).upper()
+
+    match = re.search(
+        r"\b(C\d{2}-P\d{2}-[DEC])\b",
+        texto,
+        re.IGNORECASE
+    )
+
+    if match:
+        return match.group(1).upper()
+
+    return texto.upper()
 
 
 # ============================================================
@@ -1698,9 +1766,16 @@ elif st.session_state.menu_atual == "LerQRPallet":
 
     if codigo_lido:
 
-        codigo_lido = str(
+        # O QR novo contém localização + lista de vinhos.
+        # Extraímos o código do pallet para localizar os dados
+        # completos também no sistema.
+        conteudo_qr_lido = str(
             codigo_lido
-        ).strip().upper()
+        ).strip()
+
+        codigo_lido = extrair_id_do_qr(
+            conteudo_qr_lido
+        )
 
         pallet = obter_pallet(
             st.session_state.pallets,
@@ -1850,8 +1925,12 @@ elif st.session_state.menu_atual == "GerarQRPallets":
 
         **Corredor 01 → Pallet 04 → Direito**
 
-        O QR Code identifica apenas a posição.
-        Os vinhos ficam armazenados no sistema.
+        O QR Code contém a posição e também
+        a lista dos vinhos cadastrados no pallet,
+        incluindo nome e safra.
+
+        <b>Se os vinhos do pallet forem alterados,
+        gere o QR Code novamente.</b>
         """
     )
 
@@ -1923,6 +2002,29 @@ elif st.session_state.menu_atual == "GerarQRPallets":
             unsafe_allow_html=True
         )
 
+        pallet_preview = obter_pallet(
+            st.session_state.pallets,
+            id_qr
+        )
+
+        if pallet_preview:
+            vinhos_preview = pallet_preview.get("vinhos", [])
+
+            if vinhos_preview:
+                st.markdown("### 🍷 Conteúdo que será gravado no QR Code")
+
+                for vinho_preview in vinhos_preview:
+                    st.markdown(
+                        f"- **{html.escape(str(vinho_preview.get('nome', '')))}** "
+                        f"| Safra: **{html.escape(str(vinho_preview.get('safra', 'N/A')))}**"
+                    )
+            else:
+                st.info(
+                    "Este pallet ainda não possui vinhos cadastrados. "
+                    "O QR Code será criado com a localização e informará "
+                    "que não há vinhos cadastrados."
+                )
+
         if st.button(
             "🏷️ Gerar QR Code",
             use_container_width=True
@@ -1942,7 +2044,8 @@ elif st.session_state.menu_atual == "GerarQRPallets":
             )
 
             caminho_qr = gerar_qr_pallet(
-                id_qr
+                id_qr,
+                pallet_obj
             )
 
             registrar_log(
@@ -2046,7 +2149,7 @@ elif st.session_state.menu_atual == "GerarQRPallets":
                             lado
                         )
 
-                        criar_ou_atualizar_pallet(
+                        pallet_obj_lote = criar_ou_atualizar_pallet(
                             corredor,
                             pallet_nome,
                             lado,
@@ -2054,7 +2157,8 @@ elif st.session_state.menu_atual == "GerarQRPallets":
                         )
 
                         caminho = gerar_qr_pallet(
-                            pid
+                            pid,
+                            pallet_obj_lote
                         )
 
                         lista_gerada.append(
@@ -2088,9 +2192,23 @@ elif st.session_state.menu_atual == "GerarQRPallets":
                 caminho
             ) in lista_gerada:
 
+                pallet_gerado = obter_pallet(
+                    st.session_state.pallets,
+                    pid
+                )
+
+                qtd_vinhos_gerado = len(
+                    pallet_gerado.get("vinhos", [])
+                ) if pallet_gerado else 0
+
                 with st.expander(
                     f"{pid} — {corredor} | {pallet_nome} | {lado}"
                 ):
+
+                    st.caption(
+                        f"🍷 {qtd_vinhos_gerado} vinho(s) "
+                        "incluído(s) no QR Code"
+                    )
 
                     st.image(
                         caminho,
