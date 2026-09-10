@@ -10,7 +10,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 # ============================================================
-# DEPENDÃŠNCIAS OPCIONAIS
+# DEPENDÊNCIAS OPCIONAIS
 # ============================================================
 
 try:
@@ -28,12 +28,12 @@ except ImportError:
 
 
 # ============================================================
-# CONFIGURAÃ‡ÃƒO
+# CONFIGURAÇÃO
 # ============================================================
 
 st.set_page_config(
-    page_title="Premium Wines - GalpÃ£o",
-    page_icon="ðŸ·",
+    page_title="Premium Wines - Galpão",
+    page_icon="🍷",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -163,7 +163,7 @@ SENHA_DIVERGENCIA = "2026"
 
 
 # ============================================================
-# CRIAÃ‡ÃƒO DE PASTAS
+# CRIAÇÃO DE PASTAS
 # ============================================================
 
 os.makedirs(PASTA_BACKUP, exist_ok=True)
@@ -198,7 +198,7 @@ LISTA_NUMEROS_LOCAL = [
 LISTA_LADOS = [
     "Direito",
     "Esquerdo",
-    "Centro / Ãšnico"
+    "Centro / Único"
 ]
 
 OPCOES_CAIXA = [
@@ -212,7 +212,7 @@ OPCOES_CAIXA = [
 
 
 # ============================================================
-# HORÃRIO
+# HORÁRIO
 # ============================================================
 
 def obter_horario_brasilia():
@@ -318,7 +318,7 @@ def salvar_dados(estoque):
 
 
 # ============================================================
-# USUÃRIOS
+# USUÁRIOS
 # ============================================================
 
 def carregar_usuarios():
@@ -528,7 +528,7 @@ def sincronizar_estoque_com_pedidos(
                         "Corredor 01 - Pallet Item 01",
 
                     "lado":
-                        "Centro / Ãšnico",
+                        "Centro / Único",
 
                     "caixa":
                         "Caixa com 12 garrafas",
@@ -624,7 +624,7 @@ def interpretar_linha_pedido(
     )
 
     nome = re.sub(
-        r"[/\|\-\â€“]+",
+        r"[/\|\-\–]+",
         "",
         texto_limpo
     ).strip().title()
@@ -897,9 +897,9 @@ def gerar_qr_pallet(
     if not QRCODE_DISPONIVEL:
         return None
 
-    # O QR Code passa a carregar tambÃ©m as informaÃ§Ãµes
-    # dos vinhos que estÃ£o cadastrados naquele pallet.
-    # Assim, um leitor comum de QR Code jÃ¡ consegue
+    # O QR Code passa a carregar também as informações
+    # dos vinhos que estão cadastrados naquele pallet.
+    # Assim, um leitor comum de QR Code já consegue
     # mostrar nome e safra, sem depender do sistema.
     if pallet is None:
         pallet = obter_pallet(
@@ -933,7 +933,7 @@ def gerar_qr_pallet(
 
         conteudo_qr = "\n".join(linhas_qr)
     else:
-        # MantÃ©m compatibilidade com QR Codes antigos.
+        # Mantém compatibilidade com QR Codes antigos.
         conteudo_qr = pallet_id
 
     caminho = os.path.join(
@@ -963,13 +963,13 @@ def gerar_qr_pallet(
 
 def extrair_id_do_qr(conteudo):
     """
-    Aceita tanto o cÃ³digo antigo (C01-P01-D) quanto
-    o novo conteÃºdo completo do QR Code.
+    Aceita tanto o código antigo (C01-P01-D) quanto
+    o novo conteúdo completo do QR Code.
     """
     texto = str(conteudo or "").strip()
 
     match = re.search(
-        r"(?:Codigo|CÃ³digo)\s*:\s*(C\d{2}-P\d{2}-[DEC])",
+        r"(?:Codigo|Código)\s*:\s*(C\d{2}-P\d{2}-[DEC])",
         texto,
         re.IGNORECASE
     )
@@ -1041,7 +1041,7 @@ def componente_leitor_qr(
         document.getElementById(
             "resultado_{chave_sessao}"
         ).innerText =
-            "âœ… QR Code lido: " + decodedText;
+            "✅ QR Code lido: " + decodedText;
 
         const url =
             new URL(
@@ -1114,7 +1114,7 @@ def componente_leitor_qr(
 
 
 # ============================================================
-# INICIALIZAÃ‡ÃƒO SESSION STATE
+# INICIALIZAÇÃO SESSION STATE
 # ============================================================
 
 if "usuarios" not in st.session_state:
@@ -1141,7 +1141,7 @@ sincronizar_estoque_com_pedidos(
 )
 
 if "menu_atual" not in st.session_state:
-    st.session_state.menu_atual = "ðŸ  Home"
+    st.session_state.menu_atual = "🏠 Home"
 
 if "termo_busca" not in st.session_state:
     st.session_state.termo_busca = ""
@@ -1247,7 +1247,7 @@ if st.session_state.usuario_logado is None:
                 color:#7A1C2E;
                 font-size:1.6rem;
             ">
-            SEPARAÃ‡ÃƒO DE VINHO GALPÃƒO
+            SEPARAÇÃO DE VINHO GALPÃO
             </h1>
             """,
             unsafe_allow_html=True
@@ -1255,9 +1255,9 @@ if st.session_state.usuario_logado is None:
 
         tab1, tab2, tab3 = st.tabs(
             [
-                "ðŸ”‘ Entrar",
-                "ðŸ‘¤ Criar Conta",
-                "âš™ï¸ Dev"
+                "🔑 Entrar",
+                "👤 Criar Conta",
+                "⚙️ Dev"
             ]
         )
 
@@ -1266,7 +1266,7 @@ if st.session_state.usuario_logado is None:
             with st.form("l_form"):
 
                 u = st.text_input(
-                    "UsuÃ¡rio"
+                    "Usuário"
                 ).strip().title()
 
                 p = st.text_input(
@@ -1416,7 +1416,7 @@ if st.session_state.usuario_logado is None:
 
 
 # ============================================================
-# CABEÃ‡ALHO
+# CABEÇALHO
 # ============================================================
 
 ct1, ct2, ct3 = st.columns(
@@ -1427,8 +1427,8 @@ with ct1:
 
     st.markdown(
         f"""
-        ðŸ· <b>PREMIUM WINES</b>
-        | UsuÃ¡rio:
+        🍷 <b>PREMIUM WINES</b>
+        | Usuário:
         {html.escape(
             st.session_state.usuario_logado["nome"]
         )}
@@ -1448,16 +1448,16 @@ with ct2:
 
     if (
         st.session_state.menu_atual
-        != "ðŸ  Home"
+        != "🏠 Home"
     ):
 
         if st.button(
-            "â¬…ï¸ Voltar ao Menu",
+            "⬅️ Voltar ao Menu",
             use_container_width=True
         ):
 
             st.session_state.menu_atual = (
-                "ðŸ  Home"
+                "🏠 Home"
             )
 
             st.rerun()
@@ -1465,7 +1465,7 @@ with ct2:
 with ct3:
 
     if st.button(
-        "ðŸšª Sair",
+        "🚪 Sair",
         use_container_width=True
     ):
 
@@ -1474,7 +1474,7 @@ with ct3:
         st.query_params.clear()
 
         st.session_state.menu_atual = (
-            "ðŸ  Home"
+            "🏠 Home"
         )
 
         st.rerun()
@@ -1487,7 +1487,7 @@ st.markdown("---")
 # HOME
 # ============================================================
 
-if st.session_state.menu_atual == "ðŸ  Home":
+if st.session_state.menu_atual == "🏠 Home":
 
     st.markdown(
         f"""
@@ -1511,7 +1511,7 @@ if st.session_state.menu_atual == "ðŸ  Home":
         ">
         {html.escape(
             st.session_state.usuario_logado["nome"]
-        )}! ðŸ‘‹
+        )}! 👋
         </h1>
         """,
         unsafe_allow_html=True
@@ -1525,8 +1525,8 @@ if st.session_state.menu_atual == "ðŸ  Home":
             font-size:0.95rem;
             margin-bottom:25px;
         ">
-        SeparaÃ§Ã£o de Vinho GalpÃ£o -
-        Escolha a opÃ§Ã£o abaixo:
+        Separação de Vinho Galpão -
+        Escolha a opção abaixo:
         </p>
         """,
         unsafe_allow_html=True
@@ -1537,7 +1537,7 @@ if st.session_state.menu_atual == "ðŸ  Home":
     with c1:
 
         if st.button(
-            "ðŸ“¦ Checkout de ExpediÃ§Ã£o",
+            "📦 Checkout de Expedição",
             use_container_width=True
         ):
 
@@ -1550,7 +1550,7 @@ if st.session_state.menu_atual == "ðŸ  Home":
     with c2:
 
         if st.button(
-            "ðŸ¢ Painel da Matriz",
+            "🏢 Painel da Matriz",
             use_container_width=True
         ):
 
@@ -1563,7 +1563,7 @@ if st.session_state.menu_atual == "ðŸ  Home":
     with c3:
 
         if st.button(
-            "ðŸ” Buscar / Filtros",
+            "🔍 Buscar / Filtros",
             use_container_width=True
         ):
 
@@ -1580,7 +1580,7 @@ if st.session_state.menu_atual == "ðŸ  Home":
     with c4:
 
         if st.button(
-            "ðŸ—ºï¸ Mapa de SeparaÃ§Ã£o",
+            "🗺️ Mapa de Separação",
             use_container_width=True
         ):
 
@@ -1593,7 +1593,7 @@ if st.session_state.menu_atual == "ðŸ  Home":
     with c5:
 
         if st.button(
-            "ðŸ· Estoque Completo",
+            "🍷 Estoque Completo",
             use_container_width=True
         ):
 
@@ -1606,7 +1606,7 @@ if st.session_state.menu_atual == "ðŸ  Home":
     with c6:
 
         if st.button(
-            "ðŸ“± Ler QR do Pallet",
+            "📱 Ler QR do Pallet",
             use_container_width=True
         ):
 
@@ -1623,7 +1623,7 @@ if st.session_state.menu_atual == "ðŸ  Home":
     with c7:
 
         if st.button(
-            "ðŸ·ï¸ Gerar QR dos Pallets",
+            "🏷️ Gerar QR dos Pallets",
             use_container_width=True
         ):
 
@@ -1636,7 +1636,7 @@ if st.session_state.menu_atual == "ðŸ  Home":
     with c8:
 
         if st.button(
-            "âž• Cadastrar Vinho",
+            "➕ Cadastrar Vinho",
             use_container_width=True
         ):
 
@@ -1649,7 +1649,7 @@ if st.session_state.menu_atual == "ðŸ  Home":
     with c9:
 
         if st.button(
-            "âœï¸ Editar Vinho",
+            "✏️ Editar Vinho",
             use_container_width=True
         ):
 
@@ -1666,7 +1666,7 @@ if st.session_state.menu_atual == "ðŸ  Home":
     with c10:
 
         if st.button(
-            "ðŸ“‹ HistÃ³rico",
+            "📋 Histórico",
             use_container_width=True
         ):
 
@@ -1679,7 +1679,7 @@ if st.session_state.menu_atual == "ðŸ  Home":
     with c11:
 
         if st.button(
-            "ðŸ—‚ï¸ Gerenciar Pallets",
+            "🗂️ Gerenciar Pallets",
             use_container_width=True
         ):
 
@@ -1698,7 +1698,7 @@ if st.session_state.menu_atual == "ðŸ  Home":
         ):
 
             if st.button(
-                "âš™ï¸ Gerenciar Contas",
+                "⚙️ Gerenciar Contas",
                 use_container_width=True
             ):
 
@@ -1716,18 +1716,18 @@ if st.session_state.menu_atual == "ðŸ  Home":
 elif st.session_state.menu_atual == "LerQRPallet":
 
     st.subheader(
-        "ðŸ“± Leitura de QR Code do Pallet"
+        "📱 Leitura de QR Code do Pallet"
     )
 
     st.markdown(
         """
-        Aponte a cÃ¢mera do celular para o
+        Aponte a câmera do celular para o
         QR Code colocado no pallet.
         <br>
-        O sistema mostrarÃ¡ os vinhos e as
+        O sistema mostrará os vinhos e as
         respectivas safras.
         <br>
-        <b>Quantidade nÃ£o Ã© controlada nesta funÃ§Ã£o.</b>
+        <b>Quantidade não é controlada nesta função.</b>
         """,
         unsafe_allow_html=True
     )
@@ -1737,15 +1737,15 @@ elif st.session_state.menu_atual == "LerQRPallet":
     modo_leitura = st.radio(
         "Forma de leitura:",
         [
-            "ðŸ“· CÃ¢mera do celular",
-            "âŒ¨ï¸ Digitar cÃ³digo"
+            "📷 Câmera do celular",
+            "⌨️ Digitar código"
         ],
         horizontal=True
     )
 
     codigo_lido = ""
 
-    if modo_leitura == "ðŸ“· CÃ¢mera do celular":
+    if modo_leitura == "📷 Câmera do celular":
 
         componente_leitor_qr(
             "leitor_pallet"
@@ -1761,15 +1761,15 @@ elif st.session_state.menu_atual == "LerQRPallet":
     else:
 
         codigo_lido = st.text_input(
-            "Digite o cÃ³digo do pallet",
+            "Digite o código do pallet",
             placeholder="Ex.: C01-P04-D"
         )
 
     if codigo_lido:
 
-        # O QR novo contÃ©m localizaÃ§Ã£o + lista de vinhos.
-        # ExtraÃ­mos o cÃ³digo do pallet para localizar os dados
-        # completos tambÃ©m no sistema.
+        # O QR novo contém localização + lista de vinhos.
+        # Extraímos o código do pallet para localizar os dados
+        # completos também no sistema.
         conteudo_qr_lido = str(
             codigo_lido
         ).strip()
@@ -1793,14 +1793,14 @@ elif st.session_state.menu_atual == "LerQRPallet":
                         font-size:0.9rem;
                         opacity:0.85;
                     ">
-                    POSIÃ‡ÃƒO IDENTIFICADA
+                    POSIÇÃO IDENTIFICADA
                     </div>
 
                     <div style="
                         font-size:1.6rem;
                         font-weight:700;
                     ">
-                    ðŸ“ {html.escape(
+                    📍 {html.escape(
                         pallet["corredor"]
                     )}
                     </div>
@@ -1822,7 +1822,7 @@ elif st.session_state.menu_atual == "LerQRPallet":
                         font-size:0.85rem;
                         opacity:0.8;
                     ">
-                    CÃ³digo: {html.escape(
+                    Código: {html.escape(
                         pallet["id"]
                     )}
                     </div>
@@ -1838,7 +1838,7 @@ elif st.session_state.menu_atual == "LerQRPallet":
             )
 
             st.markdown(
-                "### ðŸ· Vinhos neste pallet"
+                "### 🍷 Vinhos neste pallet"
             )
 
             if not vinhos:
@@ -1852,7 +1852,7 @@ elif st.session_state.menu_atual == "LerQRPallet":
 
                 st.success(
                     f"{len(vinhos)} vinho(s) "
-                    "cadastrado(s) nesta posiÃ§Ã£o."
+                    "cadastrado(s) nesta posição."
                 )
 
                 for vinho in vinhos:
@@ -1866,7 +1866,7 @@ elif st.session_state.menu_atual == "LerQRPallet":
                                 font-size:1.05rem;
                                 font-weight:700;
                             ">
-                            ðŸ· {html.escape(
+                            🍷 {html.escape(
                                 vinho.get(
                                     "nome",
                                     ""
@@ -1898,12 +1898,12 @@ elif st.session_state.menu_atual == "LerQRPallet":
 
             st.error(
                 f"O QR Code {codigo_lido} "
-                "nÃ£o estÃ¡ cadastrado no sistema."
+                "não está cadastrado no sistema."
             )
 
             st.info(
                 "Entre em 'Gerenciar Pallets' "
-                "para cadastrar esta posiÃ§Ã£o."
+                "para cadastrar esta posição."
             )
 
 
@@ -1914,19 +1914,19 @@ elif st.session_state.menu_atual == "LerQRPallet":
 elif st.session_state.menu_atual == "GerarQRPallets":
 
     st.subheader(
-        "ðŸ·ï¸ Gerar QR Codes dos Pallets"
+        "🏷️ Gerar QR Codes dos Pallets"
     )
 
     st.markdown(
         """
-        Cada posiÃ§Ã£o fÃ­sica do galpÃ£o possui
-        um QR Code prÃ³prio.
+        Cada posição física do galpão possui
+        um QR Code próprio.
 
         Exemplo:
 
-        **Corredor 01 â†’ Pallet 04 â†’ Direito**
+        **Corredor 01 → Pallet 04 → Direito**
 
-        O QR Code contÃ©m a posiÃ§Ã£o e tambÃ©m
+        O QR Code contém a posição e também
         a lista dos vinhos cadastrados no pallet,
         incluindo nome e safra.
 
@@ -1938,7 +1938,7 @@ elif st.session_state.menu_atual == "GerarQRPallets":
     if not QRCODE_DISPONIVEL:
 
         st.error(
-            "A biblioteca qrcode nÃ£o estÃ¡ instalada."
+            "A biblioteca qrcode não está instalada."
         )
 
         st.code(
@@ -1979,8 +1979,8 @@ elif st.session_state.menu_atual == "GerarQRPallets":
             lado_qr
         )
 
-        # PrÃ©via limpa da posiÃ§Ã£o selecionada
-        st.markdown("### ðŸ“¦ PosiÃ§Ã£o do Pallet")
+        # Prévia limpa da posição selecionada
+        st.markdown("### 📦 Posição do Pallet")
 
         info1, info2, info3 = st.columns(3)
 
@@ -1993,14 +1993,14 @@ elif st.session_state.menu_atual == "GerarQRPallets":
         with info3:
             st.markdown(f"**Lado**\n\n{lado_qr}")
 
-        st.caption(f"CÃ³digo da posiÃ§Ã£o: {id_qr}")
+        st.caption(f"Código da posição: {id_qr}")
 
         pallet_preview = obter_pallet(
             st.session_state.pallets,
             id_qr
         )
 
-        st.markdown("### ðŸ· ConteÃºdo que serÃ¡ gravado no QR Code")
+        st.markdown("### 🍷 Conteúdo que será gravado no QR Code")
 
         if pallet_preview:
             vinhos_preview = pallet_preview.get("vinhos", [])
@@ -2017,12 +2017,12 @@ elif st.session_state.menu_atual == "GerarQRPallets":
                 )
         else:
             st.info(
-                "Nenhum vinho cadastrado nesta posiÃ§Ã£o. O QR Code serÃ¡ criado "
-                "com a identificaÃ§Ã£o do pallet e da localizaÃ§Ã£o."
+                "Nenhum vinho cadastrado nesta posição. O QR Code será criado "
+                "com a identificação do pallet e da localização."
             )
 
         if st.button(
-            "ðŸ·ï¸ Gerar QR Code",
+            "🏷️ Gerar QR Code",
             use_container_width=True
         ):
 
@@ -2067,7 +2067,7 @@ elif st.session_state.menu_atual == "GerarQRPallets":
             ) as f:
 
                 st.download_button(
-                    "â¬‡ï¸ Baixar QR Code",
+                    "⬇️ Baixar QR Code",
                     data=f,
                     file_name=f"{id_qr}.png",
                     mime="image/png",
@@ -2077,12 +2077,12 @@ elif st.session_state.menu_atual == "GerarQRPallets":
         st.markdown("---")
 
         st.markdown(
-            "### ðŸ–¨ï¸ Gerar todos os QR Codes"
+            "### 🖨️ Gerar todos os QR Codes"
         )
 
         st.info(
-            "Isso gera as posiÃ§Ãµes selecionadas. "
-            "VocÃª poderÃ¡ baixar cada QR e imprimir "
+            "Isso gera as posições selecionadas. "
+            "Você poderá baixar cada QR e imprimir "
             "para colocar fisicamente nos pallets."
         )
 
@@ -2105,7 +2105,7 @@ elif st.session_state.menu_atual == "GerarQRPallets":
             )
 
         if st.button(
-            "ðŸ·ï¸ Preparar QR Codes em Lote",
+            "🏷️ Preparar QR Codes em Lote",
             use_container_width=True
         ):
 
@@ -2198,12 +2198,12 @@ elif st.session_state.menu_atual == "GerarQRPallets":
                 ) if pallet_gerado else 0
 
                 with st.expander(
-                    f"{pid} â€” {corredor} | {pallet_nome} | {lado}"
+                    f"{pid} — {corredor} | {pallet_nome} | {lado}"
                 ):
 
                     st.caption(
-                        f"ðŸ· {qtd_vinhos_gerado} vinho(s) "
-                        "incluÃ­do(s) no QR Code"
+                        f"🍷 {qtd_vinhos_gerado} vinho(s) "
+                        "incluído(s) no QR Code"
                     )
 
                     st.image(
@@ -2217,7 +2217,7 @@ elif st.session_state.menu_atual == "GerarQRPallets":
                     ) as f:
 
                         st.download_button(
-                            "â¬‡ï¸ Baixar",
+                            "⬇️ Baixar",
                             data=f,
                             file_name=f"{pid}.png",
                             mime="image/png",
@@ -2232,16 +2232,16 @@ elif st.session_state.menu_atual == "GerarQRPallets":
 elif st.session_state.menu_atual == "GerenciarPallets":
 
     st.subheader(
-        "ðŸ—‚ï¸ Gerenciar Pallets e Vinhos"
+        "🗂️ Gerenciar Pallets e Vinhos"
     )
 
     st.markdown(
         """
-        Aqui vocÃª informa quais vinhos estÃ£o
+        Aqui você informa quais vinhos estão
         fisicamente em cada pallet.
 
-        <b>NÃ£o hÃ¡ controle de quantidade.</b>
-        Apenas vinho + safra + localizaÃ§Ã£o.
+        <b>Não há controle de quantidade.</b>
+        Apenas vinho + safra + localização.
         """,
         unsafe_allow_html=True
     )
@@ -2305,7 +2305,7 @@ elif st.session_state.menu_atual == "GerenciarPallets":
         <div class="pallet-header">
 
         <div style="font-size:0.85rem;">
-        POSIÃ‡ÃƒO SELECIONADA
+        POSIÇÃO SELECIONADA
         </div>
 
         <div style="
@@ -2373,7 +2373,7 @@ elif st.session_state.menu_atual == "GerenciarPallets":
                 )
 
                 if st.button(
-                    "âž• Adicionar Vinho ao Pallet",
+                    "➕ Adicionar Vinho ao Pallet",
                     use_container_width=True
                 ):
 
@@ -2401,7 +2401,7 @@ elif st.session_state.menu_atual == "GerenciarPallets":
 
                         st.warning(
                             "Esse vinho e safra "
-                            "jÃ¡ estÃ£o cadastrados "
+                            "já estão cadastrados "
                             "neste pallet."
                         )
 
@@ -2437,7 +2437,7 @@ elif st.session_state.menu_atual == "GerenciarPallets":
     st.markdown("---")
 
     st.markdown(
-        "### ðŸ· Vinhos atualmente neste pallet"
+        "### 🍷 Vinhos atualmente neste pallet"
     )
 
     vinhos_pallet = pallet_atual.get(
@@ -2468,7 +2468,7 @@ elif st.session_state.menu_atual == "GerenciarPallets":
                     f"""
                     <div class="wine-item">
 
-                    <b>ðŸ· {
+                    <b>🍷 {
                         html.escape(
                             vinho.get(
                                 "nome",
@@ -2497,7 +2497,7 @@ elif st.session_state.menu_atual == "GerenciarPallets":
             with col_b:
 
                 if st.button(
-                    "ðŸ—‘ï¸",
+                    "🗑️",
                     key=f"remover_{id_gp}_{indice}"
                 ):
 
@@ -2528,14 +2528,14 @@ elif st.session_state.menu_atual == "GerenciarPallets":
 elif st.session_state.menu_atual == "PainelMatriz":
 
     st.subheader(
-        "ðŸ¢ Painel da Matriz - "
+        "🏢 Painel da Matriz - "
         "Acompanhamento de Pedidos"
     )
 
     st.markdown(
         "Aqui a Matriz visualiza em tempo real "
         "todos os pedidos salvos, finalizados "
-        "e as divergÃªncias."
+        "e as divergências."
     )
 
     if not st.session_state.pedidos:
@@ -2551,7 +2551,7 @@ elif st.session_state.menu_atual == "PainelMatriz":
             status_col = (
                 "#2E7D32"
                 if p.get("status")
-                == "ConcluÃ­do / Expedido"
+                == "Concluído / Expedido"
                 else "#7A1C2E"
             )
 
@@ -2566,7 +2566,7 @@ elif st.session_state.menu_atual == "PainelMatriz":
                 ">
 
                 <b>
-                Mapa / Pedido NÂº
+                Mapa / Pedido Nº
                 {html.escape(str(p["id"]))}
                 </b>
 
@@ -2606,13 +2606,13 @@ elif st.session_state.menu_atual == "PainelMatriz":
                 if dif > 0:
 
                     dif_str = (
-                        f"({dif:+d}) âš ï¸ Excedente"
+                        f"({dif:+d}) ⚠️ Excedente"
                     )
 
                 elif dif < 0:
 
                     dif_str = (
-                        f"({dif}) âš ï¸ Falta"
+                        f"({dif}) ⚠️ Falta"
                     )
 
                 else:
@@ -2641,7 +2641,7 @@ elif st.session_state.menu_atual == "PainelMatriz":
                                 0
                             ),
 
-                        "DivergÃªncia":
+                        "Divergência":
                             dif_str
                     }
                 )
@@ -2661,21 +2661,21 @@ elif st.session_state.menu_atual == "PainelMatriz":
 elif st.session_state.menu_atual == "PedidosMatriz":
 
     st.subheader(
-        "ðŸ“¦ Checkout de ExpediÃ§Ã£o - "
-        "SeparaÃ§Ã£o de Vinho GalpÃ£o"
+        "📦 Checkout de Expedição - "
+        "Separação de Vinho Galpão"
     )
 
     aba_ped1, aba_ped2 = st.tabs(
         [
-            "ðŸ“‹ Enviar / Cadastrar / Excluir Pedidos",
-            "ðŸ” ConferÃªncia (Checkout de ExpediÃ§Ã£o)"
+            "📋 Enviar / Cadastrar / Excluir Pedidos",
+            "🔍 Conferência (Checkout de Expedição)"
         ]
     )
 
     with aba_ped1:
 
         st.markdown(
-            "Cadastre o mapa de separaÃ§Ã£o "
+            "Cadastre o mapa de separação "
             "enviado pela matriz."
         )
 
@@ -2694,7 +2694,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
         ):
 
             id_pedido = st.text_input(
-                "CÃ³digo de Barras do Mapa",
+                "Código de Barras do Mapa",
                 value=id_sugerido
             )
 
@@ -2714,7 +2714,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
             )
 
             if st.form_submit_button(
-                "ðŸ’¾ Salvar Pedido no Sistema"
+                "💾 Salvar Pedido no Sistema"
             ):
 
                 itens_novos = []
@@ -2796,13 +2796,13 @@ elif st.session_state.menu_atual == "PedidosMatriz":
 
                     st.error(
                         "Adicione ao menos um item "
-                        "ou arquivo vÃ¡lido."
+                        "ou arquivo válido."
                     )
 
         st.markdown("---")
 
         st.markdown(
-            "#### ðŸ—‘ï¸ Gerenciamento e ExclusÃ£o de Pedidos"
+            "#### 🗑️ Gerenciamento e Exclusão de Pedidos"
         )
 
         if st.session_state.pedidos:
@@ -2821,7 +2821,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
             )
 
             if st.button(
-                "ðŸ—‘ï¸ Excluir Pedidos Selecionados"
+                "🗑️ Excluir Pedidos Selecionados"
             ):
 
                 st.session_state.pedidos = [
@@ -2840,12 +2840,12 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     st.session_state.usuario_logado[
                         "nome"
                     ],
-                    "ExclusÃ£o de Pedidos Antigos",
+                    "Exclusão de Pedidos Antigos",
                     str(mapas_para_excluir)
                 )
 
                 st.success(
-                    "Pedidos excluÃ­dos!"
+                    "Pedidos excluídos!"
                 )
 
                 st.rerun()
@@ -2874,7 +2874,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
 
             mapa_selecionado_id = (
                 st.selectbox(
-                    "CÃ³digo de Barras Mapa",
+                    "Código de Barras Mapa",
                     mapas_disponiveis
                 )
             )
@@ -2902,7 +2902,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 cor_status = (
                     "#2E7D32"
                     if status_atual
-                    == "ConcluÃ­do / Expedido"
+                    == "Concluído / Expedido"
                     else "#7A1C2E"
                 )
 
@@ -2917,7 +2917,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     ">
 
                     <b>
-                    ConferÃªncia do Mapa
+                    Conferência do Mapa
                     cod.
                     {html.escape(
                         pedido_ativo["id"]
@@ -2944,8 +2944,8 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 modo_leitura = st.radio(
                     "Forma de Leitura:",
                     [
-                        "âŒ¨ï¸ SeleÃ§Ã£o / Pistola USB",
-                        "ðŸ“· CÃ¢mera do Celular"
+                        "⌨️ Seleção / Pistola USB",
+                        "📷 Câmera do Celular"
                     ],
                     horizontal=True
                 )
@@ -2954,7 +2954,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
 
                 if (
                     modo_leitura
-                    == "ðŸ“· CÃ¢mera do Celular"
+                    == "📷 Câmera do Celular"
                 ):
 
                     componente_leitor_qr(
@@ -2988,12 +2988,12 @@ elif st.session_state.menu_atual == "PedidosMatriz":
 
                     if (
                         modo_leitura
-                        == "ðŸ“· CÃ¢mera do Celular"
+                        == "📷 Câmera do Celular"
                     ):
 
                         cod_barras_input = (
                             st.text_input(
-                                "*CÃ³digo de Barras ou Nome",
+                                "*Código de Barras ou Nome",
                                 value=codigo_capturado,
                                 key="input_bipagem_checkout"
                             )
@@ -3025,7 +3025,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
 
                                 cod_barras_input = (
                                     st.text_input(
-                                        "*Ou digite/bipe o CÃ³digo",
+                                        "*Ou digite/bipe o Código",
                                         key="input_bipagem_checkout"
                                     )
                                 )
@@ -3034,7 +3034,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
 
                             cod_barras_input = (
                                 st.text_input(
-                                    "*CÃ³digo de Barras ou Nome",
+                                    "*Código de Barras ou Nome",
                                     key="input_bipagem_checkout"
                                 )
                             )
@@ -3165,7 +3165,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                                 ] = False
 
                                 st.warning(
-                                    "âš ï¸ Quantidade divergente. "
+                                    "⚠️ Quantidade divergente. "
                                     "O item foi bloqueado."
                                 )
 
@@ -3189,7 +3189,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     else:
 
                         st.error(
-                            "Produto nÃ£o encontrado "
+                            "Produto não encontrado "
                             "neste mapa."
                         )
 
@@ -3214,8 +3214,8 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     st.markdown("---")
 
                     st.error(
-                        "ðŸ”’ Existem itens divergentes "
-                        "aguardando correÃ§Ã£o ou liberaÃ§Ã£o."
+                        "🔒 Existem itens divergentes "
+                        "aguardando correção ou liberação."
                     )
 
                     for it_div in (
@@ -3237,14 +3237,14 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                                 Separado:
                                 {it_div["qtd_separada"]}
                                 |
-                                DivergÃªncia:
+                                Divergência:
                                 {it_div["divergencia"]:+d}
                                 """
                             )
 
                             corrigir = (
                                 st.form_submit_button(
-                                    "ðŸ”„ Corrigir para Qtd Pedida"
+                                    "🔄 Corrigir para Qtd Pedida"
                                 )
                             )
 
@@ -3276,14 +3276,14 @@ elif st.session_state.menu_atual == "PedidosMatriz":
 
                             senha_item = (
                                 st.text_input(
-                                    "Senha de liberaÃ§Ã£o",
+                                    "Senha de liberação",
                                     type="password",
                                     key=f"pass_{it_div['nome']}"
                                 )
                             )
 
                             if st.form_submit_button(
-                                "Autorizar Com DivergÃªncia"
+                                "Autorizar Com Divergência"
                             ):
 
                                 if (
@@ -3307,7 +3307,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                                         st.session_state.usuario_logado[
                                             "nome"
                                         ],
-                                        "Liberou DivergÃªncia Item",
+                                        "Liberou Divergência Item",
                                         it_div["nome"]
                                     )
 
@@ -3343,7 +3343,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     if not pendentes:
 
                         st.success(
-                            "ðŸŽ‰ Todos conferidos!"
+                            "🎉 Todos conferidos!"
                         )
 
                     for item in pendentes:
@@ -3383,7 +3383,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 with col_dir:
 
                     st.markdown(
-                        "<h4 style='color:#2E7D32;'>PRODUTOS JÃ CONFERIDOS</h4>",
+                        "<h4 style='color:#2E7D32;'>PRODUTOS JÁ CONFERIDOS</h4>",
                         unsafe_allow_html=True
                     )
 
@@ -3471,13 +3471,13 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 ):
 
                     if st.button(
-                        "ðŸš€ Concluir e Finalizar ExpediÃ§Ã£o",
+                        "🚀 Concluir e Finalizar Expedição",
                         use_container_width=True
                     ):
 
                         pedido_ativo[
                             "status"
-                        ] = "ConcluÃ­do / Expedido"
+                        ] = "Concluído / Expedido"
 
                         salvar_pedidos(
                             st.session_state.pedidos
@@ -3487,12 +3487,12 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                             st.session_state.usuario_logado[
                                 "nome"
                             ],
-                            "Finalizou ExpediÃ§Ã£o Mapa",
+                            "Finalizou Expedição Mapa",
                             pedido_ativo["id"]
                         )
 
                         st.success(
-                            "ðŸŽ‰ ExpediÃ§Ã£o concluÃ­da!"
+                            "🎉 Expedição concluída!"
                         )
 
                         st.rerun()
@@ -3500,7 +3500,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 else:
 
                     st.warning(
-                        "âš ï¸ Todos os itens precisam "
+                        "⚠️ Todos os itens precisam "
                         "ser conferidos."
                     )
 
@@ -3512,7 +3512,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
 elif st.session_state.menu_atual == "Filtros":
 
     st.subheader(
-        "ðŸ” Buscar e Filtrar Vinhos no GalpÃ£o"
+        "🔍 Buscar e Filtrar Vinhos no Galpão"
     )
 
     col_f1, col_f2 = st.columns(2)
@@ -3532,7 +3532,7 @@ elif st.session_state.menu_atual == "Filtros":
                 "Todos",
                 "Tinto",
                 "Branco",
-                "RosÃ©",
+                "Rosé",
                 "Espumante",
                 "Fortificado"
             ]
@@ -3595,7 +3595,7 @@ elif st.session_state.menu_atual == "Filtros":
                 <div class="wine-card">
 
                 <div class="wine-title">
-                ðŸ· {html.escape(vinho["nome"])}
+                🍷 {html.escape(vinho["nome"])}
                 ({html.escape(vinho.get("safra","N/A"))})
                 </div>
 
@@ -3610,18 +3610,18 @@ elif st.session_state.menu_atual == "Filtros":
                 </p>
 
                 <p>
-                <b>LocalizaÃ§Ã£o:</b>
-                ðŸ“ {html.escape(vinho["localizacao"])}
+                <b>Localização:</b>
+                📍 {html.escape(vinho["localizacao"])}
 
                 ({html.escape(vinho.get("lado","N/A"))})
                 </p>
 
                 <p>
-                <b>CÃ³d. Barras:</b>
+                <b>Cód. Barras:</b>
                 {html.escape(
                     vinho.get(
                         "codigo_barras",
-                        "NÃ£o cadastrado"
+                        "Não cadastrado"
                     )
                 )}
                 </p>
@@ -3639,7 +3639,7 @@ elif st.session_state.menu_atual == "Filtros":
 elif st.session_state.menu_atual == "MapaSeparacao":
 
     st.subheader(
-        "ðŸ—ºï¸ Mapa de SeparaÃ§Ã£o do GalpÃ£o"
+        "🗺️ Mapa de Separação do Galpão"
     )
 
     corredor_selecionado = st.selectbox(
@@ -3656,7 +3656,7 @@ elif st.session_state.menu_atual == "MapaSeparacao":
     ]
 
     st.markdown(
-        f"#### ðŸ“ {corredor_selecionado} "
+        f"#### 📍 {corredor_selecionado} "
         f"({len(vinhos_corredor)} vinhos)"
     )
 
@@ -3719,7 +3719,7 @@ elif st.session_state.menu_atual == "MapaSeparacao":
 elif st.session_state.menu_atual == "Estoque":
 
     st.subheader(
-        "ðŸ· Estoque Completo do GalpÃ£o"
+        "🍷 Estoque Completo do Galpão"
     )
 
     if not st.session_state.estoque:
@@ -3748,7 +3748,7 @@ elif st.session_state.menu_atual == "Estoque":
                             ""
                         ),
 
-                    "LocalizaÃ§Ã£o":
+                    "Localização":
                         v["localizacao"],
 
                     "Lado":
@@ -3763,7 +3763,7 @@ elif st.session_state.menu_atual == "Estoque":
                             ""
                         ),
 
-                    "CÃ³d. Barras":
+                    "Cód. Barras":
                         v.get(
                             "codigo_barras",
                             ""
@@ -3787,7 +3787,7 @@ elif st.session_state.menu_atual == "Estoque":
 elif st.session_state.menu_atual == "Cadastrar":
 
     st.subheader(
-        "âž• Cadastrar Novo Vinho no GalpÃ£o"
+        "➕ Cadastrar Novo Vinho no Galpão"
     )
 
     with st.form(
@@ -3803,7 +3803,7 @@ elif st.session_state.menu_atual == "Cadastrar":
             [
                 "Tinto",
                 "Branco",
-                "RosÃ©",
+                "Rosé",
                 "Espumante",
                 "Fortificado"
             ]
@@ -3834,7 +3834,7 @@ elif st.session_state.menu_atual == "Cadastrar":
         with col_l3:
 
             num_local = st.selectbox(
-                "NÃºmero Item",
+                "Número Item",
                 LISTA_NUMEROS_LOCAL
             )
 
@@ -3851,11 +3851,11 @@ elif st.session_state.menu_atual == "Cadastrar":
         )
 
         codigo_barras = st.text_input(
-            "CÃ³digo de Barras (Opcional)"
+            "Código de Barras (Opcional)"
         ).strip()
 
         if st.form_submit_button(
-            "ðŸ’¾ Salvar Novo Vinho"
+            "💾 Salvar Novo Vinho"
         ):
 
             if nome:
@@ -3929,7 +3929,7 @@ elif st.session_state.menu_atual == "Cadastrar":
 elif st.session_state.menu_atual == "Editar":
 
     st.subheader(
-        "âœï¸ Editar ou Remover Vinho"
+        "✏️ Editar ou Remover Vinho"
     )
 
     nomes_estoque = [
@@ -3976,7 +3976,7 @@ elif st.session_state.menu_atual == "Editar":
                 tipos_op = [
                     "Tinto",
                     "Branco",
-                    "RosÃ©",
+                    "Rosé",
                     "Espumante",
                     "Fortificado"
                 ]
@@ -4016,7 +4016,7 @@ elif st.session_state.menu_atual == "Editar":
                 )
 
                 novo_cb = st.text_input(
-                    "CÃ³digo de Barras",
+                    "Código de Barras",
                     value=vinho_obj.get(
                         "codigo_barras",
                         ""
@@ -4031,7 +4031,7 @@ elif st.session_state.menu_atual == "Editar":
 
                     btn_salvar_edicao = (
                         st.form_submit_button(
-                            "ðŸ’¾ Salvar AlteraÃ§Ãµes"
+                            "💾 Salvar Alterações"
                         )
                     )
 
@@ -4039,7 +4039,7 @@ elif st.session_state.menu_atual == "Editar":
 
                     btn_excluir_vinho = (
                         st.form_submit_button(
-                            "ðŸ—‘ï¸ Excluir Vinho"
+                            "🗑️ Excluir Vinho"
                         )
                     )
 
@@ -4078,7 +4078,7 @@ elif st.session_state.menu_atual == "Editar":
                     )
 
                     st.success(
-                        "AlteraÃ§Ãµes salvas!"
+                        "Alterações salvas!"
                     )
 
                     st.rerun()
@@ -4106,20 +4106,20 @@ elif st.session_state.menu_atual == "Editar":
                     )
 
                     st.success(
-                        "Vinho excluÃ­do!"
+                        "Vinho excluído!"
                     )
 
                     st.rerun()
 
 
 # ============================================================
-# HISTÃ“RICO
+# HISTÓRICO
 # ============================================================
 
 elif st.session_state.menu_atual == "Historico":
 
     st.subheader(
-        "ðŸ“‹ HistÃ³rico de Auditoria"
+        "📋 Histórico de Auditoria"
     )
 
     logs = carregar_logs()
@@ -4139,7 +4139,7 @@ elif st.session_state.menu_atual == "Historico":
 
 
 # ============================================================
-# USUÃRIOS
+# USUÁRIOS
 # ============================================================
 
 elif st.session_state.menu_atual == "GerenciarUsuarios":
@@ -4158,7 +4158,7 @@ elif st.session_state.menu_atual == "GerenciarUsuarios":
     else:
 
         st.subheader(
-            "âš™ï¸ Gerenciamento de Contas"
+            "⚙️ Gerenciamento de Contas"
         )
 
         with st.form(
@@ -4183,7 +4183,7 @@ elif st.session_state.menu_atual == "GerenciarUsuarios":
             )
 
             if st.form_submit_button(
-                "Cadastrar UsuÃ¡rio"
+                "Cadastrar Usuário"
             ):
 
                 if nome_op and senha_op:
@@ -4206,7 +4206,7 @@ elif st.session_state.menu_atual == "GerenciarUsuarios":
                     )
 
                     st.success(
-                        f"UsuÃ¡rio {nome_op} cadastrado!"
+                        f"Usuário {nome_op} cadastrado!"
                     )
 
                     st.rerun()
@@ -4220,7 +4220,7 @@ elif st.session_state.menu_atual == "GerenciarUsuarios":
         st.markdown("---")
 
         st.markdown(
-            "### ðŸ‘¥ UsuÃ¡rios Atuais"
+            "### 👥 Usuários Atuais"
         )
 
         for u in (
