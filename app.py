@@ -37,114 +37,294 @@ st.set_page_config(
     page_title="Premium Wines - Galpão",
     page_icon="🍷",
     layout="wide",
-    initial_sidebar_state="collapsed",
+    initial_sidebar_state="expanded",
 )
 
 st.markdown(
     """
     <style>
+    :root {
+        --wine-bg: #0D0D0F;
+        --wine-panel: #151518;
+        --wine-panel-2: #1B1B1F;
+        --wine-border: #2A2A30;
+        --wine-burgundy: #6E1730;
+        --wine-burgundy-2: #3E0D1A;
+        --wine-gold: #D6AE63;
+        --wine-text: #F7F3EE;
+        --wine-muted: #A9A4A0;
+        --wine-success: #66C38A;
+        --wine-danger: #E06D73;
+    }
+
+    html, body, [class*="css"] { font-family: Inter, "Segoe UI", sans-serif; }
     .stApp {
-        background: linear-gradient(135deg, #F8F9FA 0%, #E9ECEF 100%);
-        color: #1A1A1A;
-        font-family: 'Poppins', sans-serif;
+        background:
+            radial-gradient(circle at 88% 8%, rgba(110,23,48,.22), transparent 30%),
+            linear-gradient(135deg, #0B0B0D 0%, #111114 55%, #0B0B0D 100%);
+        color: var(--wine-text);
         overscroll-behavior-y: none;
     }
 
+    .block-container { max-width: 1500px; padding-top: 1.3rem; padding-bottom: 3rem; }
+    footer, #MainMenu, [data-testid="stStatusWidget"] { visibility: hidden; }
+
+    /* SIDEBAR */
     [data-testid="stSidebar"] {
-        display: none;
+        background: linear-gradient(180deg, #111114 0%, #181014 100%);
+        border-right: 1px solid #2B2226;
     }
-
-    footer {
-        visibility: hidden;
-    }
-
-    #MainMenu {
-        visibility: hidden;
-    }
-
-    [data-testid="stStatusWidget"] {
-        display: none;
-    }
-
-    label {
-        color: #7A1C2E !important;
-        font-weight: 700 !important;
-        font-size: 0.95rem !important;
-    }
-
-    .wine-card {
-        background-color: #FFFFFF;
-        color: #1A1A1A;
-        border-radius: 14px;
-        padding: 16px;
+    [data-testid="stSidebar"] > div:first-child { padding-top: 1rem; }
+    .sidebar-brand {
+        padding: 10px 8px 18px 8px;
+        border-bottom: 1px solid #30272B;
         margin-bottom: 12px;
-        border: 1px solid #E9ECEF;
-        box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03);
+    }
+    .sidebar-brand .brand-title { color: #F8F2EA; font-weight: 850; font-size: 1.05rem; letter-spacing: .08em; }
+    .sidebar-brand .brand-sub { color: var(--wine-gold); font-size: .72rem; letter-spacing: .18em; margin-top: 3px; }
+    .sidebar-section { color:#847B76; font-size:.68rem; font-weight:800; letter-spacing:.13em; margin:18px 6px 7px; text-transform:uppercase; }
+    [data-testid="stSidebar"] .stButton > button {
+        background: transparent !important;
+        border: 1px solid transparent !important;
+        color: #C8C0BC !important;
+        text-align: left !important;
+        justify-content: flex-start !important;
+        padding: .62rem .75rem !important;
+        border-radius: 10px !important;
+        box-shadow: none !important;
+        min-height: 42px;
+    }
+    [data-testid="stSidebar"] .stButton > button:hover {
+        background: rgba(110,23,48,.22) !important;
+        border-color: rgba(214,174,99,.22) !important;
+        color: #FFF !important;
     }
 
-    .wine-title {
-        color: #7A1C2E;
-        font-size: 1.1rem;
-        font-weight: 700;
-        margin-bottom: 4px;
-    }
+    /* TÍTULOS E TEXTOS */
+    h1, h2, h3, h4 { color: var(--wine-text) !important; }
+    p, .stMarkdown, [data-testid="stCaptionContainer"] { color: #D9D2CD; }
+    label { color: #D7CFC9 !important; font-weight: 700 !important; font-size: .9rem !important; }
+    hr { border-color: #2B2B31 !important; }
 
-    .stButton button {
-        background-color: #7A1C2E !important;
-        color: #FFFFFF !important;
-        border-radius: 12px !important;
-        font-weight: 600 !important;
-        border: none !important;
-        padding: 10px 16px !important;
+    /* INPUTS */
+    [data-baseweb="input"] > div, [data-baseweb="select"] > div,
+    [data-baseweb="textarea"] > div, .stTextInput input, .stNumberInput input,
+    .stTextArea textarea {
+        background: #17171B !important;
+        color: #F7F3EE !important;
+        border-color: #35353C !important;
+        border-radius: 10px !important;
+    }
+    input, textarea { color: #F7F3EE !important; }
+    [data-baseweb="select"] span { color: #F7F3EE !important; }
+
+    /* BOTÕES */
+    .stButton > button, .stDownloadButton > button, .stFormSubmitButton > button {
+        background: linear-gradient(135deg, #751A35, #541125) !important;
+        color: #FFF !important;
+        border-radius: 11px !important;
+        font-weight: 750 !important;
+        border: 1px solid #8C2944 !important;
+        padding: .68rem 1rem !important;
         width: 100%;
-        white-space: pre-wrap;
+        box-shadow: 0 8px 22px rgba(59,10,26,.18);
+        transition: all .18s ease;
+    }
+    .stButton > button:hover, .stDownloadButton > button:hover, .stFormSubmitButton > button:hover {
+        transform: translateY(-1px);
+        border-color: var(--wine-gold) !important;
+        box-shadow: 0 10px 28px rgba(0,0,0,.25);
     }
 
-    .qr-card {
-        background: #FFFFFF;
-        border: 1px solid #E9ECEF;
-        border-radius: 15px;
-        padding: 20px;
-        margin-bottom: 15px;
-        text-align: center;
-        box-shadow: 0px 4px 12px rgba(0,0,0,0.04);
-    }
-
-    .pallet-header {
-        background: linear-gradient(135deg, #7A1C2E, #4B101C);
-        color: white;
+    /* CARDS E COMPONENTES */
+    .wine-card, .qr-card, .wine-item {
+        background: linear-gradient(180deg, #19191D, #141417);
+        color: #F4EFEA;
         border-radius: 14px;
+        border: 1px solid #2D2D33;
+        box-shadow: 0 10px 28px rgba(0,0,0,.18);
+    }
+    .wine-card { padding: 17px; margin-bottom: 12px; }
+    .qr-card { padding: 20px; margin-bottom: 15px; text-align:center; }
+    .wine-item { padding: 13px; margin-bottom:8px; border-left: 4px solid var(--wine-gold); }
+    .wine-title { color: var(--wine-gold); font-size:1.08rem; font-weight:800; }
+    .pallet-header {
+        background: linear-gradient(135deg, #6E1730, #340B17);
+        color: white;
+        border: 1px solid #8A2943;
+        border-radius: 15px;
         padding: 18px;
         margin-bottom: 15px;
+        box-shadow: 0 12px 30px rgba(49,8,20,.25);
+    }
+    [data-testid="stMetric"] {
+        background: linear-gradient(180deg, #18181C, #121215);
+        border: 1px solid #2B2B31;
+        border-radius: 14px;
+        padding: 14px 16px;
+    }
+    [data-testid="stMetricValue"] { color: var(--wine-gold) !important; font-weight: 850; }
+    [data-testid="stMetricLabel"] { color: #BEB5B0 !important; }
+
+    /* ALERTAS */
+    [data-testid="stAlert"] { border-radius: 12px; background: #18181C; border: 1px solid #33333A; }
+
+    /* TABS */
+    [data-baseweb="tab-list"] { gap: 8px; background: transparent; }
+    [data-baseweb="tab"] { background:#17171B; border-radius:10px; color:#CFC7C2; padding:.6rem .9rem; }
+    [aria-selected="true"][data-baseweb="tab"] { background:#6E1730 !important; color:white !important; }
+
+    /* DATAFRAME */
+    [data-testid="stDataFrame"] { border:1px solid #2D2D33; border-radius:12px; overflow:hidden; }
+
+    /* LOGIN */
+    .login-shell { max-width: 470px; margin: 2.2rem auto 1rem auto; text-align:center; }
+    .login-logo {
+        width: 78px; height: 78px; border-radius: 24px; margin: 0 auto 14px;
+        display:flex; align-items:center; justify-content:center;
+        background: radial-gradient(circle at 30% 30%, #8C2944, #4B0D1D 70%);
+        border: 1px solid rgba(214,174,99,.45); color:#FFF; font-size:2.2rem;
+        box-shadow:0 18px 44px rgba(64,10,27,.35);
+    }
+    .login-title { font-size: 1.85rem; font-weight: 900; letter-spacing:.04em; color:#F8F2EA; }
+    .login-title span { color: var(--wine-gold); }
+    .login-subtitle { color:#AFA7A2; margin-top:5px; margin-bottom:18px; }
+    .login-card {
+        background: linear-gradient(180deg, rgba(26,26,30,.97), rgba(18,18,21,.97));
+        border: 1px solid #302D31; border-radius:18px; padding:20px 22px 10px;
+        box-shadow: 0 24px 70px rgba(0,0,0,.35);
     }
 
-    .wine-item {
-        background: #FFFFFF;
-        border-left: 5px solid #7A1C2E;
-        border-radius: 10px;
-        padding: 12px;
-        margin-bottom: 8px;
-        box-shadow: 0px 2px 8px rgba(0,0,0,0.03);
+    /* TOPBAR */
+    .topbar {
+        display:flex; align-items:center; justify-content:space-between; gap:16px;
+        background: linear-gradient(90deg, rgba(25,25,29,.94), rgba(21,17,20,.94));
+        border:1px solid #2D292C; border-radius:15px; padding:12px 16px; margin-bottom:18px;
+    }
+    .topbar-brand { font-weight:900; letter-spacing:.06em; color:#F8F2EA; }
+    .topbar-brand span { color:var(--wine-gold); }
+    .topbar-user { color:#B9B0AB; font-size:.84rem; text-align:right; }
+
+    /* HOME */
+    .hero-wine {
+        position:relative; overflow:hidden; border-radius:20px; padding:34px 36px; margin-bottom:18px;
+        background:
+          radial-gradient(circle at 82% 50%, rgba(214,174,99,.12), transparent 22%),
+          radial-gradient(circle at 72% 45%, rgba(119,23,49,.55), transparent 35%),
+          linear-gradient(120deg, #191317 0%, #251119 55%, #111114 100%);
+        border:1px solid #3A2830; min-height:190px;
+        box-shadow: 0 18px 50px rgba(0,0,0,.25);
+    }
+    .hero-wine:after {
+        content:"🍷"; position:absolute; right:6%; top:8%; font-size:8.5rem; opacity:.18;
+        filter: drop-shadow(0 10px 18px rgba(0,0,0,.45)); transform: rotate(5deg);
+    }
+    .hero-kicker { color:var(--wine-gold); text-transform:uppercase; letter-spacing:.16em; font-size:.74rem; font-weight:850; }
+    .hero-title { color:#FFF; font-size:2rem; font-weight:900; margin:.45rem 0 .35rem; max-width:760px; }
+    .hero-sub { color:#C1B7B1; font-size:.94rem; max-width:720px; }
+    .section-title { margin:22px 0 10px; color:#9A918C; font-size:.72rem; font-weight:850; letter-spacing:.14em; text-transform:uppercase; }
+    .action-card {
+        min-height:112px; padding:16px; border-radius:15px;
+        background:linear-gradient(180deg,#19191D,#131316); border:1px solid #2D2D33;
+        box-shadow:0 10px 24px rgba(0,0,0,.16); margin-bottom:6px;
+    }
+    .action-icon { font-size:1.45rem; margin-bottom:7px; }
+    .action-title { color:#F5EFEA; font-size:.98rem; font-weight:800; }
+    .action-desc { color:#918983; font-size:.77rem; margin-top:3px; line-height:1.35; }
+
+
+    /* ========================================================
+       TELAS INTERNAS — MESMA IDENTIDADE PREMIUM DA HOME
+       ======================================================== */
+    .page-hero {
+        position:relative; overflow:hidden; border-radius:18px; padding:22px 24px;
+        margin:2px 0 18px; background:
+          radial-gradient(circle at 90% 20%, rgba(214,174,99,.10), transparent 25%),
+          linear-gradient(125deg, #201218 0%, #17171B 62%, #111114 100%);
+        border:1px solid #3B2830; box-shadow:0 16px 38px rgba(0,0,0,.22);
+    }
+    .page-hero:after { content:"🍷"; position:absolute; right:24px; top:8px; font-size:4.5rem; opacity:.08; }
+    .page-kicker { color:var(--wine-gold); text-transform:uppercase; letter-spacing:.15em; font-size:.68rem; font-weight:850; }
+    .page-title { color:#FFF; font-size:1.45rem; font-weight:900; margin-top:6px; line-height:1.2; }
+    .page-desc { color:#AFA6A0; font-size:.86rem; margin-top:6px; max-width:900px; line-height:1.45; }
+
+    /* formulários e blocos */
+    [data-testid="stForm"] {
+        background:linear-gradient(180deg, rgba(25,25,29,.98), rgba(18,18,21,.98));
+        border:1px solid #302D33; border-radius:16px; padding:18px;
+        box-shadow:0 12px 30px rgba(0,0,0,.14);
+    }
+    [data-testid="stExpander"] {
+        background:linear-gradient(180deg,#19191D,#141417); border:1px solid #2E2E34 !important;
+        border-radius:13px !important; overflow:hidden; box-shadow:0 8px 22px rgba(0,0,0,.10);
+    }
+    [data-testid="stExpander"] summary { color:#F3ECE7 !important; font-weight:760 !important; }
+    [data-testid="stFileUploader"] section {
+        background:#151519 !important; border:1px dashed #56424A !important; border-radius:13px !important;
+    }
+    [data-testid="stFileUploader"] section:hover { border-color:var(--wine-gold) !important; }
+    [data-testid="stFileUploader"] small, [data-testid="stFileUploader"] span { color:#BEB5B0 !important; }
+    [data-testid="stCameraInput"] { background:#151519; border-radius:14px; padding:8px; border:1px solid #2E2E34; }
+
+    /* rádios, toggles e checkboxes */
+    [role="radiogroup"] { background:#141417; border:1px solid #29292F; border-radius:12px; padding:8px 10px; }
+    [data-testid="stCheckbox"] label, [data-testid="stRadio"] label { color:#D8D0CB !important; }
+
+    /* tabela/data editor */
+    [data-testid="stDataFrame"], [data-testid="stDataEditor"] {
+        background:#151519; border:1px solid #2E2E34 !important; border-radius:14px !important;
+        box-shadow:0 10px 25px rgba(0,0,0,.12);
+    }
+
+    /* popovers/select dropdowns */
+    [data-baseweb="popover"] > div, [role="listbox"] { background:#1B1B1F !important; color:#F7F3EE !important; }
+    [role="option"] { color:#E8E0DB !important; }
+    [role="option"]:hover { background:#35121E !important; }
+
+    /* infos/avisos mais integrados ao tema */
+    [data-testid="stNotification"] { background:#17171B !important; border-color:#34343A !important; }
+    .premium-info {
+        background:linear-gradient(135deg, rgba(110,23,48,.16), rgba(214,174,99,.05));
+        border:1px solid #49313A; border-left:4px solid var(--wine-gold); border-radius:13px;
+        padding:14px 16px; margin:10px 0 16px; color:#D8D0CB;
+    }
+    .premium-panel {
+        background:linear-gradient(180deg,#19191D,#141417); border:1px solid #2E2E34;
+        border-radius:15px; padding:17px; margin:10px 0 15px; box-shadow:0 10px 28px rgba(0,0,0,.14);
+    }
+    .premium-panel-title { color:var(--wine-gold); font-weight:850; font-size:1rem; margin-bottom:5px; }
+    .premium-muted { color:#9F9792; font-size:.82rem; }
+
+    /* títulos Streamlit internos */
+    .stMarkdown h3 { color:#F4EFEA !important; font-size:1.08rem !important; margin-top:1rem !important; }
+    .stMarkdown h4 { color:var(--wine-gold) !important; }
+
+    /* links */
+    a { color:var(--wine-gold) !important; }
+
+    @media (max-width: 800px) {
+        .page-hero { padding:18px 16px; }
+        .page-title { font-size:1.2rem; padding-right:38px; }
+        .page-hero:after { font-size:3.2rem; right:10px; top:14px; }
+    }
+
+    @media (max-width: 800px) {
+        .block-container { padding-left: .8rem; padding-right:.8rem; padding-top:.8rem; }
+        .hero-wine { padding:24px 20px; min-height:160px; }
+        .hero-title { font-size:1.55rem; padding-right:50px; }
+        .hero-wine:after { font-size:5rem; right:2%; top:18%; }
+        .topbar-user { display:none; }
     }
 
     @media print {
-        .no-print {
-            display: none !important;
-        }
-
-        body {
-            background: white !important;
-        }
-
-        .qr-card {
-            page-break-inside: avoid;
-        }
+        .no-print, [data-testid="stSidebar"] { display:none !important; }
+        .stApp { background:white !important; color:black !important; }
+        .qr-card { page-break-inside: avoid; }
     }
     </style>
     """,
     unsafe_allow_html=True,
 )
-
 
 # ============================================================
 # ARQUIVOS
@@ -1181,10 +1361,10 @@ def componente_leitor_qr(
     html_code = f"""
     <div style="
         text-align:center;
-        background:#FFF;
+        background:#17171B;
         padding:15px;
         border-radius:12px;
-        border:1px solid #E9ECEF;
+        border:1px solid #35353C;
     ">
 
         <div
@@ -1202,7 +1382,7 @@ def componente_leitor_qr(
             id="resultado_{chave_sessao}"
             style="
                 font-weight:bold;
-                color:#7A1C2E;
+                color:#D6AE63;
                 margin-top:10px;
                 font-size:1rem;
             ">
@@ -1301,9 +1481,9 @@ def componente_leitor_qr(
 
 def componente_leitor_codigo_barras(chave_sessao):
     html_code = f"""
-    <div style="text-align:center;background:#FFF;padding:15px;border-radius:12px;border:1px solid #E9ECEF;">
+    <div style="text-align:center;background:#17171B;padding:15px;border-radius:12px;border:1px solid #35353C;">
         <div id="barcode_{chave_sessao}" style="width:100%;max-width:440px;margin:auto;border-radius:8px;overflow:hidden;"></div>
-        <p id="barcode_result_{chave_sessao}" style="font-weight:bold;color:#7A1C2E;margin-top:10px;font-size:1rem;"></p>
+        <p id="barcode_result_{chave_sessao}" style="font-weight:bold;color:#D6AE63;margin-top:10px;font-size:1rem;"></p>
     </div>
 
     <script src="https://unpkg.com/html5-qrcode"></script>
@@ -1451,22 +1631,13 @@ for key, val in list(qp.items()):
 # LOGIN
 # ============================================================
 
-user_url = qp.get(
-    "user",
-    None
-)
-
-cargo_url = qp.get(
-    "cargo",
-    "Operador"
-)
+user_url = qp.get("user", None)
+cargo_url = qp.get("cargo", "Operador")
 
 if (
     "usuario_logado" not in st.session_state
     or st.session_state.usuario_logado is None
 ):
-    # Não confia apenas em ?user= e ?cargo=, pois isso permitiria
-    # alguém alterar a URL e ganhar permissões.
     usuario_url_valido = next(
         (
             u for u in st.session_state.usuarios
@@ -1492,131 +1663,64 @@ if (
 
 
 if st.session_state.usuario_logado is None:
-
-    st.write("")
-
-    _, cc, _ = st.columns(
-        [1, 1.3, 1]
+    st.markdown("<style>[data-testid=\"stSidebar\"]{display:none!important;}</style>", unsafe_allow_html=True)
+    st.markdown(
+        """
+        <div class="login-shell">
+            <div class="login-logo">🍷</div>
+            <div class="login-title">PREMIUM <span>WINES</span></div>
+            <div class="login-subtitle">Gestão de Estoque & Expedição • Galpão</div>
+        </div>
+        """,
+        unsafe_allow_html=True
     )
 
+    _, cc, _ = st.columns([1, 1.1, 1])
     with cc:
-
-        if os.path.exists(
-            "imagem premium.jpeg"
-        ):
-
-            _, ci, _ = st.columns(
-                [1, 1.8, 1]
-            )
-
-            with ci:
-
-                st.image(
-                    "imagem premium.jpeg",
-                    width=190
-                )
-
-        st.markdown(
-            """
-            <h1 style="
-                text-align:center;
-                color:#7A1C2E;
-                font-size:1.6rem;
-            ">
-            SEPARAÇÃO DE VINHO GALPÃO
-            </h1>
-            """,
-            unsafe_allow_html=True
-        )
-
-        tab1, tab2, tab3 = st.tabs(
-            [
-                "🔑 Entrar",
-                "👤 Criar Conta",
-                "⚙️ Dev"
-            ]
-        )
+        st.markdown('<div class="login-card">', unsafe_allow_html=True)
+        tab1, tab2, tab3 = st.tabs(["🔑 Entrar", "👤 Criar Conta", "⚙️ Dev"])
 
         with tab1:
-
+            st.caption("Acesse sua área de operação.")
             with st.form("l_form"):
-
-                u = st.text_input(
-                    "Usuário"
-                ).strip().title()
-
-                p = st.text_input(
-                    "Senha",
-                    type="password"
-                ).strip()
-
-                if st.form_submit_button(
-                    "ENTRAR",
-                    use_container_width=True
-                ):
-
+                u = st.text_input("Usuário", placeholder="Digite seu usuário").strip().title()
+                p = st.text_input("Senha", type="password", placeholder="Digite sua senha").strip()
+                if st.form_submit_button("ENTRAR", use_container_width=True):
                     user = next(
                         (
-                            x
-                            for x
-                            in st.session_state.usuarios
-                            if
-                            x["nome"].lower()
-                            == u.lower()
+                            x for x in st.session_state.usuarios
+                            if x["nome"].lower() == u.lower()
                             and x["senha"] == p
                             and x.get("status", "Aprovado") == "Aprovado"
                         ),
                         None
                     )
-
                     if user:
-
                         st.session_state.usuario_logado = user
-
-                        st.query_params[
-                            "user"
-                        ] = user["nome"]
-
-                        st.query_params[
-                            "cargo"
-                        ] = user.get(
-                            "cargo",
-                            "Operador"
-                        )
-
+                        st.query_params["user"] = user["nome"]
+                        st.query_params["cargo"] = user.get("cargo", "Operador")
                         st.rerun()
-
                     else:
-
-                        st.error(
-                            "Dados incorretos."
-                        )
+                        st.error("Usuário, senha ou autorização inválidos.")
 
         with tab2:
-
             st.caption(
-                "Contas de administrador principal precisam ser aprovadas pelo DEV. "
-                "Contas de usuário comum precisam ser aprovadas por um administrador principal."
+                "Administrador Principal precisa de aprovação do DEV. "
+                "Usuário comum precisa de aprovação de um Administrador Principal."
             )
-
             admins_aprovados = [
                 u for u in st.session_state.usuarios
                 if u.get("cargo") == "Administrador Principal"
                 and u.get("status", "Aprovado") == "Aprovado"
             ]
-
             with st.form("c_form"):
-                n = st.text_input("Nome").strip().title()
-                s_conta = st.text_input("Senha", type="password").strip()
+                n = st.text_input("Nome", placeholder="Nome para acesso").strip().title()
+                s_conta = st.text_input("Senha", type="password", placeholder="Crie uma senha").strip()
                 tipo_conta = st.selectbox(
                     "Tipo de conta",
                     ["Usuário Comum", "Administrador Principal"]
                 )
-
-                if st.form_submit_button(
-                    "SOLICITAR CADASTRO",
-                    use_container_width=True
-                ):
+                if st.form_submit_button("SOLICITAR CADASTRO", use_container_width=True):
                     if not n or not s_conta:
                         st.error("Preencha nome e senha.")
                     elif any(
@@ -1627,8 +1731,7 @@ if st.session_state.usuario_logado is None:
                     elif tipo_conta == "Usuário Comum" and not admins_aprovados:
                         st.error(
                             "Ainda não existe Administrador Principal aprovado. "
-                            "Um administrador precisa ser aprovado pelo DEV antes "
-                            "de usuários comuns solicitarem cadastro."
+                            "Um administrador precisa ser aprovado pelo DEV primeiro."
                         )
                     else:
                         cargo_novo = (
@@ -1642,139 +1745,128 @@ if st.session_state.usuario_logado is None:
                             "senha": s_conta,
                             "status": "Pendente",
                             "aprovado_por": "",
-                            "data_solicitacao": obter_horario_brasilia().strftime(
-                                "%d/%m/%Y %H:%M:%S"
-                            )
+                            "data_solicitacao": obter_horario_brasilia().strftime("%d/%m/%Y %H:%M:%S")
                         }
                         st.session_state.usuarios.append(novo)
                         salvar_usuarios(st.session_state.usuarios)
-                        registrar_log(
-                            n,
-                            "Solicitou Cadastro",
-                            f"Tipo: {cargo_novo}"
-                        )
+                        registrar_log(n, "Solicitou Cadastro", f"Tipo: {cargo_novo}")
                         if cargo_novo == "Administrador Principal":
-                            st.success(
-                                "Solicitação enviada. O DEV precisa aprovar seu "
-                                "cadastro de Administrador Principal."
-                            )
+                            st.success("Solicitação enviada ao DEV para aprovação.")
                         else:
-                            st.success(
-                                "Solicitação enviada. Um Administrador Principal "
-                                "precisa aprovar seu cadastro."
-                            )
+                            st.success("Solicitação enviada a um Administrador Principal.")
 
         with tab3:
-
+            st.caption("Área restrita do desenvolvedor.")
             with st.form("d_form"):
-
-                sp = st.text_input(
-                    "Senha Mestra",
-                    type="password"
-                )
-
-                if st.form_submit_button(
-                    "DEV",
-                    use_container_width=True
-                ):
-
+                sp = st.text_input("Senha Mestra", type="password")
+                if st.form_submit_button("ACESSAR COMO DEV", use_container_width=True):
                     if sp == SENHA_DEV:
-
-                        dev_user = {
-                            "nome": "Dev",
-                            "cargo":
-                                "Desenvolvedor"
+                        st.session_state.usuario_logado = {
+                            "nome": "Dev", "cargo": "Desenvolvedor", "status": "Aprovado"
                         }
-
-                        st.session_state.usuario_logado = (
-                            dev_user
-                        )
-
-                        st.query_params[
-                            "user"
-                        ] = "Dev"
-
-                        st.query_params[
-                            "cargo"
-                        ] = "Desenvolvedor"
-
+                        st.query_params["user"] = "Dev"
+                        st.query_params["cargo"] = "Desenvolvedor"
+                        st.query_params["auth"] = SENHA_DEV
                         st.rerun()
-
                     else:
-
-                        st.error(
-                            "Senha incorreta."
-                        )
+                        st.error("Senha incorreta.")
+        st.markdown('</div>', unsafe_allow_html=True)
 
     st.stop()
 
 
-# ============================================================
-# CABEÇALHO
-# ============================================================
 
-ct1, ct2, ct3 = st.columns(
-    [3, 2, 1]
-)
 
-with ct1:
-
+def render_page_header(icone, titulo, descricao, secao="Premium Wines • Galpão"):
+    """Cabeçalho visual padrão para todas as telas internas."""
     st.markdown(
         f"""
-        🍷 <b>PREMIUM WINES</b>
-        | Usuário:
-        {html.escape(
-            st.session_state.usuario_logado["nome"]
-        )}
-        (
-        {html.escape(
-            st.session_state.usuario_logado.get(
-                "cargo",
-                "Operador"
-            )
-        )}
-        )
+        <div class="page-hero">
+            <div class="page-kicker">{html.escape(secao)}</div>
+            <div class="page-title">{icone} {html.escape(titulo)}</div>
+            <div class="page-desc">{html.escape(descricao)}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+# ============================================================
+# CABEÇALHO + MENU LATERAL
+# ============================================================
+
+cargo_logado = st.session_state.usuario_logado.get("cargo", "Operador")
+acesso_gestao = cargo_logado in ["Administrador Principal", "Desenvolvedor"]
+usuario_nome = st.session_state.usuario_logado.get("nome", "Usuário")
+
+# Menu lateral inspirado no mockup Premium Wines
+with st.sidebar:
+    st.markdown(
+        """
+        <div class="sidebar-brand">
+            <div class="brand-title">🍷 PREMIUM WINES</div>
+            <div class="brand-sub">GALPÃO • WMS</div>
+        </div>
         """,
         unsafe_allow_html=True
     )
 
-with ct2:
+    if st.button("🏠  Início", use_container_width=True, key="nav_home"):
+        st.session_state.menu_atual = "🏠 Home"; st.rerun()
 
-    if (
-        st.session_state.menu_atual
-        != "🏠 Home"
-    ):
+    st.markdown('<div class="sidebar-section">Operação</div>', unsafe_allow_html=True)
+    if st.button("📦  Checkout de Expedição", use_container_width=True, key="nav_checkout"):
+        st.session_state.menu_atual = "PedidosMatriz"; st.rerun()
+    if st.button("🏢  Painel da Matriz", use_container_width=True, key="nav_painel"):
+        st.session_state.menu_atual = "PainelMatriz"; st.rerun()
+    if st.button("🔎  Buscar / Filtros", use_container_width=True, key="nav_busca"):
+        st.session_state.menu_atual = "Filtros"; st.rerun()
 
-        if st.button(
-            "⬅️ Voltar ao Menu",
-            use_container_width=True
-        ):
+    st.markdown('<div class="sidebar-section">Estoque</div>', unsafe_allow_html=True)
+    if st.button("🍷  Estoque Completo", use_container_width=True, key="nav_estoque"):
+        st.session_state.menu_atual = "Estoque"; st.rerun()
+    if st.button("📱  Ler QR do Pallet", use_container_width=True, key="nav_lerqr"):
+        st.session_state.menu_atual = "LerQRPallet"; st.rerun()
+    if st.button("🏷️  Gerar QR dos Pallets", use_container_width=True, key="nav_gerarqr"):
+        st.session_state.menu_atual = "GerarQRPallets"; st.rerun()
+    if st.button("➕  Cadastrar Vinho", use_container_width=True, key="nav_cadastrar"):
+        st.session_state.menu_atual = "Cadastrar"; st.rerun()
+    if st.button("✏️  Editar Vinho", use_container_width=True, key="nav_editar"):
+        st.session_state.menu_atual = "Editar"; st.rerun()
+    if st.button("🗂️  Gerenciar Pallets", use_container_width=True, key="nav_pallets"):
+        st.session_state.menu_atual = "GerenciarPallets"; st.rerun()
 
-            st.session_state.menu_atual = (
-                "🏠 Home"
-            )
+    if acesso_gestao:
+        st.markdown('<div class="sidebar-section">Administração</div>', unsafe_allow_html=True)
+        if st.button("📋  Histórico", use_container_width=True, key="nav_historico"):
+            st.session_state.menu_atual = "Historico"; st.rerun()
+        if st.button("⚙️  Gerenciar Usuários", use_container_width=True, key="nav_usuarios"):
+            st.session_state.menu_atual = "GerenciarUsuarios"; st.rerun()
 
-            st.rerun()
-
-with ct3:
-
-    if st.button(
-        "🚪 Sair",
-        use_container_width=True
-    ):
-
+    st.markdown('<div class="sidebar-section">Sessão</div>', unsafe_allow_html=True)
+    st.caption(f"{usuario_nome} • {cargo_logado}")
+    if st.button("🚪  Sair", use_container_width=True, key="nav_sair"):
         st.session_state.usuario_logado = None
-
         st.query_params.clear()
-
-        st.session_state.menu_atual = (
-            "🏠 Home"
-        )
-
+        st.session_state.menu_atual = "🏠 Home"
         st.rerun()
 
-
-st.markdown("---")
+# Topbar compacta
+col_top1, col_top2 = st.columns([5, 1.35])
+with col_top1:
+    st.markdown(
+        f"""
+        <div class="topbar">
+            <div class="topbar-brand">🍷 PREMIUM <span>WINES</span></div>
+            <div class="topbar-user">{html.escape(usuario_nome)}<br>{html.escape(cargo_logado)}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+with col_top2:
+    if st.session_state.menu_atual != "🏠 Home":
+        if st.button("← Início", use_container_width=True, key="top_voltar"):
+            st.session_state.menu_atual = "🏠 Home"
+            st.rerun()
 
 
 # ============================================================
@@ -1782,186 +1874,98 @@ st.markdown("---")
 # ============================================================
 
 if st.session_state.menu_atual == "🏠 Home":
-
-    st.markdown(
-        f"""
-        <p style="
-            text-align:center;
-            color:#666;
-            margin-bottom:0px;
-        ">
-        {obter_saudacao()},
-        </p>
-        """,
-        unsafe_allow_html=True
+    # Indicadores seguros para diferentes versões dos dados existentes
+    total_vinhos = len(st.session_state.get("estoque", []))
+    pallets_ocupados = sum(
+        1 for p in st.session_state.get("pallets", [])
+        if p.get("vinhos")
+    )
+    pedidos_pendentes = sum(
+        1 for p in st.session_state.get("pedidos", [])
+        if str(p.get("status", "Pendente")).lower() not in ["finalizado", "concluído", "concluido"]
+    )
+    divergencias = sum(
+        1
+        for p in st.session_state.get("pedidos", [])
+        for item in p.get("itens", [])
+        if int(item.get("divergencia", 0) or 0) != 0
     )
 
     st.markdown(
         f"""
-        <h1 style="
-            text-align:center;
-            color:#7A1C2E;
-            margin-top:0px;
-        ">
-        {html.escape(
-            st.session_state.usuario_logado["nome"]
-        )}! 👋
-        </h1>
+        <div class="hero-wine">
+            <div class="hero-kicker">Gestão de estoque & expedição</div>
+            <div class="hero-title">{obter_saudacao()}, {html.escape(usuario_nome)}.</div>
+            <div class="hero-sub">
+                Controle o galpão, localize vinhos, confira pedidos e acompanhe pallets em um só lugar.
+            </div>
+        </div>
         """,
         unsafe_allow_html=True
     )
 
-    st.markdown(
-        """
-        <p style="
-            text-align:center;
-            color:#444;
-            font-size:0.95rem;
-            margin-bottom:25px;
-        ">
-        Separação de Vinho Galpão -
-        Escolha a opção abaixo:
-        </p>
-        """,
-        unsafe_allow_html=True
-    )
+    m1, m2, m3, m4 = st.columns(4)
+    with m1: st.metric("🍷 Vinhos cadastrados", total_vinhos)
+    with m2: st.metric("📦 Pallets ocupados", pallets_ocupados)
+    with m3: st.metric("📋 Pedidos pendentes", pedidos_pendentes)
+    with m4: st.metric("⚠️ Divergências", divergencias)
 
+    st.markdown('<div class="section-title">Operação</div>', unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
-
     with c1:
-
-        if st.button(
-            "📦 Checkout de Expedição",
-            use_container_width=True
-        ):
-
-            st.session_state.menu_atual = (
-                "PedidosMatriz"
-            )
-
-            st.rerun()
-
+        st.markdown('<div class="action-card"><div class="action-icon">📦</div><div class="action-title">Checkout de Expedição</div><div class="action-desc">Separar, conferir e finalizar pedidos.</div></div>', unsafe_allow_html=True)
+        if st.button("Abrir Checkout", use_container_width=True, key="home_checkout"):
+            st.session_state.menu_atual = "PedidosMatriz"; st.rerun()
     with c2:
-
-        if st.button(
-            "🏢 Painel da Matriz",
-            use_container_width=True
-        ):
-
-            st.session_state.menu_atual = (
-                "PainelMatriz"
-            )
-
-            st.rerun()
-
+        st.markdown('<div class="action-card"><div class="action-icon">🏢</div><div class="action-title">Painel da Matriz</div><div class="action-desc">Visualizar pedidos recebidos e andamento.</div></div>', unsafe_allow_html=True)
+        if st.button("Abrir Painel", use_container_width=True, key="home_painel"):
+            st.session_state.menu_atual = "PainelMatriz"; st.rerun()
     with c3:
+        st.markdown('<div class="action-card"><div class="action-icon">🔎</div><div class="action-title">Buscar / Filtros</div><div class="action-desc">Encontrar vinho, safra e localização rapidamente.</div></div>', unsafe_allow_html=True)
+        if st.button("Buscar Vinhos", use_container_width=True, key="home_busca"):
+            st.session_state.menu_atual = "Filtros"; st.rerun()
 
-        if st.button(
-            "🔍 Buscar / Filtros",
-            use_container_width=True
-        ):
-
-            st.session_state.menu_atual = (
-                "Filtros"
-            )
-
-            st.rerun()
-
-    st.write("")
-
-    c4, c5 = st.columns(2)
-
+    st.markdown('<div class="section-title">Estoque & Localização</div>', unsafe_allow_html=True)
+    c4, c5, c6 = st.columns(3)
     with c4:
-
-        if st.button(
-            "🍷 Estoque Completo",
-            use_container_width=True
-        ):
-
-            st.session_state.menu_atual = (
-                "Estoque"
-            )
-
-            st.rerun()
-
+        st.markdown('<div class="action-card"><div class="action-icon">🍷</div><div class="action-title">Estoque Completo</div><div class="action-desc">Consultar todos os vinhos cadastrados.</div></div>', unsafe_allow_html=True)
+        if st.button("Ver Estoque", use_container_width=True, key="home_estoque"):
+            st.session_state.menu_atual = "Estoque"; st.rerun()
     with c5:
+        st.markdown('<div class="action-card"><div class="action-icon">📱</div><div class="action-title">QR do Pallet</div><div class="action-desc">Ler o pallet e visualizar os vinhos armazenados.</div></div>', unsafe_allow_html=True)
+        if st.button("Ler QR", use_container_width=True, key="home_lerqr"):
+            st.session_state.menu_atual = "LerQRPallet"; st.rerun()
+    with c6:
+        st.markdown('<div class="action-card"><div class="action-icon">🏷️</div><div class="action-title">Gerar QR</div><div class="action-desc">Criar etiquetas QR atualizadas para os pallets.</div></div>', unsafe_allow_html=True)
+        if st.button("Gerar QR", use_container_width=True, key="home_gerarqr"):
+            st.session_state.menu_atual = "GerarQRPallets"; st.rerun()
 
-        if st.button(
-            "📱 Ler QR do Pallet",
-            use_container_width=True
-        ):
-
-            st.session_state.menu_atual = (
-                "LerQRPallet"
-            )
-
-            st.rerun()
-
-    st.write("")
-
+    st.markdown('<div class="section-title">Cadastro & Organização</div>', unsafe_allow_html=True)
     c7, c8, c9 = st.columns(3)
-
     with c7:
-
-        if st.button(
-            "🏷️ Gerar QR dos Pallets",
-            use_container_width=True
-        ):
-
-            st.session_state.menu_atual = (
-                "GerarQRPallets"
-            )
-
-            st.rerun()
-
+        st.markdown('<div class="action-card"><div class="action-icon">➕</div><div class="action-title">Cadastrar Vinho</div><div class="action-desc">Adicionar vinho, safra, código, foto e localização.</div></div>', unsafe_allow_html=True)
+        if st.button("Novo Vinho", use_container_width=True, key="home_cadastrar"):
+            st.session_state.menu_atual = "Cadastrar"; st.rerun()
     with c8:
-
-        if st.button(
-            "➕ Cadastrar Vinho",
-            use_container_width=True
-        ):
-
-            st.session_state.menu_atual = (
-                "Cadastrar"
-            )
-
-            st.rerun()
-
+        st.markdown('<div class="action-card"><div class="action-icon">✏️</div><div class="action-title">Editar Vinho</div><div class="action-desc">Atualizar cadastro, localização e informações.</div></div>', unsafe_allow_html=True)
+        if st.button("Editar Cadastro", use_container_width=True, key="home_editar"):
+            st.session_state.menu_atual = "Editar"; st.rerun()
     with c9:
+        st.markdown('<div class="action-card"><div class="action-icon">🗂️</div><div class="action-title">Gerenciar Pallets</div><div class="action-desc">Organizar os vinhos nas posições físicas do galpão.</div></div>', unsafe_allow_html=True)
+        if st.button("Gerenciar Pallets", use_container_width=True, key="home_pallets"):
+            st.session_state.menu_atual = "GerenciarPallets"; st.rerun()
 
-        if st.button(
-            "✏️ Editar Vinho",
-            use_container_width=True
-        ):
-
-            st.session_state.menu_atual = (
-                "Editar"
-            )
-
-            st.rerun()
-
-    st.write("")
-
-    c10, c11, c12 = st.columns(3)
-    cargo_logado = st.session_state.usuario_logado.get("cargo", "Operador")
-    acesso_gestao = cargo_logado in ["Administrador Principal", "Desenvolvedor"]
-
-    with c10:
-        if acesso_gestao:
-            if st.button("📋 Histórico", use_container_width=True):
-                st.session_state.menu_atual = "Historico"
-                st.rerun()
-
-    with c11:
-        if st.button("🗂️ Gerenciar Pallets", use_container_width=True):
-            st.session_state.menu_atual = "GerenciarPallets"
-            st.rerun()
-
-    with c12:
-        if acesso_gestao:
-            if st.button("⚙️ Gerenciar Usuários", use_container_width=True):
-                st.session_state.menu_atual = "GerenciarUsuarios"
-                st.rerun()
+    if acesso_gestao:
+        st.markdown('<div class="section-title">Administração</div>', unsafe_allow_html=True)
+        a1, a2 = st.columns(2)
+        with a1:
+            st.markdown('<div class="action-card"><div class="action-icon">📋</div><div class="action-title">Histórico</div><div class="action-desc">Auditoria por usuário, data e movimentação.</div></div>', unsafe_allow_html=True)
+            if st.button("Abrir Histórico", use_container_width=True, key="home_historico"):
+                st.session_state.menu_atual = "Historico"; st.rerun()
+        with a2:
+            st.markdown('<div class="action-card"><div class="action-icon">⚙️</div><div class="action-title">Gerenciar Usuários</div><div class="action-desc">Aprovar contas e administrar permissões.</div></div>', unsafe_allow_html=True)
+            if st.button("Gerenciar Usuários", use_container_width=True, key="home_usuarios"):
+                st.session_state.menu_atual = "GerenciarUsuarios"; st.rerun()
 
 
 # ============================================================
@@ -1970,9 +1974,7 @@ if st.session_state.menu_atual == "🏠 Home":
 
 elif st.session_state.menu_atual == "LerQRPallet":
 
-    st.subheader(
-        "📱 Leitura de QR Code do Pallet"
-    )
+    render_page_header("📱", "Leitura de QR Code do Pallet", "Aponte a câmera para a etiqueta do pallet e veja imediatamente os vinhos e safras cadastrados naquela posição.", "Estoque • Localização")
 
     st.markdown(
         """
@@ -2117,7 +2119,7 @@ elif st.session_state.menu_atual == "LerQRPallet":
                         <div class="wine-item">
 
                             <div style="
-                                color:#7A1C2E;
+                                color:#D6AE63;
                                 font-size:1.05rem;
                                 font-weight:700;
                             ">
@@ -2130,7 +2132,7 @@ elif st.session_state.menu_atual == "LerQRPallet":
                             </div>
 
                             <div style="
-                                color:#555;
+                                color:#AFA6A0;
                                 margin-top:3px;
                             ">
                             Safra:
@@ -2168,9 +2170,7 @@ elif st.session_state.menu_atual == "LerQRPallet":
 
 elif st.session_state.menu_atual == "GerarQRPallets":
 
-    st.subheader(
-        "🏷️ Gerar QR Codes dos Pallets"
-    )
+    render_page_header("🏷️", "Gerar QR Codes dos Pallets", "Gere etiquetas atualizadas para os pallets com os vinhos e safras cadastrados em cada posição.", "Estoque • Identificação")
 
     st.markdown(
         """
@@ -2486,7 +2486,7 @@ elif st.session_state.menu_atual == "GerarQRPallets":
 
 elif st.session_state.menu_atual == "GerenciarPallets":
 
-    st.subheader("🗂️ Gerenciar Pallets e Vinhos")
+    render_page_header("🗂️", "Gerenciar Pallets e Vinhos", "Organize os vinhos por corredor, pallet e lado. As movimentações atualizam a localização em todo o sistema.", "Estoque • Organização")
 
     st.info(
         "Ao mover um vinho por aqui, a localização também é atualizada "
@@ -2608,10 +2608,7 @@ elif st.session_state.menu_atual == "GerenciarPallets":
 
 elif st.session_state.menu_atual == "PainelMatriz":
 
-    st.subheader(
-        "🏢 Painel da Matriz - "
-        "Acompanhamento de Pedidos"
-    )
+    render_page_header("🏢", "Painel da Matriz", "Acompanhe pedidos, quantidades separadas, status e divergências em tempo real.", "Operação • Acompanhamento")
 
     st.markdown(
         "Aqui a Matriz visualiza em tempo real "
@@ -2639,10 +2636,10 @@ elif st.session_state.menu_atual == "PainelMatriz":
             st.markdown(
                 f"""
                 <div style="
-                    background:#FFF;
+                    background:linear-gradient(180deg,#19191D,#141417);
                     padding:15px;
-                    border-radius:10px;
-                    border:1px solid #E9ECEF;
+                    border-radius:14px;
+                    border:1px solid #2E2E34;
                     margin-bottom:15px;
                 ">
 
@@ -2741,10 +2738,7 @@ elif st.session_state.menu_atual == "PainelMatriz":
 
 elif st.session_state.menu_atual == "PedidosMatriz":
 
-    st.subheader(
-        "📦 Checkout de Expedição - "
-        "Separação de Vinho Galpão"
-    )
+    render_page_header("📦", "Checkout de Expedição", "Crie pedidos, faça a separação, confira por código de barras e trate divergências antes da expedição.", "Operação • Separação")
 
     aba_ped1, aba_ped2 = st.tabs(
         [
@@ -3059,10 +3053,10 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 st.markdown(
                     f"""
                     <div style="
-                        background:#FFF;
-                        padding:10px;
-                        border-radius:8px;
-                        border:1px solid #E9ECEF;
+                        background:linear-gradient(180deg,#19191D,#141417);
+                        padding:12px;
+                        border-radius:12px;
+                        border:1px solid #2E2E34;
                         margin-bottom:15px;
                     ">
 
@@ -3491,7 +3485,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 with col_esq:
 
                     st.markdown(
-                        "<h4 style='color:#7A1C2E;'>PRODUTOS A CONFERIR</h4>",
+                        "<h4 style='color:#D6AE63;'>PRODUTOS A CONFERIR</h4>",
                         unsafe_allow_html=True
                     )
 
@@ -3676,9 +3670,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
 
 elif st.session_state.menu_atual == "Filtros":
 
-    st.subheader(
-        "🔍 Buscar e Filtrar Vinhos no Galpão"
-    )
+    render_page_header("🔍", "Buscar e Filtrar Vinhos", "Localize rapidamente vinhos por nome, tipo, safra e dados do cadastro.", "Estoque • Consulta")
 
     col_f1, col_f2 = st.columns(2)
 
@@ -3803,9 +3795,7 @@ elif st.session_state.menu_atual == "Filtros":
 
 elif st.session_state.menu_atual == "Estoque":
 
-    st.subheader(
-        "🍷 Estoque Completo do Galpão"
-    )
+    render_page_header("🍷", "Estoque Completo do Galpão", "Consulte todo o inventário com safra, localização, caixa e código de barras.", "Estoque • Inventário")
 
     if not st.session_state.estoque:
 
@@ -3871,7 +3861,7 @@ elif st.session_state.menu_atual == "Estoque":
 
 elif st.session_state.menu_atual == "Cadastrar":
 
-    st.subheader("➕ Cadastrar Novo Vinho no Galpão")
+    render_page_header("➕", "Cadastrar Novo Vinho", "Cadastre nome, safra, tipo, localização, caixa, código de barras e foto do vinho.", "Cadastro • Novo item")
 
     cadastro_prefill = st.session_state.get("cadastro_vinho_prefill", {})
     veio_de_pedido = st.session_state.get("retornar_apos_cadastro") == "PedidosMatriz"
@@ -3967,7 +3957,7 @@ elif st.session_state.menu_atual == "Cadastrar":
 
 elif st.session_state.menu_atual == "Editar":
 
-    st.subheader("✏️ Editar ou Remover Vinho")
+    render_page_header("✏️", "Editar ou Remover Vinho", "Atualize informações, altere a localização física ou remova um vinho do estoque com segurança.", "Cadastro • Manutenção")
     st.caption("Agora você pode editar também corredor, pallet/prateleira, lado e imagem.")
 
     if not st.session_state.estoque:
@@ -4121,7 +4111,7 @@ elif st.session_state.menu_atual == "Historico":
     if cargo_logado not in ["Administrador Principal", "Desenvolvedor"]:
         st.error("Acesso restrito ao Administrador Principal e ao DEV.")
     else:
-        st.subheader("📋 Histórico de Auditoria")
+        render_page_header("📋", "Histórico de Auditoria", "Consulte as ações registradas no sistema por usuário e período.", "Administração • Auditoria")
         logs = carregar_logs()
 
         if not logs:
@@ -4209,7 +4199,7 @@ elif st.session_state.menu_atual == "GerenciarUsuarios":
     if cargo_logado not in ["Administrador Principal", "Desenvolvedor"]:
         st.error("Acesso restrito ao Administrador Principal e ao DEV.")
     else:
-        st.subheader("⚙️ Gerenciamento de Usuários")
+        render_page_header("⚙️", "Gerenciamento de Usuários", "Aprove solicitações, controle permissões e acompanhe os usuários autorizados do sistema.", "Administração • Acessos")
 
         def atualizar_status_usuario(nome_usuario, novo_status, aprovador):
             for usuario in st.session_state.usuarios:
