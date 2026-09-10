@@ -1337,6 +1337,20 @@ def componente_leitor_codigo_barras(chave_sessao):
 
 
 # ============================================================
+# NAVEGAÇÃO PARA CADASTRO A PARTIR DO PEDIDO
+# ============================================================
+
+def abrir_cadastro_vinho_faltante(nome, safra=""):
+    """Abre o cadastro já preenchido sem perder o pedido em andamento."""
+    st.session_state.cadastro_vinho_prefill = {
+        "nome": str(nome or "").strip(),
+        "safra": str(safra or "").strip(),
+    }
+    st.session_state.retornar_apos_cadastro = "PedidosMatriz"
+    st.session_state.menu_atual = "Cadastrar"
+
+
+# ============================================================
 # INICIALIZAÇÃO SESSION STATE
 # ============================================================
 
@@ -2916,18 +2930,13 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         if safra_faltante:
                             texto_botao += f" — Safra {safra_faltante}"
 
-                        if st.button(
+                        st.button(
                             texto_botao,
                             key=f"cadastrar_faltante_{indice_faltante}_{nome_faltante}",
                             use_container_width=True,
-                        ):
-                            st.session_state.cadastro_vinho_prefill = {
-                                "nome": nome_faltante,
-                                "safra": safra_faltante,
-                            }
-                            st.session_state.retornar_apos_cadastro = "PedidosMatriz"
-                            st.session_state.menu_atual = "Cadastrar"
-                            st.rerun()
+                            on_click=abrir_cadastro_vinho_faltante,
+                            args=(nome_faltante, safra_faltante),
+                        )
                 else:
                     novo_registro_pedido = {
                         "id": str(id_pedido).strip(),
