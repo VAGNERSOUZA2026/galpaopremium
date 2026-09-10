@@ -1,6 +1,13 @@
+import os
 import re
-import streamlit.components.v1 as components
+import json
+import shutil
 import html
+from datetime import datetime, timezone, timedelta
+
+import pandas as pd
+import streamlit as st
+import streamlit.components.v1 as components
 
 # ============================================================
 # DEPENDÃŠNCIAS OPCIONAIS
