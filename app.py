@@ -317,29 +317,44 @@ def salvar_dados(estoque):
 # ============================================================
 
 def carregar_usuarios():
+    usuarios = []
 
     if os.path.exists(ARQUIVO_USUARIOS):
-
         try:
-
-            with open(
-                ARQUIVO_USUARIOS,
-                "r",
-                encoding="utf-8"
-            ) as f:
-
-                return json.load(f)
-
+            with open(ARQUIVO_USUARIOS, "r", encoding="utf-8") as f:
+                usuarios = json.load(f)
         except Exception:
-            pass
+            usuarios = []
 
-    return [
-        {
-            "nome": "Vagner Souza",
-            "cargo": "Administrador",
-            "senha": "1980"
-        }
-    ]
+    # Primeiro acesso: mantém o administrador principal padrão do sistema.
+    if not usuarios:
+        usuarios = [
+            {
+                "nome": "Vagner Souza",
+                "cargo": "Administrador Principal",
+                "senha": "1980",
+                "status": "Aprovado",
+                "aprovado_por": "Sistema"
+            }
+        ]
+
+    # Compatibilidade com cadastros antigos.
+    alterado = False
+    for usuario in usuarios:
+        if usuario.get("cargo") == "Administrador":
+            usuario["cargo"] = "Administrador Principal"
+            alterado = True
+        if "status" not in usuario:
+            usuario["status"] = "Aprovado"
+            alterado = True
+        if "aprovado_por" not in usuario:
+            usuario["aprovado_por"] = "Cadastro antigo"
+            alterado = True
+
+    if alterado:
+        salvar_usuarios(usuarios)
+
+    return usuarios
 
 
 def salvar_usuarios(usuarios):
@@ -1447,20 +1462,32 @@ cargo_url = qp.get(
 )
 
 if (
-    "usuario_logado"
-    not in st.session_state
+    "usuario_logado" not in st.session_state
     or st.session_state.usuario_logado is None
 ):
+    # Não confia apenas em ?user= e ?cargo=, pois isso permitiria
+    # alguém alterar a URL e ganhar permissões.
+    usuario_url_valido = next(
+        (
+            u for u in st.session_state.usuarios
+            if u.get("nome", "").lower() == str(user_url or "").lower()
+            and u.get("status", "Aprovado") == "Aprovado"
+        ),
+        None
+    )
 
-    if user_url:
-
+    if usuario_url_valido:
+        st.session_state.usuario_logado = usuario_url_valido
+    elif (
+        str(user_url or "").lower() == "dev"
+        and str(qp.get("auth", "")) == SENHA_DEV
+    ):
         st.session_state.usuario_logado = {
-            "nome": user_url,
-            "cargo": cargo_url
+            "nome": "Dev",
+            "cargo": "Desenvolvedor",
+            "status": "Aprovado"
         }
-
     else:
-
         st.session_state.usuario_logado = None
 
 
@@ -1536,8 +1563,8 @@ if st.session_state.usuario_logado is None:
                             if
                             x["nome"].lower()
                             == u.lower()
-                            and
-                            x["senha"] == p
+                            and x["senha"] == p
+                            and x.get("status", "Aprovado") == "Aprovado"
                         ),
                         None
                     )
@@ -1567,57 +1594,75 @@ if st.session_state.usuario_logado is None:
 
         with tab2:
 
+            st.caption(
+                "Contas de administrador principal precisam ser aprovadas pelo DEV. "
+                "Contas de usuário comum precisam ser aprovadas por um administrador principal."
+            )
+
+            admins_aprovados = [
+                u for u in st.session_state.usuarios
+                if u.get("cargo") == "Administrador Principal"
+                and u.get("status", "Aprovado") == "Aprovado"
+            ]
+
             with st.form("c_form"):
-
-                n = st.text_input(
-                    "Nome"
-                ).strip().title()
-
-                s = st.text_input(
-                    "Senha",
-                    type="password"
-                ).strip()
+                n = st.text_input("Nome").strip().title()
+                s_conta = st.text_input("Senha", type="password").strip()
+                tipo_conta = st.selectbox(
+                    "Tipo de conta",
+                    ["Usuário Comum", "Administrador Principal"]
+                )
 
                 if st.form_submit_button(
-                    "CADASTRAR",
+                    "SOLICITAR CADASTRO",
                     use_container_width=True
                 ):
-
-                    if n and s:
-
+                    if not n or not s_conta:
+                        st.error("Preencha nome e senha.")
+                    elif any(
+                        u.get("nome", "").lower() == n.lower()
+                        for u in st.session_state.usuarios
+                    ):
+                        st.error("Já existe uma conta ou solicitação com esse nome.")
+                    elif tipo_conta == "Usuário Comum" and not admins_aprovados:
+                        st.error(
+                            "Ainda não existe Administrador Principal aprovado. "
+                            "Um administrador precisa ser aprovado pelo DEV antes "
+                            "de usuários comuns solicitarem cadastro."
+                        )
+                    else:
+                        cargo_novo = (
+                            "Administrador Principal"
+                            if tipo_conta == "Administrador Principal"
+                            else "Operador"
+                        )
                         novo = {
                             "nome": n,
-                            "cargo": "Operador",
-                            "senha": s
+                            "cargo": cargo_novo,
+                            "senha": s_conta,
+                            "status": "Pendente",
+                            "aprovado_por": "",
+                            "data_solicitacao": obter_horario_brasilia().strftime(
+                                "%d/%m/%Y %H:%M:%S"
+                            )
                         }
-
-                        st.session_state.usuarios.append(
-                            novo
+                        st.session_state.usuarios.append(novo)
+                        salvar_usuarios(st.session_state.usuarios)
+                        registrar_log(
+                            n,
+                            "Solicitou Cadastro",
+                            f"Tipo: {cargo_novo}"
                         )
-
-                        salvar_usuarios(
-                            st.session_state.usuarios
-                        )
-
-                        st.session_state.usuario_logado = (
-                            novo
-                        )
-
-                        st.query_params[
-                            "user"
-                        ] = novo["nome"]
-
-                        st.query_params[
-                            "cargo"
-                        ] = novo["cargo"]
-
-                        st.rerun()
-
-                    else:
-
-                        st.error(
-                            "Preencha tudo."
-                        )
+                        if cargo_novo == "Administrador Principal":
+                            st.success(
+                                "Solicitação enviada. O DEV precisa aprovar seu "
+                                "cadastro de Administrador Principal."
+                            )
+                        else:
+                            st.success(
+                                "Solicitação enviada. Um Administrador Principal "
+                                "precisa aprovar seu cadastro."
+                            )
 
         with tab3:
 
@@ -1898,50 +1943,24 @@ if st.session_state.menu_atual == "🏠 Home":
     st.write("")
 
     c10, c11, c12 = st.columns(3)
+    cargo_logado = st.session_state.usuario_logado.get("cargo", "Operador")
+    acesso_gestao = cargo_logado in ["Administrador Principal", "Desenvolvedor"]
 
     with c10:
-
-        if st.button(
-            "📋 Histórico",
-            use_container_width=True
-        ):
-
-            st.session_state.menu_atual = (
-                "Historico"
-            )
-
-            st.rerun()
+        if acesso_gestao:
+            if st.button("📋 Histórico", use_container_width=True):
+                st.session_state.menu_atual = "Historico"
+                st.rerun()
 
     with c11:
-
-        if st.button(
-            "🗂️ Gerenciar Pallets",
-            use_container_width=True
-        ):
-
-            st.session_state.menu_atual = (
-                "GerenciarPallets"
-            )
-
+        if st.button("🗂️ Gerenciar Pallets", use_container_width=True):
+            st.session_state.menu_atual = "GerenciarPallets"
             st.rerun()
 
     with c12:
-
-        if (
-            st.session_state.usuario_logado.get(
-                "cargo"
-            ) == "Desenvolvedor"
-        ):
-
-            if st.button(
-                "⚙️ Gerenciar Contas",
-                use_container_width=True
-            ):
-
-                st.session_state.menu_atual = (
-                    "GerenciarUsuarios"
-                )
-
+        if acesso_gestao:
+            if st.button("⚙️ Gerenciar Usuários", use_container_width=True):
+                st.session_state.menu_atual = "GerenciarUsuarios"
                 st.rerun()
 
 
@@ -4097,117 +4116,242 @@ elif st.session_state.menu_atual == "Editar":
 # ============================================================
 
 elif st.session_state.menu_atual == "Historico":
+    cargo_logado = st.session_state.usuario_logado.get("cargo", "Operador")
 
-    st.subheader(
-        "📋 Histórico de Auditoria"
-    )
-
-    logs = carregar_logs()
-
-    if not logs:
-
-        st.info(
-            "Nenhum registro de log encontrado."
-        )
-
+    if cargo_logado not in ["Administrador Principal", "Desenvolvedor"]:
+        st.error("Acesso restrito ao Administrador Principal e ao DEV.")
     else:
+        st.subheader("📋 Histórico de Auditoria")
+        logs = carregar_logs()
 
-        st.dataframe(
-            pd.DataFrame(logs),
-            use_container_width=True
-        )
+        if not logs:
+            st.info("Nenhum registro de log encontrado.")
+        else:
+            st.markdown("### 🔎 Filtros")
+            usuarios_log = sorted({
+                str(log.get("usuario", "")).strip()
+                for log in logs
+                if str(log.get("usuario", "")).strip()
+            })
+
+            c_f1, c_f2 = st.columns(2)
+            with c_f1:
+                filtro_usuario = st.selectbox(
+                    "Usuário",
+                    ["Todos"] + usuarios_log,
+                    key="hist_usuario"
+                )
+
+            datas_validas = []
+            for log in logs:
+                try:
+                    datas_validas.append(
+                        datetime.strptime(
+                            str(log.get("data_hora", ""))[:10],
+                            "%d/%m/%Y"
+                        ).date()
+                    )
+                except Exception:
+                    pass
+
+            with c_f2:
+                opcoes_data = ["Todas"] + [
+                    d.strftime("%d/%m/%Y")
+                    for d in sorted(set(datas_validas), reverse=True)
+                ]
+                filtro_data = st.selectbox(
+                    "Data",
+                    opcoes_data,
+                    key="hist_data"
+                )
+
+            logs_filtrados = []
+            for log in logs:
+                if (
+                    filtro_usuario != "Todos"
+                    and log.get("usuario") != filtro_usuario
+                ):
+                    continue
+                if (
+                    filtro_data != "Todas"
+                    and not str(log.get("data_hora", "")).startswith(filtro_data)
+                ):
+                    continue
+                logs_filtrados.append(log)
+
+            st.caption(f"{len(logs_filtrados)} registro(s) encontrado(s).")
+            if logs_filtrados:
+                df_logs = pd.DataFrame(logs_filtrados)
+                ordem = [
+                    c for c in ["data_hora", "usuario", "acao", "detalhes"]
+                    if c in df_logs.columns
+                ]
+                df_logs = df_logs[ordem]
+                df_logs = df_logs.rename(columns={
+                    "data_hora": "Data / Hora",
+                    "usuario": "Usuário",
+                    "acao": "Ação",
+                    "detalhes": "Detalhes"
+                })
+                st.dataframe(df_logs, use_container_width=True, hide_index=True)
+            else:
+                st.info("Nenhum registro encontrado com esses filtros.")
 
 
 # ============================================================
-# USUÁRIOS
+# USUÁRIOS E AUTORIZAÇÕES
 # ============================================================
 
 elif st.session_state.menu_atual == "GerenciarUsuarios":
+    cargo_logado = st.session_state.usuario_logado.get("cargo", "Operador")
+    nome_logado = st.session_state.usuario_logado.get("nome", "")
 
-    if (
-        st.session_state.usuario_logado.get(
-            "cargo"
-        )
-        != "Desenvolvedor"
-    ):
-
-        st.error(
-            "Acesso restrito ao Desenvolvedor."
-        )
-
+    if cargo_logado not in ["Administrador Principal", "Desenvolvedor"]:
+        st.error("Acesso restrito ao Administrador Principal e ao DEV.")
     else:
+        st.subheader("⚙️ Gerenciamento de Usuários")
 
-        st.subheader(
-            "⚙️ Gerenciamento de Contas"
-        )
+        def atualizar_status_usuario(nome_usuario, novo_status, aprovador):
+            for usuario in st.session_state.usuarios:
+                if usuario.get("nome") == nome_usuario:
+                    usuario["status"] = novo_status
+                    usuario["aprovado_por"] = aprovador
+                    usuario["data_aprovacao"] = obter_horario_brasilia().strftime(
+                        "%d/%m/%Y %H:%M:%S"
+                    )
+                    break
+            salvar_usuarios(st.session_state.usuarios)
+            registrar_log(
+                aprovador,
+                f"{novo_status} Cadastro",
+                nome_usuario
+            )
 
-        with st.form(
-            "form_novo_operador"
-        ):
+        if cargo_logado == "Desenvolvedor":
+            aba_admins, aba_todos = st.tabs([
+                "🛡️ Autorizar Administradores Principais",
+                "👥 Todos os Usuários"
+            ])
 
-            nome_op = st.text_input(
-                "Nome do Novo Operador"
-            ).strip().title()
-
-            senha_op = st.text_input(
-                "Senha Inicial",
-                type="password"
-            ).strip()
-
-            cargo_op = st.selectbox(
-                "Cargo",
-                [
-                    "Operador",
-                    "Administrador"
+            with aba_admins:
+                pendentes_admin = [
+                    u for u in st.session_state.usuarios
+                    if u.get("cargo") == "Administrador Principal"
+                    and u.get("status") == "Pendente"
                 ]
-            )
 
-            if st.form_submit_button(
-                "Cadastrar Usuário"
-            ):
-
-                if nome_op and senha_op:
-
-                    st.session_state.usuarios.append(
-                        {
-                            "nome":
-                                nome_op,
-
-                            "cargo":
-                                cargo_op,
-
-                            "senha":
-                                senha_op
-                        }
-                    )
-
-                    salvar_usuarios(
-                        st.session_state.usuarios
-                    )
-
-                    st.success(
-                        f"Usuário {nome_op} cadastrado!"
-                    )
-
-                    st.rerun()
-
+                if not pendentes_admin:
+                    st.success("Nenhum Administrador Principal aguardando aprovação.")
                 else:
+                    for i, usuario in enumerate(pendentes_admin):
+                        with st.container(border=True):
+                            st.markdown(
+                                f"**{html.escape(usuario.get('nome',''))}**  \n"
+                                f"Solicitado em: {html.escape(usuario.get('data_solicitacao',''))}"
+                            )
+                            ca, cr = st.columns(2)
+                            with ca:
+                                if st.button(
+                                    "✅ Aprovar Administrador",
+                                    key=f"aprovar_admin_{i}",
+                                    use_container_width=True
+                                ):
+                                    atualizar_status_usuario(
+                                        usuario.get("nome"),
+                                        "Aprovado",
+                                        "Dev"
+                                    )
+                                    st.rerun()
+                            with cr:
+                                if st.button(
+                                    "❌ Rejeitar",
+                                    key=f"rejeitar_admin_{i}",
+                                    use_container_width=True
+                                ):
+                                    atualizar_status_usuario(
+                                        usuario.get("nome"),
+                                        "Rejeitado",
+                                        "Dev"
+                                    )
+                                    st.rerun()
 
-                    st.error(
-                        "Preencha todos os campos."
+            with aba_todos:
+                dados_usuarios = [
+                    {
+                        "Nome": u.get("nome", ""),
+                        "Cargo": u.get("cargo", "Operador"),
+                        "Status": u.get("status", "Aprovado"),
+                        "Aprovado por": u.get("aprovado_por", "")
+                    }
+                    for u in st.session_state.usuarios
+                ]
+                if dados_usuarios:
+                    st.dataframe(
+                        pd.DataFrame(dados_usuarios),
+                        use_container_width=True,
+                        hide_index=True
                     )
 
-        st.markdown("---")
+        else:
+            st.markdown("### 👤 Autorizar Usuários Comuns")
+            pendentes_operador = [
+                u for u in st.session_state.usuarios
+                if u.get("cargo") == "Operador"
+                and u.get("status") == "Pendente"
+            ]
 
-        st.markdown(
-            "### 👥 Usuários Atuais"
-        )
+            if not pendentes_operador:
+                st.success("Nenhum usuário comum aguardando aprovação.")
+            else:
+                for i, usuario in enumerate(pendentes_operador):
+                    with st.container(border=True):
+                        st.markdown(
+                            f"**{html.escape(usuario.get('nome',''))}**  \n"
+                            f"Solicitado em: {html.escape(usuario.get('data_solicitacao',''))}"
+                        )
+                        ca, cr = st.columns(2)
+                        with ca:
+                            if st.button(
+                                "✅ Aprovar Usuário",
+                                key=f"aprovar_op_{i}",
+                                use_container_width=True
+                            ):
+                                atualizar_status_usuario(
+                                    usuario.get("nome"),
+                                    "Aprovado",
+                                    nome_logado
+                                )
+                                st.rerun()
+                        with cr:
+                            if st.button(
+                                "❌ Rejeitar",
+                                key=f"rejeitar_op_{i}",
+                                use_container_width=True
+                            ):
+                                atualizar_status_usuario(
+                                    usuario.get("nome"),
+                                    "Rejeitado",
+                                    nome_logado
+                                )
+                                st.rerun()
 
-        for u in (
-            st.session_state.usuarios
-        ):
+            st.markdown("---")
+            st.markdown("### 👥 Usuários Comuns")
+            operadores = [
+                {
+                    "Nome": u.get("nome", ""),
+                    "Status": u.get("status", "Aprovado"),
+                    "Aprovado por": u.get("aprovado_por", "")
+                }
+                for u in st.session_state.usuarios
+                if u.get("cargo") == "Operador"
+            ]
+            if operadores:
+                st.dataframe(
+                    pd.DataFrame(operadores),
+                    use_container_width=True,
+                    hide_index=True
+                )
+            else:
+                st.info("Nenhum usuário comum cadastrado.")
 
-            st.markdown(
-                f"- **{html.escape(u['nome'])}** "
-                f"({html.escape(u.get('cargo','Operador'))})"
-            )
