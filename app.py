@@ -254,41 +254,34 @@ def realizar_backup(nome):
 # ============================================================
 
 def carregar_dados():
-
+    """Carrega o estoque sem criar vinhos de exemplo automaticamente."""
     estoque = []
 
     if os.path.exists(NOME_ARQUIVO):
-
         try:
-
-            with open(
-                NOME_ARQUIVO,
-                "r",
-                encoding="utf-8"
-            ) as f:
-
-                estoque = json.load(f)
-
+            with open(NOME_ARQUIVO, "r", encoding="utf-8") as f:
+                dados = json.load(f)
+                if isinstance(dados, list):
+                    estoque = dados
         except Exception:
-            pass
+            estoque = []
 
-    if not estoque:
+    # Remove o registro de demonstração antigo que versões anteriores
+    # recriavam quando o último vinho real era apagado.
+    estoque_limpo = []
+    for vinho in estoque:
+        registro_demo_campana = (
+            str(vinho.get("nome", "")).strip().lower() == "campana merlot"
+            and str(vinho.get("safra", "")).strip() == "2024"
+            and str(vinho.get("codigo_barras", "")).strip() == "7891008116632"
+            and str(vinho.get("localizacao", "")).strip() == "Corredor 01 - Pallet Item 01"
+        )
+        if not registro_demo_campana:
+            estoque_limpo.append(vinho)
 
-        estoque = [
-            {
-                "nome": "Campana Merlot",
-                "tipo": "Tinto",
-                "safra": "2024",
-                "localizacao": "Corredor 01 - Pallet Item 01",
-                "lado": "Direito",
-                "caixa": "Caixa com 12 garrafas",
-                "codigo_barras": "7891008116632",
-                "foto": ""
-            }
-        ]
-
+    # Se o arquivo estiver vazio, o estoque permanece realmente vazio.
     return sorted(
-        estoque,
+        estoque_limpo,
         key=lambda x: x.get("nome", "").lower()
     )
 
@@ -487,70 +480,14 @@ def salvar_pedidos(pedidos):
 # SINCRONIZA ESTOQUE COM PEDIDOS
 # ============================================================
 
-def sincronizar_estoque_com_pedidos(
-    pedidos,
-    estoque
-):
+def sincronizar_estoque_com_pedidos(pedidos, estoque):
+    """Pedidos não devem criar ou recriar itens no cadastro de estoque.
 
-    nomes_existentes = {
-        v["nome"].lower()
-        for v in estoque
-    }
-
-    alterado = False
-
-    for p in pedidos:
-
-        for item in p.get("itens", []):
-
-            nome_item = item.get(
-                "nome",
-                ""
-            ).strip()
-
-            if (
-                nome_item
-                and nome_item.lower()
-                not in nomes_existentes
-            ):
-
-                novo_v = {
-
-                    "nome":
-                        nome_item.title(),
-
-                    "safra":
-                        item.get("safra", ""),
-
-                    "tipo":
-                        "Tinto",
-
-                    "localizacao":
-                        "Corredor 01 - Pallet Item 01",
-
-                    "lado":
-                        "Centro / Único",
-
-                    "caixa":
-                        "Caixa com 12 garrafas",
-
-                    "codigo_barras":
-                        "",
-
-                    "foto":
-                        ""
-                }
-
-                estoque.append(novo_v)
-
-                nomes_existentes.add(
-                    nome_item.lower()
-                )
-
-                alterado = True
-
-    if alterado:
-        salvar_dados(estoque)
+    O estoque é administrado somente por Cadastro, Edição e movimentação
+    de localização/pallet. Assim, excluir um vinho do estoque é definitivo
+    e uma lista de pedido antiga não faz o vinho reaparecer.
+    """
+    return estoque
 
 
 # ============================================================
