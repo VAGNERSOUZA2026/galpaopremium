@@ -1173,6 +1173,86 @@ def salvar_pallets(pallets):
     st.session_state.pallets = pallets
 
 
+def reconciliar_pallets_com_estoque(pallets, estoque):
+    """
+    Faz do estoque a fonte oficial do conteúdo dos pallets.
+
+    Isso remove referências antigas de vinhos já apagados e garante que o QR
+    mostre somente os vinhos que realmente existem no estoque e estão naquela
+    posição/lado. Mantém as posições de pallet já criadas, mesmo quando vazias.
+    """
+    pallets = pallets if isinstance(pallets, list) else []
+    estoque = estoque if isinstance(estoque, list) else []
+
+    # Preserva as posições existentes, mas zera a lista de vinhos para
+    # reconstruí-la a partir do cadastro atual do estoque.
+    novos_pallets = []
+    por_id = {}
+
+    for p in pallets:
+        if not isinstance(p, dict):
+            continue
+        novo = dict(p)
+        novo.setdefault("id", "")
+        novo.setdefault("corredor", "")
+        novo.setdefault("pallet", "")
+        novo.setdefault("lado", "")
+        novo["vinhos"] = []
+        novos_pallets.append(novo)
+        if novo.get("id"):
+            por_id[novo["id"]] = novo
+
+    for vinho in estoque:
+        if not isinstance(vinho, dict):
+            continue
+
+        localizacao = str(vinho.get("localizacao", "") or "")
+        # Só entra em QR de pallet quando a localização for realmente um pallet.
+        if "pallet" not in localizacao.lower():
+            continue
+
+        corredor_match = re.search(r"Corredor\s*(\d+)", localizacao, re.IGNORECASE)
+        pallet_match = re.search(r"Pallet(?:\s+Item)?\s*(\d+)", localizacao, re.IGNORECASE)
+        if not corredor_match or not pallet_match:
+            continue
+
+        corredor = f"Corredor {corredor_match.group(1).zfill(2)}"
+        pallet_nome = f"Pallet {pallet_match.group(1).zfill(2)}"
+        lado = str(vinho.get("lado", "") or "").strip() or "Centro / Único"
+        if lado not in LISTA_LADOS:
+            lado = "Centro / Único"
+
+        pallet_id = gerar_id_pallet(corredor, pallet_nome, lado)
+        pallet_obj = por_id.get(pallet_id)
+
+        if pallet_obj is None:
+            pallet_obj = {
+                "id": pallet_id,
+                "corredor": corredor,
+                "pallet": pallet_nome,
+                "lado": lado,
+                "vinhos": [],
+            }
+            novos_pallets.append(pallet_obj)
+            por_id[pallet_id] = pallet_obj
+
+        item = {
+            "nome": str(vinho.get("nome", "") or "").strip(),
+            "safra": str(vinho.get("safra", "N/A") or "N/A").strip(),
+        }
+        if item["nome"] and item not in pallet_obj["vinhos"]:
+            pallet_obj["vinhos"].append(item)
+
+    # Ordena o conteúdo de cada pallet para deixar a prévia e o QR consistentes.
+    for p in novos_pallets:
+        p["vinhos"] = sorted(
+            p.get("vinhos", []),
+            key=lambda v: (str(v.get("nome", "")).lower(), str(v.get("safra", "")))
+        )
+
+    return novos_pallets
+
+
 def obter_pallet(
     pallets,
     pallet_id
@@ -1769,6 +1849,17 @@ st.session_state.pedidos = (
 st.session_state.pallets = (
     carregar_pallets()
 )
+
+# O estoque é a fonte oficial do conteúdo dos pallets. Assim, ao apagar um
+# vinho do estoque ele também desaparece automaticamente dos QR Codes/pallets.
+_pallets_reconciliados = reconciliar_pallets_com_estoque(
+    st.session_state.pallets,
+    st.session_state.estoque,
+)
+if _pallets_reconciliados != st.session_state.pallets:
+    st.session_state.pallets = _pallets_reconciliados
+    with open(ARQUIVO_PALLETS, "w", encoding="utf-8") as _f_pallets:
+        json.dump(st.session_state.pallets, _f_pallets, ensure_ascii=False, indent=4)
 
 sincronizar_estoque_com_pedidos(
     st.session_state.pedidos,
@@ -2811,128 +2902,118 @@ elif st.session_state.menu_atual == "GerenciarPallets":
 
 elif st.session_state.menu_atual == "PainelMatriz":
 
-    render_page_header("🏢", "Painel da Matriz", "Acompanhe pedidos, quantidades separadas, status e divergências em tempo real.", "Operação • Acompanhamento")
-
-    st.markdown(
-        "Aqui a Matriz visualiza em tempo real "
-        "todos os pedidos salvos, finalizados "
-        "e as divergências."
+    render_page_header(
+        "🏢",
+        "Painel da Matriz",
+        "Busque um pedido para visualizar os itens, quantidades separadas, status e divergências.",
+        "Operação • Acompanhamento",
     )
 
     if not st.session_state.pedidos:
-
-        st.info(
-            "Nenhum pedido registrado no sistema."
-        )
+        st.info("Nenhum pedido registrado no sistema.")
 
     else:
+        st.markdown("### 🔎 Buscar pedido")
+        st.caption(
+            "Digite o número do pedido ou o nome de um vinho. O painel só mostra resultados depois da busca, evitando uma tela cheia de pedidos."
+        )
 
-        for p in st.session_state.pedidos:
+        col_busca, col_status = st.columns([3, 1])
+        with col_busca:
+            busca_painel = st.text_input(
+                "Pedido ou vinho",
+                placeholder="Ex.: 123002 ou La Consulta Malbec",
+                key="busca_painel_matriz",
+            ).strip()
 
-            status_col = (
-                "#2E7D32"
-                if p.get("status")
-                == "Concluído / Expedido"
-                else "#7A1C2E"
+        with col_status:
+            filtro_status_painel = st.selectbox(
+                "Status",
+                ["Todos", "Pendente", "Concluído / Expedido"],
+                key="filtro_status_painel_matriz",
             )
 
-            st.markdown(
-                f"""
-                <div style="
-                    background:linear-gradient(180deg,#19191D,#141417);
-                    padding:15px;
-                    border-radius:14px;
-                    border:1px solid #2E2E34;
-                    margin-bottom:15px;
-                ">
+        if not busca_painel:
+            st.info("Digite acima o número do pedido ou o nome do vinho para fazer a busca.")
+        else:
+            termo = normalizar_nome_vinho(busca_painel)
+            pedidos_filtrados = []
 
-                <b>
-                Mapa / Pedido Nº
-                {html.escape(str(p["id"]))}
-                </b>
+            for p in st.session_state.pedidos:
+                status_p = str(p.get("status", "Pendente"))
+                if filtro_status_painel != "Todos" and status_p != filtro_status_painel:
+                    continue
 
-                |
-
-                Data:
-                {html.escape(str(p["data"]))}
-
-                |
-
-                Status:
-                <b style="color:{status_col};">
-                {html.escape(
-                    str(
-                        p.get(
-                            "status",
-                            "Pendente"
-                        )
-                    )
-                )}
-                </b>
-
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-            df_itens = []
-
-            for item in p["itens"]:
-
-                dif = item.get(
-                    "divergencia",
-                    0
+                id_pedido = str(p.get("id", ""))
+                corresponde_id = termo in normalizar_nome_vinho(id_pedido)
+                corresponde_vinho = any(
+                    termo in normalizar_nome_vinho(item.get("nome", ""))
+                    for item in p.get("itens", [])
                 )
 
-                if dif > 0:
+                if corresponde_id or corresponde_vinho:
+                    pedidos_filtrados.append(p)
 
-                    dif_str = (
-                        f"({dif:+d}) ⚠️ Excedente"
-                    )
-
-                elif dif < 0:
-
-                    dif_str = (
-                        f"({dif}) ⚠️ Falta"
-                    )
-
-                else:
-
-                    dif_str = (
-                        "(0) Correto"
-                    )
-
-                df_itens.append(
-                    {
-                        "Produto":
-                            item["nome"],
-
-                        "Safra":
-                            item.get(
-                                "safra",
-                                "N/A"
-                            ),
-
-                        "Qtd Pedida":
-                            item["quantidade"],
-
-                        "Qtd Separada":
-                            item.get(
-                                "qtd_separada",
-                                0
-                            ),
-
-                        "Divergência":
-                            dif_str
-                    }
+            if not pedidos_filtrados:
+                st.warning("Nenhum pedido encontrado para essa busca.")
+            else:
+                st.success(
+                    f"{len(pedidos_filtrados)} pedido(s) encontrado(s) para ‘{busca_painel}’."
                 )
 
-            st.dataframe(
-                pd.DataFrame(df_itens),
-                use_container_width=True
-            )
+                for p in pedidos_filtrados:
+                    status_col = (
+                        "#66C38A"
+                        if p.get("status") == "Concluído / Expedido"
+                        else "#E0A95A"
+                    )
 
-            st.markdown("---")
+                    st.markdown(
+                        f"""
+                        <div style="
+                            background:linear-gradient(180deg,#19191D,#141417);
+                            padding:15px 16px;
+                            border-radius:14px;
+                            border:1px solid #2E2E34;
+                            margin:12px 0 10px 0;
+                        ">
+                            <div style="font-size:1rem;font-weight:800;color:#F7F3EE;">
+                                Mapa / Pedido Nº {html.escape(str(p.get("id", "")))}
+                            </div>
+                            <div style="margin-top:7px;color:#BDB4AE;font-size:.88rem;">
+                                Data: {html.escape(str(p.get("data", "")))}
+                                &nbsp;&nbsp;•&nbsp;&nbsp;
+                                Status: <b style="color:{status_col};">{html.escape(str(p.get("status", "Pendente")))}</b>
+                            </div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+
+                    df_itens = []
+                    for item in p.get("itens", []):
+                        dif = int(item.get("divergencia", 0) or 0)
+                        if dif > 0:
+                            dif_str = f"({dif:+d}) ⚠️ Excedente"
+                        elif dif < 0:
+                            dif_str = f"({dif}) ⚠️ Falta"
+                        else:
+                            dif_str = "(0) Correto"
+
+                        df_itens.append({
+                            "Produto": item.get("nome", ""),
+                            "Safra": item.get("safra", "N/A"),
+                            "Qtd Pedida": item.get("quantidade", 0),
+                            "Qtd Separada": item.get("qtd_separada", 0),
+                            "Divergência": dif_str,
+                        })
+
+                    if df_itens:
+                        st.dataframe(pd.DataFrame(df_itens), use_container_width=True, hide_index=True)
+                    else:
+                        st.caption("Este pedido não possui itens cadastrados.")
+
+                    st.markdown("---")
 
 
 # ============================================================
