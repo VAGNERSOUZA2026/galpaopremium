@@ -2728,6 +2728,32 @@ elif st.session_state.menu_atual == "PedidosMatriz":
             "pelos corredores e lendo o código de barras dos vinhos."
         )
 
+        rascunho_pendente = st.session_state.get("rascunho_pedido_pendente")
+        if rascunho_pendente:
+            st.success(
+                "✅ Seu pedido em andamento foi preservado enquanto você cadastrava o vinho."
+            )
+            c_ret1, c_ret2 = st.columns([3, 1])
+            with c_ret1:
+                st.caption(
+                    f"Pedido: {rascunho_pendente.get('id', '')} • "
+                    f"{len(rascunho_pendente.get('itens', []))} item(ns) guardado(s)."
+                )
+            with c_ret2:
+                if st.button(
+                    "▶️ Retomar pedido",
+                    key="retomar_rascunho_pedido",
+                    use_container_width=True,
+                ):
+                    st.session_state.id_novo_pedido = rascunho_pendente.get("id", "")
+                    st.session_state.modo_novo_pedido = rascunho_pendente.get(
+                        "modo", "⌨️ Digitar manualmente"
+                    )
+                    st.session_state.itens_pedido_retomados = [
+                        dict(item) for item in rascunho_pendente.get("itens", [])
+                    ]
+                    st.rerun()
+
         proximo_numero = len(st.session_state.pedidos) + 1
         id_sugerido = f"123{proximo_numero:03d}"
         id_pedido = st.text_input(
@@ -2748,6 +2774,12 @@ elif st.session_state.menu_atual == "PedidosMatriz":
         )
 
         itens_novos = None
+
+        # Ao voltar do cadastro, o pedido preservado pode ser retomado sem reconstruir a lista.
+        if "itens_pedido_retomados" in st.session_state:
+            itens_retomados = st.session_state.pop("itens_pedido_retomados")
+            itens_novos = [dict(item) for item in itens_retomados]
+            st.info("🔄 Retomando o pedido que estava em andamento...")
 
         if modo_novo_pedido == "📄 Enviar arquivo":
             arq_pedido = st.file_uploader(
@@ -2858,20 +2890,44 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 )
 
                 if nao_cadastrados:
+                    # Preserva o pedido em andamento antes de abrir o cadastro do vinho.
+                    # Isso evita perder a lista digitada/importada ou montada pelo leitor.
+                    st.session_state.rascunho_pedido_pendente = {
+                        "id": str(id_pedido).strip(),
+                        "modo": modo_novo_pedido,
+                        "itens": [dict(item) for item in itens_novos],
+                    }
+
                     st.error(
                         "❌ O pedido não pode ser salvo porque existem vinhos que "
                         "não estão cadastrados no galpão."
                     )
                     st.warning(
-                        "Cadastre primeiro os vinhos abaixo no menu **Cadastrar Vinho** "
-                        "e depois tente salvar o pedido novamente."
+                        "Clique no nome do vinho para abrir o cadastro. O pedido ficará "
+                        "guardado e, depois de cadastrar, você voltará para esta tela."
                     )
-                    for faltante in nao_cadastrados:
+
+                    for indice_faltante, faltante in enumerate(nao_cadastrados):
+                        nome_faltante = str(
+                            faltante.get("nome", "Vinho sem nome")
+                        ).strip()
                         safra_faltante = str(faltante.get("safra", "")).strip()
-                        complemento = f" — Safra {safra_faltante}" if safra_faltante else ""
-                        st.markdown(
-                            f"- **{faltante.get('nome', 'Vinho sem nome')}**{complemento}"
-                        )
+                        texto_botao = f"➕ Cadastrar {nome_faltante}"
+                        if safra_faltante:
+                            texto_botao += f" — Safra {safra_faltante}"
+
+                        if st.button(
+                            texto_botao,
+                            key=f"cadastrar_faltante_{indice_faltante}_{nome_faltante}",
+                            use_container_width=True,
+                        ):
+                            st.session_state.cadastro_vinho_prefill = {
+                                "nome": nome_faltante,
+                                "safra": safra_faltante,
+                            }
+                            st.session_state.retornar_apos_cadastro = "PedidosMatriz"
+                            st.session_state.menu_atual = "Cadastrar"
+                            st.rerun()
                 else:
                     novo_registro_pedido = {
                         "id": str(id_pedido).strip(),
@@ -2892,6 +2948,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     )
                     if modo_novo_pedido == "📷 Leitor de código de barras":
                         st.session_state.itens_pedido_scanner = []
+                    st.session_state.pop("rascunho_pedido_pendente", None)
                     st.success("Pedido salvo no sistema!")
                     st.rerun()
 
@@ -3788,13 +3845,28 @@ elif st.session_state.menu_atual == "Cadastrar":
 
     st.subheader("➕ Cadastrar Novo Vinho no Galpão")
 
+    cadastro_prefill = st.session_state.get("cadastro_vinho_prefill", {})
+    veio_de_pedido = st.session_state.get("retornar_apos_cadastro") == "PedidosMatriz"
+
+    if veio_de_pedido:
+        st.info(
+            "📋 Você veio de um pedido em andamento. Ao salvar este vinho, "
+            "o sistema voltará automaticamente para o pedido."
+        )
+
     with st.form("form_cadastrar_vinho"):
-        nome = st.text_input("*Nome do Vinho").strip().title()
+        nome = st.text_input(
+            "*Nome do Vinho",
+            value=str(cadastro_prefill.get("nome", "")),
+        ).strip().title()
         tipo = st.selectbox(
             "Tipo de Vinho",
             ["Tinto", "Branco", "Rosé", "Espumante", "Fortificado"],
         )
-        safra = st.text_input("Safra (Ex: 2023)").strip()
+        safra = st.text_input(
+            "Safra (Ex: 2023)",
+            value=str(cadastro_prefill.get("safra", "")),
+        ).strip()
 
         col_l1, col_l2, col_l3, col_l4 = st.columns(4)
         with col_l1:
@@ -3849,6 +3921,15 @@ elif st.session_state.menu_atual == "Cadastrar":
                     nome,
                 )
                 st.success(f"Vinho '{nome}' cadastrado!")
+
+                destino_retorno = st.session_state.pop(
+                    "retornar_apos_cadastro", None
+                )
+                st.session_state.pop("cadastro_vinho_prefill", None)
+
+                if destino_retorno == "PedidosMatriz":
+                    st.session_state.menu_atual = "PedidosMatriz"
+
                 st.rerun()
 
 
