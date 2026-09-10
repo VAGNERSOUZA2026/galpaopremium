@@ -3,6 +3,7 @@ import re
 import json
 import shutil
 import html
+import unicodedata
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -989,6 +990,65 @@ def adicionar_codigo_lista_pedido(codigo, quantidade=1):
         lista.append(item_pedido_por_vinho(vinho, quantidade))
 
     return True, f"{vinho.get('nome', '')} incluído na lista."
+
+
+def normalizar_nome_vinho(texto):
+    texto = str(texto or "").strip().lower()
+    texto = unicodedata.normalize("NFKD", texto)
+    texto = "".join(c for c in texto if not unicodedata.combining(c))
+    texto = re.sub(r"[^a-z0-9]+", " ", texto)
+    return re.sub(r"\s+", " ", texto).strip()
+
+
+def localizar_vinho_cadastrado(nome, safra=""):
+    nome_norm = normalizar_nome_vinho(nome)
+    safra = str(safra or "").strip()
+
+    candidatos = [
+        v for v in st.session_state.estoque
+        if normalizar_nome_vinho(v.get("nome", "")) == nome_norm
+    ]
+
+    if not candidatos:
+        return None
+
+    if safra:
+        mesmo_ano = next(
+            (v for v in candidatos if str(v.get("safra", "")).strip() == safra),
+            None,
+        )
+        if mesmo_ano:
+            return mesmo_ano
+
+    return candidatos[0]
+
+
+def validar_itens_pedido_no_estoque(itens):
+    """Valida a lista antes de salvar. Pedido nunca cadastra vinho automaticamente."""
+    validos = []
+    nao_cadastrados = []
+
+    for item in itens or []:
+        vinho = localizar_vinho_cadastrado(
+            item.get("nome", ""),
+            item.get("safra", ""),
+        )
+
+        if not vinho:
+            nao_cadastrados.append({
+                "nome": item.get("nome", ""),
+                "safra": item.get("safra", ""),
+            })
+            continue
+
+        item_validado = dict(item)
+        # Usa o nome oficial do cadastro para evitar variações na conferência.
+        item_validado["nome"] = vinho.get("nome", item.get("nome", ""))
+        if not str(item_validado.get("safra", "")).strip():
+            item_validado["safra"] = vinho.get("safra", "")
+        validos.append(item_validado)
+
+    return validos, nao_cadastrados
 
 
 # ============================================================
@@ -2793,27 +2853,47 @@ elif st.session_state.menu_atual == "PedidosMatriz":
             elif not itens_novos:
                 st.error("Nenhum item foi adicionado ao pedido.")
             else:
-                novo_registro_pedido = {
-                    "id": str(id_pedido).strip(),
-                    "data": obter_horario_brasilia().strftime("%d/%m/%Y %H:%M"),
-                    "itens": itens_novos,
-                    "status": "Pendente",
-                }
-                st.session_state.pedidos.append(novo_registro_pedido)
-                salvar_pedidos(st.session_state.pedidos)
-                sincronizar_estoque_com_pedidos(
-                    st.session_state.pedidos,
-                    st.session_state.estoque,
+                itens_validados, nao_cadastrados = validar_itens_pedido_no_estoque(
+                    itens_novos
                 )
-                registrar_log(
-                    st.session_state.usuario_logado["nome"],
-                    "Cadastrou Pedido",
-                    str(id_pedido).strip(),
-                )
-                if modo_novo_pedido == "📷 Leitor de código de barras":
-                    st.session_state.itens_pedido_scanner = []
-                st.success("Pedido salvo no sistema!")
-                st.rerun()
+
+                if nao_cadastrados:
+                    st.error(
+                        "❌ O pedido não pode ser salvo porque existem vinhos que "
+                        "não estão cadastrados no galpão."
+                    )
+                    st.warning(
+                        "Cadastre primeiro os vinhos abaixo no menu **Cadastrar Vinho** "
+                        "e depois tente salvar o pedido novamente."
+                    )
+                    for faltante in nao_cadastrados:
+                        safra_faltante = str(faltante.get("safra", "")).strip()
+                        complemento = f" — Safra {safra_faltante}" if safra_faltante else ""
+                        st.markdown(
+                            f"- **{faltante.get('nome', 'Vinho sem nome')}**{complemento}"
+                        )
+                else:
+                    novo_registro_pedido = {
+                        "id": str(id_pedido).strip(),
+                        "data": obter_horario_brasilia().strftime("%d/%m/%Y %H:%M"),
+                        "itens": itens_validados,
+                        "status": "Pendente",
+                    }
+                    st.session_state.pedidos.append(novo_registro_pedido)
+                    salvar_pedidos(st.session_state.pedidos)
+                    sincronizar_estoque_com_pedidos(
+                        st.session_state.pedidos,
+                        st.session_state.estoque,
+                    )
+                    registrar_log(
+                        st.session_state.usuario_logado["nome"],
+                        "Cadastrou Pedido",
+                        str(id_pedido).strip(),
+                    )
+                    if modo_novo_pedido == "📷 Leitor de código de barras":
+                        st.session_state.itens_pedido_scanner = []
+                    st.success("Pedido salvo no sistema!")
+                    st.rerun()
 
         st.markdown("---")
         st.markdown("### 🗑️ Excluir pedidos cadastrados")
@@ -3219,7 +3299,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                                 Pedido:
                                 {it_div["quantidade"]}
                                 |
-                                Separado:
+                                Conferido:
                                 {it_div["qtd_separada"]}
                                 |
                                 Divergência:
@@ -3227,11 +3307,63 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                                 """
                             )
 
-                            corrigir = (
-                                st.form_submit_button(
-                                    "🔄 Corrigir para Qtd Pedida"
+                            senha_item = (
+                                st.text_input(
+                                    "Senha de liberação",
+                                    type="password",
+                                    key=f"pass_{it_div['nome']}"
                                 )
                             )
+
+                            # IMPORTANTE: este é o primeiro submit do formulário.
+                            # Assim, pressionar ENTER no campo da senha executa
+                            # "Autorizar com Divergência", e nunca corrige a quantidade.
+                            autorizar = st.form_submit_button(
+                                "🔓 Autorizar Com Divergência",
+                                use_container_width=True
+                            )
+
+                            corrigir = st.form_submit_button(
+                                "🔄 Corrigir para Qtd Pedida",
+                                use_container_width=True
+                            )
+
+                            if autorizar:
+
+                                if senha_item == SENHA_DIVERGENCIA:
+
+                                    it_div[
+                                        "autorizado_divergencia"
+                                    ] = True
+
+                                    it_div[
+                                        "separado"
+                                    ] = True
+
+                                    salvar_pedidos(
+                                        st.session_state.pedidos
+                                    )
+
+                                    registrar_log(
+                                        st.session_state.usuario_logado[
+                                            "nome"
+                                        ],
+                                        "Liberou Divergência Item",
+                                        (
+                                            f"{it_div['nome']} | "
+                                            f"Pedido: {it_div['quantidade']} | "
+                                            f"Conferido: {it_div['qtd_separada']} | "
+                                            f"Divergência: {it_div['divergencia']:+d}"
+                                        )
+                                    )
+
+                                    st.rerun()
+
+                                else:
+
+                                    st.error(
+                                        "Senha incorreta."
+                                    )
 
                             if corrigir:
 
@@ -3257,52 +3389,15 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                                     st.session_state.pedidos
                                 )
 
-                                st.rerun()
-
-                            senha_item = (
-                                st.text_input(
-                                    "Senha de liberação",
-                                    type="password",
-                                    key=f"pass_{it_div['nome']}"
+                                registrar_log(
+                                    st.session_state.usuario_logado[
+                                        "nome"
+                                    ],
+                                    "Corrigiu Divergência para Qtd Pedida",
+                                    it_div["nome"]
                                 )
-                            )
 
-                            if st.form_submit_button(
-                                "Autorizar Com Divergência"
-                            ):
-
-                                if (
-                                    senha_item
-                                    == SENHA_DIVERGENCIA
-                                ):
-
-                                    it_div[
-                                        "autorizado_divergencia"
-                                    ] = True
-
-                                    it_div[
-                                        "separado"
-                                    ] = True
-
-                                    salvar_pedidos(
-                                        st.session_state.pedidos
-                                    )
-
-                                    registrar_log(
-                                        st.session_state.usuario_logado[
-                                            "nome"
-                                        ],
-                                        "Liberou Divergência Item",
-                                        it_div["nome"]
-                                    )
-
-                                    st.rerun()
-
-                                else:
-
-                                    st.error(
-                                        "Senha incorreta."
-                                    )
+                                st.rerun()
 
                 st.markdown("---")
 
