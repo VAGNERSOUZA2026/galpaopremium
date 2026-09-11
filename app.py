@@ -2546,7 +2546,7 @@ elif st.session_state.menu_atual == "GerarQRPallets":
             salvar_pallets(st.session_state.pallets)
             caminho_qr = gerar_qr_pallet(id_qr, pallet_obj)
             if caminho_qr and os.path.exists(caminho_qr):
-                registrar_log(st.session_state.usuario, "Gerou QR Code de Pallet", f"Posição: {id_qr}")
+                registrar_log(st.session_state.usuario_logado.get("nome", "Usuário"), "Gerou QR Code de Pallet", f"Posição: {id_qr}")
                 st.success(f"QR Code {id_qr} gerado em preto e branco.")
                 st.image(caminho_qr, width=280)
                 with open(caminho_qr, "rb") as arquivo_qr:
