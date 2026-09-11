@@ -4181,6 +4181,10 @@ elif st.session_state.menu_atual == "Cadastrar":
 
     render_page_header("➕", "Cadastrar Novo Vinho", "Cadastre nome, safra, tipo, localização, caixa, código de barras e foto do vinho.", "Cadastro • Novo item")
 
+    mensagem_cadastro = st.session_state.pop("cadastro_vinho_salvo_msg", None)
+    if mensagem_cadastro:
+        st.success(mensagem_cadastro)
+
     cadastro_prefill = st.session_state.get("cadastro_vinho_prefill", {})
     veio_de_pedido = st.session_state.get("retornar_apos_cadastro") == "PedidosMatriz"
 
@@ -4190,7 +4194,7 @@ elif st.session_state.menu_atual == "Cadastrar":
             "o sistema voltará automaticamente para o pedido."
         )
 
-    with st.form("form_cadastrar_vinho"):
+    with st.form("form_cadastrar_vinho", clear_on_submit=True):
         nome = st.text_input(
             "*Nome do Vinho",
             value=str(cadastro_prefill.get("nome", "")),
@@ -4215,7 +4219,11 @@ elif st.session_state.menu_atual == "Cadastrar":
             lado = st.selectbox("Lado", LISTA_LADOS)
 
         caixa = st.selectbox("Embalagem / Caixa", OPCOES_CAIXA)
-        codigo_barras = st.text_input("Código de Barras (Opcional)").strip()
+        codigo_barras = st.text_input(
+            "Código de Barras (Opcional)",
+            placeholder="Digite o código ou leia com a pistola USB",
+            help="Você pode digitar o código manualmente ou usar um leitor USB; o leitor funciona como teclado.",
+        ).strip()
         foto_upload = st.file_uploader(
             "📷 Imagem do vinho (opcional)",
             type=["jpg", "jpeg", "png", "webp"],
@@ -4256,12 +4264,16 @@ elif st.session_state.menu_atual == "Cadastrar":
                     "Cadastrou Vinho",
                     nome,
                 )
-                st.success(f"Vinho '{nome}' cadastrado!")
-
+                # Limpa qualquer preenchimento automático usado no cadastro
+                # e mostra a confirmação após o rerun. O formulário usa
+                # clear_on_submit=True, então todos os campos voltam vazios/padrão.
                 destino_retorno = st.session_state.pop(
                     "retornar_apos_cadastro", None
                 )
                 st.session_state.pop("cadastro_vinho_prefill", None)
+                st.session_state["cadastro_vinho_salvo_msg"] = (
+                    f"Vinho '{nome}' cadastrado com sucesso!"
+                )
 
                 if destino_retorno == "PedidosMatriz":
                     st.session_state.menu_atual = "PedidosMatriz"
@@ -4277,6 +4289,10 @@ elif st.session_state.menu_atual == "Editar":
 
     render_page_header("✏️", "Editar ou Remover Vinho", "Atualize informações, altere a localização física ou remova um vinho do estoque com segurança.", "Cadastro • Manutenção")
     st.caption("Agora você pode editar também corredor, pallet/prateleira, lado e imagem.")
+
+    mensagem_exclusao = st.session_state.pop("vinho_excluido_msg", None)
+    if mensagem_exclusao:
+        st.success(mensagem_exclusao)
 
     if not st.session_state.estoque:
         st.info("Nenhum vinho para editar.")
@@ -4362,11 +4378,9 @@ elif st.session_state.menu_atual == "Editar":
                 key=f"foto_editar_{indice_escolhido}",
             )
 
-            col_e1, col_e2 = st.columns(2)
-            with col_e1:
-                btn_salvar_edicao = st.form_submit_button("💾 Salvar Alterações")
-            with col_e2:
-                btn_excluir_vinho = st.form_submit_button("🗑️ Excluir Vinho")
+            btn_salvar_edicao = st.form_submit_button(
+                "💾 Salvar Alterações", use_container_width=True
+            )
 
             if btn_salvar_edicao:
                 vinho_obj["nome"] = novo_nome
@@ -4406,17 +4420,50 @@ elif st.session_state.menu_atual == "Editar":
                 st.success("Alterações salvas e localização sincronizada!")
                 st.rerun()
 
-            if btn_excluir_vinho:
-                remover_vinho_de_todos_pallets(nome_original)
-                st.session_state.estoque.pop(indice_escolhido)
-                salvar_dados(st.session_state.estoque)
-                registrar_log(
-                    st.session_state.usuario_logado["nome"],
-                    "Excluiu Vinho",
-                    nome_original,
-                )
-                st.success("Vinho excluído!")
-                st.rerun()
+
+        st.markdown("### 🗑️ Excluir vinho")
+        st.caption(
+            "Para excluir este vinho, confirme com a senha do usuário que está logado agora."
+        )
+        with st.form(f"form_excluir_vinho_{indice_escolhido}"):
+            senha_exclusao = st.text_input(
+                "Senha do usuário logado",
+                type="password",
+                placeholder="Digite sua senha para confirmar a exclusão",
+            )
+            confirmar_exclusao = st.form_submit_button(
+                f"🗑️ Excluir {nome_original}",
+                use_container_width=True,
+            )
+
+            if confirmar_exclusao:
+                usuario_atual = st.session_state.usuario_logado
+                cargo_atual = usuario_atual.get("cargo", "Operador")
+
+                # DEV usa a senha mestra. Demais usuários usam a própria senha
+                # cadastrada no arquivo de usuários.
+                if cargo_atual == "Desenvolvedor":
+                    senha_correta = SENHA_DEV
+                else:
+                    senha_correta = str(usuario_atual.get("senha", ""))
+
+                if not senha_exclusao:
+                    st.error("Digite sua senha para confirmar a exclusão.")
+                elif senha_exclusao != senha_correta:
+                    st.error("Senha incorreta. O vinho não foi excluído.")
+                else:
+                    remover_vinho_de_todos_pallets(nome_original)
+                    st.session_state.estoque.pop(indice_escolhido)
+                    salvar_dados(st.session_state.estoque)
+                    registrar_log(
+                        usuario_atual["nome"],
+                        "Excluiu Vinho",
+                        nome_original,
+                    )
+                    st.session_state["vinho_excluido_msg"] = (
+                        f"Vinho '{nome_original}' excluído com sucesso."
+                    )
+                    st.rerun()
 
 
 # ============================================================
