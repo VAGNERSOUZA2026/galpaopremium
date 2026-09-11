@@ -1602,6 +1602,23 @@ def validar_itens_pedido_no_estoque(itens):
 # QR CODE
 # ============================================================
 
+def url_publica_pallet(pallet_id):
+    """Monta a URL pública do pallet usando o endereço atual do app."""
+    try:
+        headers = st.context.headers
+        host = str(headers.get("X-Forwarded-Host") or headers.get("Host") or "").strip()
+        proto = str(headers.get("X-Forwarded-Proto") or "https").strip()
+    except Exception:
+        host = ""
+        proto = "https"
+
+    if not host:
+        host = "galpaopremium-gwiywrdxssrwmzv9tdpeff.streamlit.app"
+        proto = "https"
+
+    return f"{proto}://{host}/?pallet={str(pallet_id).strip().upper()}"
+
+
 def gerar_qr_pallet(
     pallet_id,
     pallet=None
@@ -1615,7 +1632,7 @@ def gerar_qr_pallet(
     # usa o código da posição para consultar os dados atuais.
     # Assim, a mesma etiqueta continua válida mesmo depois de
     # mover, adicionar ou excluir vinhos daquele pallet.
-    conteudo_qr = str(pallet_id).strip().upper()
+    conteudo_qr = url_publica_pallet(pallet_id)
 
     caminho = os.path.join(
         PASTA_QR,
@@ -1921,6 +1938,67 @@ if "codigo_bipado_pedido" not in st.session_state:
 # ============================================================
 
 qp = st.query_params
+
+# ------------------------------------------------------------
+# CONSULTA PÚBLICA DO PALLET PELO QR CODE
+# Não exige login e é somente leitura.
+# ------------------------------------------------------------
+_pallet_publico_param = qp.get("pallet", None)
+if _pallet_publico_param:
+    _id_publico = extrair_id_do_qr(_pallet_publico_param)
+    _pallet_publico = obter_pallet(st.session_state.pallets, _id_publico)
+
+    st.markdown(
+        "<style>[data-testid='stSidebar']{display:none!important;} [data-testid='stHeader']{display:none!important;} .block-container{padding-top:1.4rem!important;max-width:900px!important;}</style>",
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        """
+        <div style="background:linear-gradient(135deg,#17171b,#241016);border:1px solid #4b2830;border-radius:18px;padding:22px 24px;margin-bottom:18px;">
+            <div style="font-size:1.45rem;font-weight:800;color:#f3c45b;">🍷 PREMIUM WINES</div>
+            <div style="color:#c9c9cf;margin-top:3px;">Consulta de posição do galpão</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    if _pallet_publico:
+        _corredor_pub = html.escape(str(_pallet_publico.get("corredor", "")))
+        _pallet_nome_pub = html.escape(str(_pallet_publico.get("pallet", "")))
+        _lado_pub = html.escape(str(_pallet_publico.get("lado", "")))
+        _vinhos_pub = _pallet_publico.get("vinhos", []) or []
+
+        st.markdown(
+            f"""
+            <div style="background:#17171b;border:1px solid #34343b;border-radius:16px;padding:18px 20px;margin-bottom:16px;">
+                <div style="color:#f3c45b;font-size:1.15rem;font-weight:800;">📍 {_corredor_pub} • {_pallet_nome_pub} • {_lado_pub}</div>
+                <div style="color:#c9c9cf;margin-top:6px;">{len(_vinhos_pub)} vinho(s) nesta posição</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        if _vinhos_pub:
+            st.markdown("### Vinhos nesta posição")
+            for _i, _vinho in enumerate(_vinhos_pub, start=1):
+                _nome = html.escape(str(_vinho.get("nome", "Vinho")))
+                _safra = html.escape(str(_vinho.get("safra", "N/A")))
+                st.markdown(
+                    f"""
+                    <div style="background:#17171b;border:1px solid #34343b;border-radius:12px;padding:14px 16px;margin:8px 0;">
+                        <div style="font-weight:750;color:#f0f0f3;">{_i}. {_nome}</div>
+                        <div style="color:#b9b9c0;margin-top:3px;">Safra: {_safra}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+        else:
+            st.info("Nenhum vinho cadastrado nesta posição no momento.")
+    else:
+        st.error("Esta posição de pallet não foi encontrada no sistema.")
+
+    st.stop()
 
 for key, val in list(qp.items()):
 
@@ -2569,9 +2647,9 @@ elif st.session_state.menu_atual == "GerarQRPallets":
 
             cini, cfim = st.columns(2)
             with cini:
-                pallet_inicio = st.number_input("Do pallet", min_value=minimo_pallet, max_value=maximo_pallet, value=minimo_pallet, step=1, key="qr_lote_inicio")
+                pallet_inicio = st.number_input("Do pallet", min_value=int(minimo_pallet), max_value=int(maximo_pallet), value=int(minimo_pallet), step=1, key="qr_lote_inicio")
             with cfim:
-                pallet_fim = st.number_input("Até o pallet", min_value=minimo_pallet, max_value=maximo_pallet, value=min(maximo_pallet, 20), step=1, key="qr_lote_fim")
+                pallet_fim = st.number_input("Até o pallet", min_value=int(minimo_pallet), max_value=int(maximo_pallet), value=int(min(int(maximo_pallet), 20)), step=1, key="qr_lote_fim")
 
             if pallet_inicio > pallet_fim:
                 st.warning("O pallet inicial precisa ser menor ou igual ao pallet final.")
