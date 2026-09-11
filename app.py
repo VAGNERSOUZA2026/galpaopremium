@@ -1470,6 +1470,73 @@ def adicionar_codigo_lista_pedido(codigo, quantidade=1):
     return True, f"{vinho.get('nome', '')} incluído na lista."
 
 
+def adicionar_manual_lista_pedido(texto):
+    texto = str(texto or "").strip()
+    if not texto:
+        return False, "Digite o nome do vinho antes de adicionar."
+
+    linhas = [linha.strip() for linha in texto.split("\n") if linha.strip()]
+    if not linhas:
+        return False, "Digite pelo menos um vinho."
+
+    lista = st.session_state.setdefault("itens_pedido_scanner", [])
+    adicionados = 0
+
+    for linha in linhas:
+        item = interpretar_linha_pedido(linha)
+        if not item.get("nome"):
+            continue
+
+        # Se já estiver cadastrado, usa nome/safra oficiais do estoque.
+        vinho = localizar_vinho_cadastrado(item.get("nome", ""), item.get("safra", ""))
+        novo_item = (
+            item_pedido_por_vinho(vinho, item.get("quantidade", 1))
+            if vinho
+            else item
+        )
+
+        existente = next(
+            (
+                x for x in lista
+                if normalizar_nome_vinho(x.get("nome", "")) == normalizar_nome_vinho(novo_item.get("nome", ""))
+                and str(x.get("safra", "")).strip() == str(novo_item.get("safra", "")).strip()
+            ),
+            None,
+        )
+
+        if existente:
+            existente["quantidade"] = int(existente.get("quantidade", 0)) + int(novo_item.get("quantidade", 1))
+        else:
+            lista.append(novo_item)
+        adicionados += 1
+
+    if not adicionados:
+        return False, "Nenhum vinho válido foi informado."
+    return True, f"{adicionados} item(ns) adicionado(s) à lista."
+
+
+def callback_adicionar_manual_pedido():
+    sucesso, mensagem = adicionar_manual_lista_pedido(
+        st.session_state.get("texto_manual_novo_pedido", "")
+    )
+    st.session_state["mensagem_adicao_pedido"] = (sucesso, mensagem)
+    if sucesso:
+        # Callback executa antes da remontagem dos widgets: o campo volta vazio.
+        st.session_state["texto_manual_novo_pedido"] = ""
+
+
+def callback_adicionar_codigo_pedido():
+    sucesso, mensagem = adicionar_codigo_lista_pedido(
+        st.session_state.get("codigo_manual_lista_pedido", ""),
+        st.session_state.get("qtd_lista_pedido", 1),
+    )
+    st.session_state["mensagem_adicao_pedido"] = (sucesso, mensagem)
+    if sucesso:
+        # Limpa o código e volta a quantidade para 1 após adicionar à lista.
+        st.session_state["codigo_manual_lista_pedido"] = ""
+        st.session_state["qtd_lista_pedido"] = 1
+
+
 def normalizar_nome_vinho(texto):
     texto = str(texto or "").strip().lower()
     texto = unicodedata.normalize("NFKD", texto)
@@ -3139,16 +3206,54 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 )
 
         elif modo_novo_pedido == "⌨️ Digitar manualmente":
-            texto_manual_pedido = st.text_area(
-                "Digite um item por linha",
+            st.caption("Digite o vinho e clique em Adicionar. Depois de incluir na lista, o campo será limpo automaticamente.")
+            st.text_area(
+                "Digite o vinho",
                 placeholder="Ex.: Faleria Pinot Noir Reserva 2023 / 1 Caixa",
                 key="texto_manual_novo_pedido",
+                height=90,
             )
-            if st.button("💾 Salvar Pedido Digitado", use_container_width=True):
-                itens_novos = []
-                for linha in texto_manual_pedido.split("\n"):
-                    if linha.strip():
-                        itens_novos.append(interpretar_linha_pedido(linha))
+            st.button(
+                "➕ Adicionar à lista",
+                use_container_width=True,
+                key="btn_adicionar_manual_pedido",
+                on_click=callback_adicionar_manual_pedido,
+            )
+
+            mensagem_pedido = st.session_state.pop("mensagem_adicao_pedido", None)
+            if mensagem_pedido:
+                sucesso_msg, texto_msg = mensagem_pedido
+                if sucesso_msg:
+                    st.success(texto_msg)
+                else:
+                    st.error(texto_msg)
+
+            lista_manual = st.session_state.itens_pedido_scanner
+            st.markdown("#### 🛒 Lista do pedido")
+            if not lista_manual:
+                st.info("A lista ainda está vazia. Adicione o primeiro vinho.")
+            else:
+                for idx, item in enumerate(list(lista_manual)):
+                    c_info, c_del = st.columns([6, 1])
+                    with c_info:
+                        st.markdown(
+                            f"**{idx + 1}. {item.get('nome','')}** — "
+                            f"Safra {item.get('safra','N/A')} — "
+                            f"Qtd: **{item.get('quantidade',1)}**"
+                        )
+                    with c_del:
+                        if st.button("🗑️", key=f"del_item_manual_{idx}"):
+                            lista_manual.pop(idx)
+                            st.rerun()
+
+                c_limpar, c_salvar = st.columns(2)
+                with c_limpar:
+                    if st.button("🧹 Limpar lista", key="limpar_lista_manual", use_container_width=True):
+                        st.session_state.itens_pedido_scanner = []
+                        st.rerun()
+                with c_salvar:
+                    if st.button("💾 Salvar Pedido da Lista", key="salvar_lista_manual", use_container_width=True):
+                        itens_novos = [dict(item) for item in lista_manual]
 
         else:
             st.success(
@@ -3185,16 +3290,20 @@ elif st.session_state.menu_atual == "PedidosMatriz":
             with col_add:
                 st.write("")
                 st.write("")
-                if st.button("➕ Adicionar", use_container_width=True):
-                    sucesso, mensagem = adicionar_codigo_lista_pedido(
-                        codigo_manual_scanner,
-                        qtd_scanner,
-                    )
-                    if sucesso:
-                        st.success(mensagem)
-                        st.rerun()
-                    else:
-                        st.error(mensagem)
+                st.button(
+                    "➕ Adicionar",
+                    use_container_width=True,
+                    key="btn_adicionar_codigo_pedido",
+                    on_click=callback_adicionar_codigo_pedido,
+                )
+
+            mensagem_pedido = st.session_state.pop("mensagem_adicao_pedido", None)
+            if mensagem_pedido:
+                sucesso_msg, texto_msg = mensagem_pedido
+                if sucesso_msg:
+                    st.success(texto_msg)
+                else:
+                    st.error(texto_msg)
 
             lista_scanner = st.session_state.itens_pedido_scanner
             st.markdown("#### 🛒 Lista montada pelo leitor")
@@ -3328,11 +3437,20 @@ elif st.session_state.menu_atual == "PedidosMatriz":
 
         else:
 
-            mapas_disponiveis = [
-                p["id"]
-                for p
-                in st.session_state.pedidos
+            # No checkout exibimos somente pedidos que ainda precisam de conferência.
+            # Assim que um pedido é finalizado, ele desaparece desta tela automaticamente.
+            pedidos_pendentes_checkout = [
+                p
+                for p in st.session_state.pedidos
+                if p.get("status", "Pendente") != "Concluído / Expedido"
             ]
+
+            mapas_disponiveis = [p["id"] for p in pedidos_pendentes_checkout]
+
+            if not mapas_disponiveis:
+                st.success("✅ Não há pedidos pendentes para conferência.")
+                st.info("Quando um novo pedido for cadastrado, ele aparecerá aqui automaticamente.")
+                st.stop()
 
             mapa_selecionado_id = (
                 st.selectbox(
@@ -3485,21 +3603,59 @@ elif st.session_state.menu_atual == "PedidosMatriz":
 
                             else:
 
-                                cod_barras_input = (
-                                    st.text_input(
-                                        "*Ou digite/bipe o Código",
-                                        key="input_bipagem_checkout"
-                                    )
+                                def _checkout_codigo_digitado():
+                                    valor = str(
+                                        st.session_state.get(
+                                            "input_bipagem_checkout", ""
+                                        )
+                                    ).strip()
+                                    if valor:
+                                        # on_change é disparado tanto ao pressionar ENTER
+                                        # quanto ao sair do campo com TAB/leitor USB.
+                                        st.session_state["checkout_codigo_pendente"] = valor
+                                        st.session_state["checkout_auto_conferir"] = True
+                                        st.session_state["input_bipagem_checkout"] = ""
+
+                                cod_barras_input = st.text_input(
+                                    "*Ou digite/bipe o Código",
+                                    key="input_bipagem_checkout",
+                                    on_change=_checkout_codigo_digitado,
+                                    help="Digite ou bipe o código e pressione Enter ou Tab para conferir."
                                 )
+
+                                if st.session_state.get("checkout_auto_conferir"):
+                                    cod_barras_input = str(
+                                        st.session_state.get(
+                                            "checkout_codigo_pendente", ""
+                                        )
+                                    ).strip()
 
                         else:
 
-                            cod_barras_input = (
-                                st.text_input(
-                                    "*Código de Barras ou Nome",
-                                    key="input_bipagem_checkout"
-                                )
+                            def _checkout_codigo_digitado_sem_lista():
+                                valor = str(
+                                    st.session_state.get(
+                                        "input_bipagem_checkout", ""
+                                    )
+                                ).strip()
+                                if valor:
+                                    st.session_state["checkout_codigo_pendente"] = valor
+                                    st.session_state["checkout_auto_conferir"] = True
+                                    st.session_state["input_bipagem_checkout"] = ""
+
+                            cod_barras_input = st.text_input(
+                                "*Código de Barras ou Nome",
+                                key="input_bipagem_checkout",
+                                on_change=_checkout_codigo_digitado_sem_lista,
+                                help="Digite ou bipe o código e pressione Enter ou Tab para conferir."
                             )
+
+                            if st.session_state.get("checkout_auto_conferir"):
+                                cod_barras_input = str(
+                                    st.session_state.get(
+                                        "checkout_codigo_pendente", ""
+                                    )
+                                ).strip()
 
                 with col_b2:
 
@@ -3519,10 +3675,18 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         use_container_width=True
                     )
 
+                auto_conferir = bool(
+                    st.session_state.get("checkout_auto_conferir", False)
+                )
+
                 if (
-                    btn_conferir
+                    (btn_conferir or auto_conferir)
                     and cod_barras_input
                 ):
+                    # Consome o disparo automático antes de processar para não repetir
+                    # a conferência em um rerun posterior.
+                    st.session_state["checkout_auto_conferir"] = False
+                    st.session_state["checkout_codigo_pendente"] = ""
 
                     encontrou = False
 
@@ -4181,10 +4345,6 @@ elif st.session_state.menu_atual == "Cadastrar":
 
     render_page_header("➕", "Cadastrar Novo Vinho", "Cadastre nome, safra, tipo, localização, caixa, código de barras e foto do vinho.", "Cadastro • Novo item")
 
-    mensagem_cadastro = st.session_state.pop("cadastro_vinho_salvo_msg", None)
-    if mensagem_cadastro:
-        st.success(mensagem_cadastro)
-
     cadastro_prefill = st.session_state.get("cadastro_vinho_prefill", {})
     veio_de_pedido = st.session_state.get("retornar_apos_cadastro") == "PedidosMatriz"
 
@@ -4194,7 +4354,7 @@ elif st.session_state.menu_atual == "Cadastrar":
             "o sistema voltará automaticamente para o pedido."
         )
 
-    with st.form("form_cadastrar_vinho", clear_on_submit=True):
+    with st.form("form_cadastrar_vinho"):
         nome = st.text_input(
             "*Nome do Vinho",
             value=str(cadastro_prefill.get("nome", "")),
@@ -4219,11 +4379,7 @@ elif st.session_state.menu_atual == "Cadastrar":
             lado = st.selectbox("Lado", LISTA_LADOS)
 
         caixa = st.selectbox("Embalagem / Caixa", OPCOES_CAIXA)
-        codigo_barras = st.text_input(
-            "Código de Barras (Opcional)",
-            placeholder="Digite o código ou leia com a pistola USB",
-            help="Você pode digitar o código manualmente ou usar um leitor USB; o leitor funciona como teclado.",
-        ).strip()
+        codigo_barras = st.text_input("Código de Barras (Opcional)").strip()
         foto_upload = st.file_uploader(
             "📷 Imagem do vinho (opcional)",
             type=["jpg", "jpeg", "png", "webp"],
@@ -4264,16 +4420,12 @@ elif st.session_state.menu_atual == "Cadastrar":
                     "Cadastrou Vinho",
                     nome,
                 )
-                # Limpa qualquer preenchimento automático usado no cadastro
-                # e mostra a confirmação após o rerun. O formulário usa
-                # clear_on_submit=True, então todos os campos voltam vazios/padrão.
+                st.success(f"Vinho '{nome}' cadastrado!")
+
                 destino_retorno = st.session_state.pop(
                     "retornar_apos_cadastro", None
                 )
                 st.session_state.pop("cadastro_vinho_prefill", None)
-                st.session_state["cadastro_vinho_salvo_msg"] = (
-                    f"Vinho '{nome}' cadastrado com sucesso!"
-                )
 
                 if destino_retorno == "PedidosMatriz":
                     st.session_state.menu_atual = "PedidosMatriz"
@@ -4289,10 +4441,6 @@ elif st.session_state.menu_atual == "Editar":
 
     render_page_header("✏️", "Editar ou Remover Vinho", "Atualize informações, altere a localização física ou remova um vinho do estoque com segurança.", "Cadastro • Manutenção")
     st.caption("Agora você pode editar também corredor, pallet/prateleira, lado e imagem.")
-
-    mensagem_exclusao = st.session_state.pop("vinho_excluido_msg", None)
-    if mensagem_exclusao:
-        st.success(mensagem_exclusao)
 
     if not st.session_state.estoque:
         st.info("Nenhum vinho para editar.")
@@ -4378,9 +4526,11 @@ elif st.session_state.menu_atual == "Editar":
                 key=f"foto_editar_{indice_escolhido}",
             )
 
-            btn_salvar_edicao = st.form_submit_button(
-                "💾 Salvar Alterações", use_container_width=True
-            )
+            col_e1, col_e2 = st.columns(2)
+            with col_e1:
+                btn_salvar_edicao = st.form_submit_button("💾 Salvar Alterações")
+            with col_e2:
+                btn_excluir_vinho = st.form_submit_button("🗑️ Excluir Vinho")
 
             if btn_salvar_edicao:
                 vinho_obj["nome"] = novo_nome
@@ -4420,50 +4570,17 @@ elif st.session_state.menu_atual == "Editar":
                 st.success("Alterações salvas e localização sincronizada!")
                 st.rerun()
 
-
-        st.markdown("### 🗑️ Excluir vinho")
-        st.caption(
-            "Para excluir este vinho, confirme com a senha do usuário que está logado agora."
-        )
-        with st.form(f"form_excluir_vinho_{indice_escolhido}"):
-            senha_exclusao = st.text_input(
-                "Senha do usuário logado",
-                type="password",
-                placeholder="Digite sua senha para confirmar a exclusão",
-            )
-            confirmar_exclusao = st.form_submit_button(
-                f"🗑️ Excluir {nome_original}",
-                use_container_width=True,
-            )
-
-            if confirmar_exclusao:
-                usuario_atual = st.session_state.usuario_logado
-                cargo_atual = usuario_atual.get("cargo", "Operador")
-
-                # DEV usa a senha mestra. Demais usuários usam a própria senha
-                # cadastrada no arquivo de usuários.
-                if cargo_atual == "Desenvolvedor":
-                    senha_correta = SENHA_DEV
-                else:
-                    senha_correta = str(usuario_atual.get("senha", ""))
-
-                if not senha_exclusao:
-                    st.error("Digite sua senha para confirmar a exclusão.")
-                elif senha_exclusao != senha_correta:
-                    st.error("Senha incorreta. O vinho não foi excluído.")
-                else:
-                    remover_vinho_de_todos_pallets(nome_original)
-                    st.session_state.estoque.pop(indice_escolhido)
-                    salvar_dados(st.session_state.estoque)
-                    registrar_log(
-                        usuario_atual["nome"],
-                        "Excluiu Vinho",
-                        nome_original,
-                    )
-                    st.session_state["vinho_excluido_msg"] = (
-                        f"Vinho '{nome_original}' excluído com sucesso."
-                    )
-                    st.rerun()
+            if btn_excluir_vinho:
+                remover_vinho_de_todos_pallets(nome_original)
+                st.session_state.estoque.pop(indice_escolhido)
+                salvar_dados(st.session_state.estoque)
+                registrar_log(
+                    st.session_state.usuario_logado["nome"],
+                    "Excluiu Vinho",
+                    nome_original,
+                )
+                st.success("Vinho excluído!")
+                st.rerun()
 
 
 # ============================================================
