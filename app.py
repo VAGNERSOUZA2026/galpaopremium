@@ -2504,7 +2504,7 @@ elif st.session_state.menu_atual == "LerQRPallet":
 
 elif st.session_state.menu_atual == "GerarQRPallets":
 
-    render_page_header("🏷️", "Gerar QR do Pallet", "O QR identifica a posição física e não precisa ser reimpresso quando os vinhos mudarem.", "Estoque • Identificação")
+    render_page_header("🏷️", "Gerar QR do Pallet", "", "Estoque • Identificação")
 
     if not QRCODE_DISPONIVEL:
         st.error("A biblioteca qrcode não está instalada.")
@@ -2538,8 +2538,6 @@ elif st.session_state.menu_atual == "GerarQRPallets":
                     st.markdown(f"**{numero}. {nome_preview}** — Safra **{safra_preview}**")
             else:
                 st.caption("Nenhum vinho cadastrado nesta posição no momento.")
-
-        st.caption("🖨️ QR Code em preto sobre fundo branco para maior contraste e melhor leitura na impressão.")
 
         if st.button("🏷️ Gerar QR Code", use_container_width=True, key="gerar_qr_unico"):
             pallet_obj = criar_ou_atualizar_pallet(corredor_qr, pallet_qr, lado_qr, st.session_state.pallets)
