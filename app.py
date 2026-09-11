@@ -4,6 +4,7 @@ import json
 import shutil
 import html
 import unicodedata
+from io import BytesIO
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -24,6 +25,7 @@ except ImportError:
 
 try:
     import qrcode
+    from PIL import Image, ImageDraw, ImageFont
     QRCODE_DISPONIVEL = True
 except ImportError:
     QRCODE_DISPONIVEL = False
@@ -2147,12 +2149,9 @@ with st.sidebar:
         st.session_state.menu_atual = "PedidosMatriz"; st.rerun()
     if st.button("🏢  Painel da Matriz", use_container_width=True, key="nav_painel"):
         st.session_state.menu_atual = "PainelMatriz"; st.rerun()
-    if st.button("🔎  Buscar / Filtros", use_container_width=True, key="nav_busca"):
-        st.session_state.menu_atual = "Filtros"; st.rerun()
-
     st.markdown('<div class="sidebar-section">Estoque</div>', unsafe_allow_html=True)
-    if st.button("🍷  Estoque Completo", use_container_width=True, key="nav_estoque"):
-        st.session_state.menu_atual = "Estoque"; st.rerun()
+    if st.button("🍷  Estoque / Buscar", use_container_width=True, key="nav_estoque_busca"):
+        st.session_state.menu_atual = "Filtros"; st.rerun()
     if st.button("📱  Ler QR do Pallet", use_container_width=True, key="nav_lerqr"):
         st.session_state.menu_atual = "LerQRPallet"; st.rerun()
     if st.button("🏷️  Gerar QR dos Pallets", use_container_width=True, key="nav_gerarqr"):
@@ -2243,7 +2242,7 @@ if st.session_state.menu_atual == "🏠 Home":
     with m4: st.metric("⚠️ Divergências", divergencias)
 
     st.markdown('<div class="section-title">Operação</div>', unsafe_allow_html=True)
-    c1, c2, c3 = st.columns(3)
+    c1, c2 = st.columns(2)
     with c1:
         st.markdown('<div class="action-card"><div class="action-icon">📦</div><div class="action-title">Checkout de Expedição</div><div class="action-desc">Separar, conferir e finalizar pedidos.</div></div>', unsafe_allow_html=True)
         if st.button("Abrir Checkout", use_container_width=True, key="home_checkout"):
@@ -2252,17 +2251,13 @@ if st.session_state.menu_atual == "🏠 Home":
         st.markdown('<div class="action-card"><div class="action-icon">🏢</div><div class="action-title">Painel da Matriz</div><div class="action-desc">Visualizar pedidos recebidos e andamento.</div></div>', unsafe_allow_html=True)
         if st.button("Abrir Painel", use_container_width=True, key="home_painel"):
             st.session_state.menu_atual = "PainelMatriz"; st.rerun()
-    with c3:
-        st.markdown('<div class="action-card"><div class="action-icon">🔎</div><div class="action-title">Buscar / Filtros</div><div class="action-desc">Encontrar vinho, safra e localização rapidamente.</div></div>', unsafe_allow_html=True)
-        if st.button("Buscar Vinhos", use_container_width=True, key="home_busca"):
-            st.session_state.menu_atual = "Filtros"; st.rerun()
 
     st.markdown('<div class="section-title">Estoque & Localização</div>', unsafe_allow_html=True)
     c4, c5, c6 = st.columns(3)
     with c4:
-        st.markdown('<div class="action-card"><div class="action-icon">🍷</div><div class="action-title">Estoque Completo</div><div class="action-desc">Consultar todos os vinhos cadastrados.</div></div>', unsafe_allow_html=True)
-        if st.button("Ver Estoque", use_container_width=True, key="home_estoque"):
-            st.session_state.menu_atual = "Estoque"; st.rerun()
+        st.markdown('<div class="action-card"><div class="action-icon">🍷</div><div class="action-title">Estoque / Buscar</div><div class="action-desc">Consultar todo o estoque e localizar vinhos rapidamente.</div></div>', unsafe_allow_html=True)
+        if st.button("Abrir Estoque", use_container_width=True, key="home_estoque_busca"):
+            st.session_state.menu_atual = "Filtros"; st.rerun()
     with c5:
         st.markdown('<div class="action-card"><div class="action-icon">📱</div><div class="action-title">QR do Pallet</div><div class="action-desc">Ler o pallet e visualizar os vinhos armazenados.</div></div>', unsafe_allow_html=True)
         if st.button("Ler QR", use_container_width=True, key="home_lerqr"):
@@ -2504,53 +2499,179 @@ elif st.session_state.menu_atual == "LerQRPallet":
 
 elif st.session_state.menu_atual == "GerarQRPallets":
 
-    render_page_header("🏷️", "Gerar QR do Pallet", "", "Estoque • Identificação")
+    render_page_header("🏷️", "Gerar QR dos Pallets", "", "Estoque • Identificação")
 
     if not QRCODE_DISPONIVEL:
         st.error("A biblioteca qrcode não está instalada.")
         st.code("pip install qrcode[pil]")
     else:
-        col1, col2, col3 = st.columns(3)
-        with col1:
-            corredor_qr = st.selectbox("Corredor", LISTA_CORREDORES, key="qr_corredor")
-        with col2:
-            pallet_qr = st.selectbox("Pallet", LISTA_PALLETS, key="qr_pallet")
-        with col3:
-            lado_qr = st.selectbox("Lado", LISTA_LADOS, key="qr_lado")
-
-        id_qr = gerar_id_pallet(corredor_qr, pallet_qr, lado_qr)
-        pallet_preview = obter_pallet(st.session_state.pallets, id_qr)
-        vinhos_preview = pallet_preview.get("vinhos", []) if pallet_preview else []
-
-        resumo = (
-            '<div style="background:#17171b;border:1px solid #34343b;border-radius:14px;padding:18px 20px;margin:14px 0;">'
-            f'<div style="font-size:1.05rem;font-weight:700;color:#f3c45b;">📍 {html.escape(corredor_qr)} • {html.escape(pallet_qr)} • {html.escape(lado_qr)}</div>'
-            f'<div style="margin-top:6px;color:#c9c9cf;">{len(vinhos_preview)} vinho(s) nesta posição</div>'
-            '</div>'
+        modo_qr = st.radio(
+            "Modo de geração",
+            ["Um pallet", "Vários pallets"],
+            horizontal=True,
+            key="modo_geracao_qr",
         )
-        st.markdown(resumo, unsafe_allow_html=True)
 
-        with st.expander("🍷 Ver vinhos deste pallet"):
-            if vinhos_preview:
-                for numero, vinho_preview in enumerate(vinhos_preview, start=1):
-                    nome_preview = str(vinho_preview.get("nome", "")).strip() or "Vinho sem nome"
-                    safra_preview = str(vinho_preview.get("safra", "N/A")).strip() or "N/A"
-                    st.markdown(f"**{numero}. {nome_preview}** — Safra **{safra_preview}**")
-            else:
-                st.caption("Nenhum vinho cadastrado nesta posição no momento.")
+        if modo_qr == "Um pallet":
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                corredor_qr = st.selectbox("Corredor", LISTA_CORREDORES, key="qr_corredor")
+            with col2:
+                pallet_qr = st.selectbox("Pallet", LISTA_PALLETS, key="qr_pallet")
+            with col3:
+                lado_qr = st.selectbox("Lado", LISTA_LADOS, key="qr_lado")
 
-        if st.button("🏷️ Gerar QR Code", use_container_width=True, key="gerar_qr_unico"):
-            pallet_obj = criar_ou_atualizar_pallet(corredor_qr, pallet_qr, lado_qr, st.session_state.pallets)
-            salvar_pallets(st.session_state.pallets)
-            caminho_qr = gerar_qr_pallet(id_qr, pallet_obj)
-            if caminho_qr and os.path.exists(caminho_qr):
-                registrar_log(st.session_state.usuario_logado.get("nome", "Usuário"), "Gerou QR Code de Pallet", f"Posição: {id_qr}")
-                st.success(f"QR Code {id_qr} gerado com sucesso.")
-                st.image(caminho_qr, width=280)
-                with open(caminho_qr, "rb") as arquivo_qr:
-                    st.download_button("⬇️ Baixar QR Code", data=arquivo_qr.read(), file_name=f"QR_{id_qr}.png", mime="image/png", use_container_width=True, key=f"download_qr_{id_qr}")
+            id_qr = gerar_id_pallet(corredor_qr, pallet_qr, lado_qr)
+            pallet_preview = obter_pallet(st.session_state.pallets, id_qr)
+            vinhos_preview = pallet_preview.get("vinhos", []) if pallet_preview else []
+
+            resumo = (
+                '<div style="background:#17171b;border:1px solid #34343b;border-radius:14px;padding:18px 20px;margin:14px 0;">'
+                f'<div style="font-size:1.05rem;font-weight:700;color:#f3c45b;">📍 {html.escape(corredor_qr)} • {html.escape(pallet_qr)} • {html.escape(lado_qr)}</div>'
+                f'<div style="margin-top:6px;color:#c9c9cf;">{len(vinhos_preview)} vinho(s) nesta posição</div>'
+                '</div>'
+            )
+            st.markdown(resumo, unsafe_allow_html=True)
+
+            with st.expander("🍷 Ver vinhos deste pallet"):
+                if vinhos_preview:
+                    for numero, vinho_preview in enumerate(vinhos_preview, start=1):
+                        nome_preview = str(vinho_preview.get("nome", "")).strip() or "Vinho sem nome"
+                        safra_preview = str(vinho_preview.get("safra", "N/A")).strip() or "N/A"
+                        st.markdown(f"**{numero}. {nome_preview}** — Safra **{safra_preview}**")
+                else:
+                    st.caption("Nenhum vinho cadastrado nesta posição no momento.")
+
+            if st.button("🏷️ Gerar QR Code", use_container_width=True, key="gerar_qr_unico"):
+                pallet_obj = criar_ou_atualizar_pallet(corredor_qr, pallet_qr, lado_qr, st.session_state.pallets)
+                salvar_pallets(st.session_state.pallets)
+                caminho_qr = gerar_qr_pallet(id_qr, pallet_obj)
+                if caminho_qr and os.path.exists(caminho_qr):
+                    registrar_log(st.session_state.usuario_logado.get("nome", "Usuário"), "Gerou QR Code de Pallet", f"Posição: {id_qr}")
+                    st.success(f"QR Code {id_qr} gerado com sucesso.")
+                    st.image(caminho_qr, width=280)
+                    with open(caminho_qr, "rb") as arquivo_qr:
+                        st.download_button("⬇️ Baixar QR Code", data=arquivo_qr.read(), file_name=f"QR_{id_qr}.png", mime="image/png", use_container_width=True, key=f"download_qr_{id_qr}")
+                else:
+                    st.error("Não foi possível gerar o QR Code.")
+
+        else:
+            st.markdown("### 🖨️ Gerar vários QR Codes")
+            col1, col2 = st.columns(2)
+            with col1:
+                corredor_lote = st.selectbox("Corredor", LISTA_CORREDORES, key="qr_lote_corredor")
+            with col2:
+                lado_lote = st.selectbox("Lado", LISTA_LADOS, key="qr_lote_lado")
+
+            numeros_pallets = [_numero_de_texto(p) or i + 1 for i, p in enumerate(LISTA_PALLETS)]
+            minimo_pallet = min(numeros_pallets) if numeros_pallets else 1
+            maximo_pallet = max(numeros_pallets) if numeros_pallets else 20
+
+            cini, cfim = st.columns(2)
+            with cini:
+                pallet_inicio = st.number_input("Do pallet", min_value=minimo_pallet, max_value=maximo_pallet, value=minimo_pallet, step=1, key="qr_lote_inicio")
+            with cfim:
+                pallet_fim = st.number_input("Até o pallet", min_value=minimo_pallet, max_value=maximo_pallet, value=min(maximo_pallet, 20), step=1, key="qr_lote_fim")
+
+            if pallet_inicio > pallet_fim:
+                st.warning("O pallet inicial precisa ser menor ou igual ao pallet final.")
             else:
-                st.error("Não foi possível gerar o QR Code.")
+                qtd_qrs = int(pallet_fim - pallet_inicio + 1)
+                st.caption(f"Serão gerados {qtd_qrs} QR Codes em um arquivo A4 pronto para impressão.")
+
+                if st.button("🖨️ Preparar QR Codes para imprimir", use_container_width=True, key="gerar_qr_lote"):
+                    try:
+                        # A4 em 150 DPI: 1240 x 1754 px. Grade 4x5 = 20 etiquetas por página.
+                        page_w, page_h = 1240, 1754
+                        cols, rows = 4, 5
+                        cell_w, cell_h = page_w // cols, page_h // rows
+                        margem = 16
+                        qr_size = min(cell_w - 48, cell_h - 86)
+                        paginas = []
+
+                        try:
+                            fonte = ImageFont.truetype("DejaVuSans-Bold.ttf", 24)
+                            fonte_peq = ImageFont.truetype("DejaVuSans.ttf", 19)
+                        except Exception:
+                            fonte = ImageFont.load_default()
+                            fonte_peq = ImageFont.load_default()
+
+                        ids_gerados = []
+                        pagina = Image.new("RGB", (page_w, page_h), "white")
+                        draw = ImageDraw.Draw(pagina)
+                        pos = 0
+
+                        for numero in range(int(pallet_inicio), int(pallet_fim) + 1):
+                            pallet_nome = f"Pallet {numero:02d}"
+                            if pallet_nome not in LISTA_PALLETS:
+                                continue
+
+                            id_lote = gerar_id_pallet(corredor_lote, pallet_nome, lado_lote)
+                            pallet_obj = criar_ou_atualizar_pallet(corredor_lote, pallet_nome, lado_lote, st.session_state.pallets)
+                            caminho_qr = gerar_qr_pallet(id_lote, pallet_obj)
+                            if not caminho_qr or not os.path.exists(caminho_qr):
+                                continue
+
+                            if pos > 0 and pos % (cols * rows) == 0:
+                                paginas.append(pagina)
+                                pagina = Image.new("RGB", (page_w, page_h), "white")
+                                draw = ImageDraw.Draw(pagina)
+
+                            idx_pagina = pos % (cols * rows)
+                            linha = idx_pagina // cols
+                            coluna = idx_pagina % cols
+                            x0 = coluna * cell_w
+                            y0 = linha * cell_h
+
+                            # Contorno fino facilita recortar sem prejudicar o QR.
+                            draw.rectangle([x0 + margem, y0 + margem, x0 + cell_w - margem, y0 + cell_h - margem], outline="black", width=1)
+
+                            resample_nearest = getattr(getattr(Image, "Resampling", Image), "NEAREST", Image.NEAREST)
+                            qr_img = Image.open(caminho_qr).convert("RGB").resize((qr_size, qr_size), resample_nearest)
+                            qx = x0 + (cell_w - qr_size) // 2
+                            qy = y0 + 20
+                            pagina.paste(qr_img, (qx, qy))
+
+                            texto1 = id_lote
+                            texto2 = f"{corredor_lote} • {pallet_nome} • {lado_lote}"
+                            b1 = draw.textbbox((0, 0), texto1, font=fonte)
+                            b2 = draw.textbbox((0, 0), texto2, font=fonte_peq)
+                            draw.text((x0 + (cell_w - (b1[2]-b1[0]))/2, y0 + qr_size + 28), texto1, fill="black", font=fonte)
+                            draw.text((x0 + (cell_w - (b2[2]-b2[0]))/2, y0 + qr_size + 58), texto2, fill="black", font=fonte_peq)
+
+                            ids_gerados.append(id_lote)
+                            pos += 1
+
+                        if pos % (cols * rows) != 0 or not paginas:
+                            paginas.append(pagina)
+
+                        salvar_pallets(st.session_state.pallets)
+
+                        if not ids_gerados:
+                            st.error("Nenhum QR Code pôde ser gerado para o intervalo informado.")
+                        else:
+                            pdf_buffer = BytesIO()
+                            primeira = paginas[0].convert("RGB")
+                            restantes = [pg.convert("RGB") for pg in paginas[1:]]
+                            primeira.save(pdf_buffer, format="PDF", save_all=True, append_images=restantes, resolution=150.0)
+                            pdf_bytes = pdf_buffer.getvalue()
+
+                            registrar_log(
+                                st.session_state.usuario_logado.get("nome", "Usuário"),
+                                "Gerou QR Codes em lote",
+                                f"{corredor_lote} | Pallets {int(pallet_inicio):02d} a {int(pallet_fim):02d} | {lado_lote} | {len(ids_gerados)} QR(s)",
+                            )
+                            st.success(f"{len(ids_gerados)} QR Codes preparados para impressão.")
+                            st.download_button(
+                                "⬇️ Baixar PDF para imprimir",
+                                data=pdf_bytes,
+                                file_name=f"QR_{corredor_lote.replace(' ', '_')}_P{int(pallet_inicio):02d}-P{int(pallet_fim):02d}_{lado_lote.replace(' / ', '_').replace(' ', '_')}.pdf",
+                                mime="application/pdf",
+                                use_container_width=True,
+                                key="download_qr_lote_pdf",
+                            )
+                    except Exception as e:
+                        st.error(f"Não foi possível preparar os QR Codes em lote: {e}")
 
 elif st.session_state.menu_atual == "GerenciarPallets":
 
@@ -2558,7 +2679,7 @@ elif st.session_state.menu_atual == "GerenciarPallets":
 
     st.info(
         "Ao mover um vinho por aqui, a localização também é atualizada "
-        "automaticamente na Busca, no Estoque Completo e no cadastro do vinho."
+        "automaticamente no Estoque / Buscar e no cadastro do vinho."
     )
 
     col1, col2, col3 = st.columns(3)
@@ -3854,192 +3975,58 @@ elif st.session_state.menu_atual == "PedidosMatriz":
 # FILTROS
 # ============================================================
 
-elif st.session_state.menu_atual == "Filtros":
+elif st.session_state.menu_atual in ["Filtros", "Estoque"]:
 
-    render_page_header("🔍", "Buscar e Filtrar Vinhos", "Localize rapidamente vinhos por nome, tipo, safra e dados do cadastro.", "Estoque • Consulta")
+    render_page_header("🍷", "Estoque e Busca", "Consulte o estoque completo ou encontre um vinho rapidamente.", "Estoque • Consulta")
 
-    col_f1, col_f2 = st.columns(2)
-
+    col_f1, col_f2 = st.columns([2, 1])
     with col_f1:
-
         termo = st.text_input(
-            "Pesquisar por nome, tipo ou safra:",
-            value=st.session_state.termo_busca
+            "Pesquisar por nome, tipo, safra, localização ou código de barras",
+            value=st.session_state.get("termo_busca", ""),
+            key="estoque_busca_termo",
         )
-
     with col_f2:
-
         tipo_filtro = st.selectbox(
-            "Filtrar por Tipo:",
-            [
-                "Todos",
-                "Tinto",
-                "Branco",
-                "Rosé",
-                "Espumante",
-                "Fortificado"
-            ]
+            "Tipo",
+            ["Todos", "Tinto", "Branco", "Rosé", "Espumante", "Fortificado"],
+            key="estoque_busca_tipo",
         )
 
+    termo_norm = normalizar_nome_vinho(termo)
     resultados = []
-
     for v in st.session_state.estoque:
-
-        match_termo = (
-            termo.lower()
-            in v["nome"].lower()
-            or
-            termo.lower()
-            in v.get(
-                "safra",
-                ""
-            ).lower()
-            or
-            termo.lower()
-            in v.get(
-                "tipo",
-                ""
-            ).lower()
-        )
-
-        match_tipo = (
-            tipo_filtro == "Todos"
-            or
-            v.get("tipo")
-            == tipo_filtro
-        )
-
-        if (
-            match_termo
-            and match_tipo
-        ):
-
+        campos = " ".join([
+            str(v.get("nome", "")),
+            str(v.get("tipo", "")),
+            str(v.get("safra", "")),
+            str(v.get("localizacao", "")),
+            str(v.get("lado", "")),
+            str(v.get("codigo_barras", "")),
+        ])
+        match_termo = not termo_norm or termo_norm in normalizar_nome_vinho(campos)
+        match_tipo = tipo_filtro == "Todos" or v.get("tipo") == tipo_filtro
+        if match_termo and match_tipo:
             resultados.append(v)
 
-    st.markdown(
-        f"**Total de vinhos encontrados:** "
-        f"{len(resultados)}"
-    )
-
-    st.markdown("---")
+    st.markdown(f"**{len(resultados)} vinho(s) encontrado(s)**")
 
     if not resultados:
-
-        st.info(
-            "Nenhum vinho encontrado."
-        )
-
+        st.info("Nenhum vinho encontrado.")
     else:
-
-        for vinho in resultados:
-
-            st.markdown(
-                f"""
-                <div class="wine-card">
-
-                <div class="wine-title">
-                🍷 {html.escape(vinho["nome"])}
-                ({html.escape(vinho.get("safra","N/A"))})
-                </div>
-
-                <p>
-                <b>Tipo:</b>
-                {html.escape(vinho.get("tipo","Tinto"))}
-
-                |
-
-                <b>Caixa:</b>
-                {html.escape(vinho.get("caixa","N/A"))}
-                </p>
-
-                <p>
-                <b>Localização:</b>
-                📍 {html.escape(vinho["localizacao"])}
-
-                ({html.escape(vinho.get("lado","N/A"))})
-                </p>
-
-                <p>
-                <b>Cód. Barras:</b>
-                {html.escape(
-                    vinho.get(
-                        "codigo_barras",
-                        "Não cadastrado"
-                    )
-                )}
-                </p>
-
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-
-# ============================================================
-# ESTOQUE
-# ============================================================
-
-elif st.session_state.menu_atual == "Estoque":
-
-    render_page_header("🍷", "Estoque Completo do Galpão", "Consulte todo o inventário com safra, localização, caixa e código de barras.", "Estoque • Inventário")
-
-    if not st.session_state.estoque:
-
-        st.info(
-            "Estoque vazio."
-        )
-
-    else:
-
-        df_estoque = pd.DataFrame(
-            [
-                {
-                    "Nome":
-                        v["nome"],
-
-                    "Tipo":
-                        v.get(
-                            "tipo",
-                            "Tinto"
-                        ),
-
-                    "Safra":
-                        v.get(
-                            "safra",
-                            ""
-                        ),
-
-                    "Localização":
-                        v["localizacao"],
-
-                    "Lado":
-                        v.get(
-                            "lado",
-                            ""
-                        ),
-
-                    "Caixa":
-                        v.get(
-                            "caixa",
-                            ""
-                        ),
-
-                    "Cód. Barras":
-                        v.get(
-                            "codigo_barras",
-                            ""
-                        )
-                }
-                for v
-                in st.session_state.estoque
-            ]
-        )
-
-        st.dataframe(
-            df_estoque,
-            use_container_width=True
-        )
-
+        df_estoque = pd.DataFrame([
+            {
+                "Nome": v.get("nome", ""),
+                "Tipo": v.get("tipo", ""),
+                "Safra": v.get("safra", ""),
+                "Localização": v.get("localizacao", ""),
+                "Lado": v.get("lado", ""),
+                "Caixa": v.get("caixa", ""),
+                "Cód. Barras": v.get("codigo_barras", ""),
+            }
+            for v in resultados
+        ])
+        st.dataframe(df_estoque, use_container_width=True, hide_index=True)
 
 # ============================================================
 # CADASTRAR VINHO
