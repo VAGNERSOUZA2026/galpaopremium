@@ -1772,8 +1772,7 @@ def vinhos_atuais_da_posicao(pallet_id, estoque):
 # ============================================================
 
 def componente_leitor_qr(chave_sessao, tela_retorno=None):
-    """Leitor por câmera que preserva a tela atual depois da leitura."""
-    tela_js = str(tela_retorno or "").replace('"', "")
+    """Leitor de QR de pallet. Ao ler, abre imediatamente a consulta da posição."""
     html_code = f"""
     <div style="text-align:center;background:#211B1E;padding:15px;border-radius:12px;border:1px solid #4A3A40;">
         <div id="reader_{chave_sessao}" style="width:100%;max-width:400px;margin:auto;border-radius:8px;overflow:hidden;"></div>
@@ -1785,15 +1784,18 @@ def componente_leitor_qr(chave_sessao, tela_retorno=None):
     function onScanSuccess(decodedText, decodedResult) {{
         if (leituraConcluida_{chave_sessao}) return;
         leituraConcluida_{chave_sessao} = true;
-        document.getElementById("resultado_{chave_sessao}").innerText = "✅ Código lido: " + decodedText;
-        const url = new URL(window.parent.location.href);
-        url.searchParams.set('scanned_{chave_sessao}', decodedText);
-        if ("{tela_js}") url.searchParams.set('screen', "{tela_js}");
-        if ("{chave_sessao}" === "checkout_camera") url.searchParams.set('checkout', '1');
-        const finalizar = () => {{ window.parent.location.href = url.toString(); }};
+        document.getElementById("resultado_{chave_sessao}").innerText = "QR lido. Abrindo pallet...";
+
+        const destino = new URL(window.parent.location.origin + window.parent.location.pathname);
+        destino.searchParams.set('pallet', decodedText);
+        destino.searchParams.set('public', '1');
+
+        const abrir = () => {{ window.parent.location.href = destino.toString(); }};
         if (window.html5QrCode_{chave_sessao}) {{
-            window.html5QrCode_{chave_sessao}.stop().then(finalizar).catch(finalizar);
-        }} else finalizar();
+            window.html5QrCode_{chave_sessao}.stop().then(abrir).catch(abrir);
+        }} else {{
+            abrir();
+        }}
     }}
     try {{
         const html5QrCode = new Html5Qrcode("reader_{chave_sessao}");
@@ -2050,6 +2052,7 @@ if _scan_publico:
             const url = new URL(window.parent.location.href);
             url.search = '';
             url.searchParams.set('pallet', decodedText);
+            url.searchParams.set('public', '1');
             const ir = () => { window.parent.location.href = url.toString(); };
             if (window.readerPublico) {
                 window.readerPublico.stop().then(ir).catch(ir);
