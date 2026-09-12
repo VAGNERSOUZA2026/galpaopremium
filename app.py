@@ -2008,6 +2008,71 @@ if str(qp.get("checkout", "") or "") == "1":
         pass
 
 # ------------------------------------------------------------
+# LEITOR PÚBLICO DE QR DO PALLET
+# Permite escanear outro pallet sem voltar ao login/menu.
+# ------------------------------------------------------------
+_scan_publico = str(qp.get("scan_pallet", "") or "") == "1"
+if _scan_publico:
+    st.markdown(
+        """
+        <style>
+        [data-testid='stSidebar']{display:none!important;}
+        [data-testid='stHeader']{display:none!important;}
+        .block-container{padding-top:1.2rem!important;max-width:900px!important;}
+        .stApp{background:linear-gradient(135deg,#21181C,#2A2024)!important;}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        """
+        <div style="background:linear-gradient(135deg,#2B2024,#3A1823);border:1px solid #735063;border-radius:18px;padding:22px 24px;margin-bottom:18px;">
+            <div style="font-size:1.45rem;font-weight:800;color:#F0C97A;">🍷 PREMIUM WINES</div>
+            <div style="color:#E0D8D3;margin-top:3px;">Escanear pallet</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.caption("Aponte a câmera para o QR Code do próximo pallet.")
+    components.html(
+        """
+        <div style="text-align:center;background:#272125;padding:14px;border-radius:14px;border:1px solid #534049;">
+            <div id="reader_publico" style="width:100%;max-width:430px;margin:auto;border-radius:10px;overflow:hidden;"></div>
+            <p id="resultado_publico" style="font-weight:700;color:#F0C97A;margin-top:10px;"></p>
+        </div>
+        <script src="https://unpkg.com/html5-qrcode"></script>
+        <script>
+        let concluiu = false;
+        function sucesso(decodedText) {
+            if (concluiu) return;
+            concluiu = true;
+            document.getElementById('resultado_publico').innerText = 'QR lido. Abrindo pallet...';
+            const url = new URL(window.parent.location.href);
+            url.search = '';
+            url.searchParams.set('pallet', decodedText);
+            const ir = () => { window.parent.location.href = url.toString(); };
+            if (window.readerPublico) {
+                window.readerPublico.stop().then(ir).catch(ir);
+            } else { ir(); }
+        }
+        try {
+            const reader = new Html5Qrcode('reader_publico');
+            window.readerPublico = reader;
+            reader.start(
+                { facingMode: 'environment' },
+                { fps: 10, qrbox: { width: 260, height: 260 } },
+                sucesso
+            ).catch(() => {
+                document.getElementById('resultado_publico').innerText = 'Não foi possível iniciar a câmera.';
+            });
+        } catch (e) {}
+        </script>
+        """,
+        height=500,
+    )
+    st.stop()
+
+# ------------------------------------------------------------
 # CONSULTA PÚBLICA DO PALLET PELO QR CODE
 # Não exige login e é somente leitura.
 # ------------------------------------------------------------
@@ -2085,6 +2150,16 @@ if _pallet_publico_param:
             st.info("Nenhum vinho cadastrado nesta posição no momento.")
     else:
         st.error("QR Code de pallet inválido.")
+
+    st.markdown("---")
+    if st.button(
+        "📷 Escanear outro pallet",
+        key="btn_publico_escanear_outro_pallet",
+        use_container_width=True,
+    ):
+        st.query_params.clear()
+        st.query_params["scan_pallet"] = "1"
+        st.rerun()
     st.stop()
 
 for key, val in list(qp.items()):
@@ -2474,199 +2549,73 @@ elif st.session_state.menu_atual == "LerQRPallet":
 
     render_page_header("📱", "Leitura de QR Code do Pallet", "Aponte a câmera para a etiqueta do pallet e veja imediatamente os vinhos e safras cadastrados naquela posição.", "Estoque • Localização")
 
-    st.markdown(
-        """
-        Aponte a câmera do celular para o
-        QR Code colocado no pallet.
-        <br>
-        O sistema mostrará os vinhos e as
-        respectivas safras cadastrados atualmente nessa posição.
-        <br>
-        A etiqueta do pallet é fixa: se os vinhos mudarem, não é necessário trocar o QR Code.
-        <br>
-        <b>Quantidade não é controlada nesta função.</b>
-        """,
-        unsafe_allow_html=True
-    )
+    # Se já existe resultado, escondemos a câmera para deixar a consulta limpa.
+    codigo_ja_lido = str(st.session_state.get("qr_pallet_lido", "") or "").strip()
 
-    st.markdown("---")
-
-    modo_leitura = st.radio(
-        "Forma de leitura:",
-        [
-            "📷 Câmera do celular",
-            "⌨️ Digitar código"
-        ],
-        horizontal=True,
-        key="modo_leitura_qr_pallet",
-    )
-
-    codigo_lido = ""
-
-    if modo_leitura == "📷 Câmera do celular":
-
-        componente_leitor_qr(
-            "leitor_pallet"
+    if not codigo_ja_lido:
+        modo_leitura = st.radio(
+            "Forma de leitura:",
+            ["📷 Câmera do celular", "⌨️ Digitar código"],
+            horizontal=True,
+            key="modo_leitura_qr_pallet",
         )
 
-        codigo_lido = (
-            st.session_state.get(
-                "qr_pallet_lido",
-                ""
-            )
-        )
-
+        codigo_lido = ""
+        if modo_leitura == "📷 Câmera do celular":
+            componente_leitor_qr("leitor_pallet", tela_retorno="LerQRPallet")
+            codigo_lido = str(st.session_state.get("qr_pallet_lido", "") or "").strip()
+        else:
+            codigo_lido = st.text_input(
+                "Digite o código do pallet",
+                placeholder="Ex.: C01-P04-D",
+                key="codigo_digitado_pallet",
+            ).strip()
     else:
-
-        codigo_lido = st.text_input(
-            "Digite o código do pallet",
-            placeholder="Ex.: C01-P04-D"
-        )
+        codigo_lido = codigo_ja_lido
 
     if codigo_lido:
+        # Aceita tanto o código C01-P01-D quanto a URL pública completa do QR.
+        codigo_posicao = extrair_id_do_qr(codigo_lido)
+        dados_posicao = dados_posicao_pallet_id(codigo_posicao)
+        vinhos = vinhos_atuais_da_posicao(codigo_posicao, st.session_state.estoque)
 
-        # A etiqueta identifica a posição. QR Codes antigos que continham
-        # texto extra também continuam funcionando: extraímos apenas o ID
-        # e consultamos os dados atuais do pallet no sistema.
-        conteudo_qr_lido = str(
-            codigo_lido
-        ).strip()
-
-        codigo_lido = extrair_id_do_qr(
-            conteudo_qr_lido
-        )
-
-        pallet = obter_pallet(
-            st.session_state.pallets,
-            codigo_lido
-        )
-
-        if pallet:
-
+        if dados_posicao:
             st.markdown(
                 f"""
                 <div class="pallet-header">
-
-                    <div style="
-                        font-size:0.9rem;
-                        opacity:0.85;
-                    ">
-                    POSIÇÃO IDENTIFICADA
-                    </div>
-
-                    <div style="
-                        font-size:1.6rem;
-                        font-weight:700;
-                    ">
-                    📍 {html.escape(
-                        pallet["corredor"]
-                    )}
-                    </div>
-
-                    <div style="
-                        font-size:1.2rem;
-                    ">
-                    {html.escape(
-                        pallet["pallet"]
-                    )}
-                    &nbsp; | &nbsp;
-                    {html.escape(
-                        pallet["lado"]
-                    )}
-                    </div>
-
-                    <div style="
-                        margin-top:8px;
-                        font-size:0.85rem;
-                        opacity:0.8;
-                    ">
-                    Código: {html.escape(
-                        pallet["id"]
-                    )}
-                    </div>
-
+                    <div style="font-size:0.9rem;opacity:0.85;">POSIÇÃO IDENTIFICADA</div>
+                    <div style="font-size:1.6rem;font-weight:700;">📍 {html.escape(dados_posicao['corredor'])}</div>
+                    <div style="font-size:1.2rem;">{html.escape(dados_posicao['pallet'])} &nbsp; | &nbsp; {html.escape(dados_posicao['lado'])}</div>
+                    <div style="margin-top:8px;font-size:0.85rem;opacity:0.8;">Código: {html.escape(dados_posicao['id'])}</div>
                 </div>
                 """,
-                unsafe_allow_html=True
+                unsafe_allow_html=True,
             )
 
-            vinhos = pallet.get(
-                "vinhos",
-                []
-            )
-
-            st.markdown(
-                "### 🍷 Vinhos neste pallet"
-            )
-
+            st.markdown("### 🍷 Vinhos neste pallet")
             if not vinhos:
-
-                st.info(
-                    "Nenhum vinho cadastrado "
-                    "neste pallet."
-                )
-
+                st.info("Nenhum vinho cadastrado neste pallet.")
             else:
-
-                st.success(
-                    f"{len(vinhos)} vinho(s) "
-                    "cadastrado(s) nesta posição."
-                )
-
+                st.success(f"{len(vinhos)} vinho(s) cadastrado(s) nesta posição.")
                 for vinho in vinhos:
-
+                    lit = str(vinho.get("litragem", "") or "").strip()
+                    lit_html = f" • {html.escape(lit)}" if lit else ""
                     st.markdown(
                         f"""
                         <div class="wine-item">
-
-                            <div style="
-                                color:#D6AE63;
-                                font-size:1.05rem;
-                                font-weight:700;
-                            ">
-                            🍷 {html.escape(
-                                vinho.get(
-                                    "nome",
-                                    ""
-                                )
-                            )}
-                            </div>
-
-                            <div style="
-                                color:#AFA6A0;
-                                margin-top:3px;
-                            ">
-                            Safra:
-                            <b>
-                            {html.escape(
-                                vinho.get(
-                                    "safra",
-                                    "N/A"
-                                )
-                            )}
-                            </b>
-                            </div>
-
+                            <div style="color:#D6AE63;font-size:1.05rem;font-weight:700;">🍷 {html.escape(vinho.get('nome',''))}</div>
+                            <div style="color:#AFA6A0;margin-top:3px;">Safra: <b>{html.escape(vinho.get('safra','N/A'))}</b>{lit_html}</div>
                         </div>
                         """,
-                        unsafe_allow_html=True
+                        unsafe_allow_html=True,
                     )
-
         else:
-
-            st.error(
-                f"O QR Code {codigo_lido} "
-                "não está cadastrado no sistema."
-            )
-
-            st.info(
-                "Entre em 'Gerenciar Pallets' "
-                "para cadastrar esta posição."
-            )
+            st.error(f"O QR Code {html.escape(str(codigo_lido))} não contém uma posição de pallet válida.")
 
         def _nova_leitura_pallet():
             st.session_state["qr_pallet_lido"] = ""
             st.session_state["modo_leitura_qr_pallet"] = "📷 Câmera do celular"
+            st.session_state.pop("codigo_digitado_pallet", None)
             try:
                 if "scanned_leitor_pallet" in st.query_params:
                     del st.query_params["scanned_leitor_pallet"]
