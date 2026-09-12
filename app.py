@@ -531,6 +531,41 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background:
+            radial-gradient(circle at 88% 8%, rgba(126,45,67,.20), transparent 31%),
+            linear-gradient(135deg, #1A1518 0%, #211A1E 55%, #171316 100%) !important;
+    }
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #24161B 0%, #1C171A 100%) !important;
+        border-right-color: #4A353D !important;
+    }
+    .topbar, .wine-card, .qr-card, .wine-item, .action-card,
+    [data-testid="stMetric"], [data-testid="stForm"],
+    [data-testid="stExpander"], .premium-panel {
+        background: linear-gradient(180deg, #272125, #201A1E) !important;
+        border-color: #4B3A41 !important;
+    }
+    [data-baseweb="input"] > div, [data-baseweb="select"] > div,
+    [data-baseweb="textarea"] > div, .stTextInput input,
+    .stNumberInput input, .stTextArea textarea {
+        background: #241F22 !important;
+        border-color: #5A474F !important;
+    }
+    [role="radiogroup"] {
+        background: #211B1E !important;
+        border-color: #4B3A41 !important;
+    }
+    p, .stMarkdown, [data-testid="stCaptionContainer"] { color: #E3DCD7 !important; }
+    .action-desc, .premium-muted, .page-desc, .hero-sub { color: #C2B8B3 !important; }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 # ============================================================
 # ARQUIVOS
 # ============================================================
@@ -589,12 +624,22 @@ LISTA_LADOS = [
 ]
 
 OPCOES_CAIXA = [
+    "Caixa com 24 garrafas",
     "Caixa com 12 garrafas",
     "Caixa com 6 garrafas",
     "Caixa com 3 garrafas",
     "Caixa com 2 garrafas",
     "Garrafa Avulsa (1 un)",
     "Outra quantidade"
+]
+
+LISTA_LITRAGENS = [
+    "375 ml",
+    "500 ml",
+    "750 ml",
+    "1 L",
+    "1,5 L",
+    "3 L",
 ]
 
 
@@ -1608,7 +1653,7 @@ def url_publica_pallet(pallet_id):
     # o texto da posição quando o app estiver atrás do proxy do Streamlit.
     base_url = "https://galpaopremium-gwiywrdxssrwmzv9tdpeff.streamlit.app/"
     pallet_limpo = str(pallet_id or "").strip().upper()
-    return f"{base_url}?pallet={pallet_limpo}"
+    return f"{base_url}?pallet={pallet_limpo}&public=1"
 
 
 def gerar_qr_pallet(
@@ -1676,158 +1721,112 @@ def extrair_id_do_qr(conteudo):
     return texto.upper()
 
 
+def dados_posicao_pallet_id(pallet_id):
+    """Converte C01-P01-D em corredor, pallet e lado."""
+    match = re.fullmatch(r"C(\d{2})-P(\d{2})-([DEC])", str(pallet_id or "").strip().upper())
+    if not match:
+        return None
+    mapa_lado = {"D": "Direito", "E": "Esquerdo", "C": "Centro / Único"}
+    return {
+        "id": f"C{match.group(1)}-P{match.group(2)}-{match.group(3)}",
+        "corredor": f"Corredor {match.group(1)}",
+        "pallet": f"Pallet {match.group(2)}",
+        "lado": mapa_lado[match.group(3)],
+    }
+
+
+def vinhos_atuais_da_posicao(pallet_id, estoque):
+    """Consulta o estoque ao vivo para o QR público."""
+    dados = dados_posicao_pallet_id(pallet_id)
+    if not dados:
+        return []
+    encontrados = []
+    for vinho in estoque or []:
+        corredor, local_tipo, numero_item, lado = decompor_localizacao_vinho(vinho)
+        if local_tipo != "Pallet":
+            continue
+        id_vinho = gerar_id_pallet(corredor, nome_pallet_por_item(numero_item), lado)
+        if id_vinho == dados["id"]:
+            encontrados.append({
+                "nome": str(vinho.get("nome", "") or "").strip(),
+                "safra": str(vinho.get("safra", "") or "N/A").strip(),
+                "litragem": str(vinho.get("litragem", "") or "").strip(),
+            })
+    return sorted(encontrados, key=lambda v: (v.get("nome", "").lower(), v.get("safra", "")))
+
+
 # ============================================================
 # LEITOR QR CODE
 # ============================================================
 
-def componente_leitor_qr(
-    chave_sessao
-):
-
+def componente_leitor_qr(chave_sessao, tela_retorno=None):
+    """Leitor por câmera que preserva a tela atual depois da leitura."""
+    tela_js = str(tela_retorno or "").replace('"', "")
     html_code = f"""
-    <div style="
-        text-align:center;
-        background:#17171B;
-        padding:15px;
-        border-radius:12px;
-        border:1px solid #35353C;
-    ">
-
-        <div
-            id="reader_{chave_sessao}"
-            style="
-                width:100%;
-                max-width:400px;
-                margin:auto;
-                border-radius:8px;
-                overflow:hidden;
-            ">
-        </div>
-
-        <p
-            id="resultado_{chave_sessao}"
-            style="
-                font-weight:bold;
-                color:#D6AE63;
-                margin-top:10px;
-                font-size:1rem;
-            ">
-        </p>
-
+    <div style="text-align:center;background:#211B1E;padding:15px;border-radius:12px;border:1px solid #4A3A40;">
+        <div id="reader_{chave_sessao}" style="width:100%;max-width:400px;margin:auto;border-radius:8px;overflow:hidden;"></div>
+        <p id="resultado_{chave_sessao}" style="font-weight:bold;color:#E3BD72;margin-top:10px;font-size:1rem;"></p>
     </div>
-
     <script src="https://unpkg.com/html5-qrcode"></script>
-
     <script>
-
-    function onScanSuccess(
-        decodedText,
-        decodedResult
-    ) {{
-
-        document.getElementById(
-            "resultado_{chave_sessao}"
-        ).innerText =
-            "✅ QR Code lido: " + decodedText;
-
-        const url =
-            new URL(
-                window.parent.location.href
-            );
-
-        url.searchParams.set(
-            'scanned_{chave_sessao}',
-            decodedText
-        );
-
-        window.parent.history.replaceState(
-            {{}},
-            '',
-            url
-        );
-
-        if (
-            window.html5QrCode_{chave_sessao}
-        ) {{
-
-            window
-                .html5QrCode_{chave_sessao}
-                .stop()
-                .catch(
-                    err => {{}}
-                );
-
-        }}
-
+    let leituraConcluida_{chave_sessao} = false;
+    function onScanSuccess(decodedText, decodedResult) {{
+        if (leituraConcluida_{chave_sessao}) return;
+        leituraConcluida_{chave_sessao} = true;
+        document.getElementById("resultado_{chave_sessao}").innerText = "✅ Código lido: " + decodedText;
+        const url = new URL(window.parent.location.href);
+        url.searchParams.set('scanned_{chave_sessao}', decodedText);
+        if ("{tela_js}") url.searchParams.set('screen', "{tela_js}");
+        if ("{chave_sessao}" === "checkout_camera") url.searchParams.set('checkout', '1');
+        const finalizar = () => {{ window.parent.location.href = url.toString(); }};
+        if (window.html5QrCode_{chave_sessao}) {{
+            window.html5QrCode_{chave_sessao}.stop().then(finalizar).catch(finalizar);
+        }} else finalizar();
     }}
-
     try {{
-
-        const html5QrCode =
-            new Html5Qrcode(
-                "reader_{chave_sessao}"
-            );
-
-        window.html5QrCode_{chave_sessao} =
-            html5QrCode;
-
+        const html5QrCode = new Html5Qrcode("reader_{chave_sessao}");
+        window.html5QrCode_{chave_sessao} = html5QrCode;
         html5QrCode.start(
-
             {{ facingMode: "environment" }},
-
-            {{
-                fps: 10,
-                qrbox: {{
-                    width: 250,
-                    height: 250
-                }}
-            }},
-
+            {{ fps: 10, qrbox: {{ width: 260, height: 260 }} }},
             onScanSuccess
-
-        ).catch(
-            err => {{}}
-        );
-
+        ).catch(err => {{
+            document.getElementById("resultado_{chave_sessao}").innerText = "Não foi possível iniciar a câmera.";
+        }});
     }} catch (e) {{}}
-
     </script>
     """
-
-    components.html(
-        html_code,
-        height=420
-    )
-
+    components.html(html_code, height=420)
 
 
 # ============================================================
 # LEITOR DE CÓDIGO DE BARRAS PARA PEDIDOS
 # ============================================================
 
-def componente_leitor_codigo_barras(chave_sessao):
+def componente_leitor_codigo_barras(chave_sessao, tela_retorno=None):
+    """Lê EAN/UPC/CODE/ITF e volta para a mesma tela do checkout/pedido."""
+    tela_js = str(tela_retorno or "").replace('"', "")
     html_code = f"""
-    <div style="text-align:center;background:#17171B;padding:15px;border-radius:12px;border:1px solid #35353C;">
+    <div style="text-align:center;background:#211B1E;padding:15px;border-radius:12px;border:1px solid #4A3A40;">
         <div id="barcode_{chave_sessao}" style="width:100%;max-width:440px;margin:auto;border-radius:8px;overflow:hidden;"></div>
-        <p id="barcode_result_{chave_sessao}" style="font-weight:bold;color:#D6AE63;margin-top:10px;font-size:1rem;"></p>
+        <p id="barcode_result_{chave_sessao}" style="font-weight:bold;color:#E3BD72;margin-top:10px;font-size:1rem;"></p>
     </div>
-
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script>
+    let leituraConcluida_{chave_sessao} = false;
     function onBarcodeSuccess(decodedText, decodedResult) {{
-        document.getElementById("barcode_result_{chave_sessao}").innerText =
-            "✅ Código lido: " + decodedText;
-
+        if (leituraConcluida_{chave_sessao}) return;
+        leituraConcluida_{chave_sessao} = true;
+        document.getElementById("barcode_result_{chave_sessao}").innerText = "✅ Código lido: " + decodedText;
         const url = new URL(window.parent.location.href);
         url.searchParams.set('scanned_{chave_sessao}', decodedText);
-        window.parent.history.replaceState({{}}, '', url);
-
+        if ("{tela_js}") url.searchParams.set('screen', "{tela_js}");
+        if ("{chave_sessao}" === "checkout_camera") url.searchParams.set('checkout', '1');
+        const finalizar = () => {{ window.parent.location.href = url.toString(); }};
         if (window.barcodeReader_{chave_sessao}) {{
-            window.barcodeReader_{chave_sessao}.stop().catch(err => {{}});
-        }}
-        window.parent.location.reload();
+            window.barcodeReader_{chave_sessao}.stop().then(finalizar).catch(finalizar);
+        }} else finalizar();
     }}
-
     try {{
         const formatos = [
             Html5QrcodeSupportedFormats.EAN_13,
@@ -1839,24 +1838,71 @@ def componente_leitor_codigo_barras(chave_sessao):
             Html5QrcodeSupportedFormats.ITF,
             Html5QrcodeSupportedFormats.QR_CODE
         ];
-
-        const reader = new Html5Qrcode(
-            "barcode_{chave_sessao}",
-            {{ formatsToSupport: formatos, verbose: false }}
-        );
+        const reader = new Html5Qrcode("barcode_{chave_sessao}", {{ formatsToSupport: formatos, verbose: false }});
         window.barcodeReader_{chave_sessao} = reader;
         reader.start(
             {{ facingMode: "environment" }},
-            {{ fps: 10, qrbox: {{ width: 300, height: 160 }} }},
+            {{ fps: 12, qrbox: {{ width: 320, height: 170 }} }},
             onBarcodeSuccess
-        ).catch(err => {{}});
+        ).catch(err => {{
+            document.getElementById("barcode_result_{chave_sessao}").innerText = "Não foi possível iniciar a câmera.";
+        }});
     }} catch (e) {{}}
     </script>
     """
-
     components.html(html_code, height=360)
 
 
+def autofoco_campo_checkout():
+    components.html(
+        """
+        <script>
+        setTimeout(() => {
+            try {
+                const doc = window.parent.document;
+                const inputs = Array.from(doc.querySelectorAll('input'));
+                const alvo = inputs.find(el => {
+                    const a = (el.getAttribute('aria-label') || '').toLowerCase();
+                    return a.includes('digite/bipe') ||
+                           a.includes('código de barras ou nome') ||
+                           a.includes('codigo de barras ou nome');
+                });
+                if (alvo) { alvo.focus(); alvo.select(); }
+            } catch (e) {}
+        }, 250);
+        </script>
+        """,
+        height=0,
+    )
+
+
+def instalar_atalhos_teclado():
+    components.html(
+        """
+        <script>
+        try {
+            const win = window.parent;
+            const doc = win.document;
+            if (!win.__premiumWinesAtalhosInstalados) {
+                win.__premiumWinesAtalhosInstalados = true;
+                doc.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') {
+                        e.preventDefault();
+                        const url = new URL(win.location.href);
+                        url.searchParams.set('screen', 'home');
+                        url.searchParams.delete('checkout');
+                        Array.from(url.searchParams.keys()).forEach(key => {
+                            if (key.startsWith('scanned_')) url.searchParams.delete(key);
+                        });
+                        win.location.href = url.toString();
+                    }
+                }, true);
+            }
+        } catch (e) {}
+        </script>
+        """,
+        height=0,
+    )
 # ============================================================
 # NAVEGAÇÃO PARA CADASTRO A PARTIR DO PEDIDO
 # ============================================================
@@ -1928,6 +1974,24 @@ if "codigo_bipado_pedido" not in st.session_state:
 
 qp = st.query_params
 
+_screen_param = str(qp.get("screen", "") or "").strip()
+if _screen_param:
+    if _screen_param.lower() == "home":
+        st.session_state.menu_atual = "🏠 Home"
+    elif _screen_param == "PedidosMatriz":
+        st.session_state.menu_atual = "PedidosMatriz"
+    try:
+        del st.query_params["screen"]
+    except Exception:
+        pass
+
+if str(qp.get("checkout", "") or "") == "1":
+    st.session_state["checkout_forcar_aba"] = True
+    try:
+        del st.query_params["checkout"]
+    except Exception:
+        pass
+
 # ------------------------------------------------------------
 # CONSULTA PÚBLICA DO PALLET PELO QR CODE
 # Não exige login e é somente leitura.
@@ -1935,49 +1999,69 @@ qp = st.query_params
 _pallet_publico_param = qp.get("pallet", None)
 if _pallet_publico_param:
     _id_publico = extrair_id_do_qr(_pallet_publico_param)
-    _pallet_publico = obter_pallet(st.session_state.pallets, _id_publico)
+    _dados_publicos = dados_posicao_pallet_id(_id_publico)
+    _vinhos_pub = vinhos_atuais_da_posicao(_id_publico, st.session_state.estoque)
+
+    components.html(
+        """
+        <script>
+        try {
+            const doc = window.parent.document;
+            doc.querySelectorAll('link[rel="manifest"]').forEach(el => el.remove());
+            doc.querySelectorAll('meta[name="mobile-web-app-capable"], meta[name="apple-mobile-web-app-capable"]').forEach(el => el.remove());
+        } catch (e) {}
+        </script>
+        """,
+        height=0,
+    )
 
     st.markdown(
-        "<style>[data-testid='stSidebar']{display:none!important;} [data-testid='stHeader']{display:none!important;} .block-container{padding-top:1.4rem!important;max-width:900px!important;}</style>",
+        """
+        <style>
+        [data-testid='stSidebar']{display:none!important;}
+        [data-testid='stHeader']{display:none!important;}
+        .block-container{padding-top:1.2rem!important;max-width:900px!important;}
+        .stApp{background:linear-gradient(135deg,#21181C,#2A2024)!important;}
+        </style>
+        """,
         unsafe_allow_html=True,
     )
 
     st.markdown(
         """
-        <div style="background:linear-gradient(135deg,#17171b,#241016);border:1px solid #4b2830;border-radius:18px;padding:22px 24px;margin-bottom:18px;">
-            <div style="font-size:1.45rem;font-weight:800;color:#f3c45b;">🍷 PREMIUM WINES</div>
-            <div style="color:#c9c9cf;margin-top:3px;">Consulta de posição do galpão</div>
+        <div style="background:linear-gradient(135deg,#2B2024,#3A1823);border:1px solid #735063;border-radius:18px;padding:22px 24px;margin-bottom:18px;">
+            <div style="font-size:1.45rem;font-weight:800;color:#F0C97A;">🍷 PREMIUM WINES</div>
+            <div style="color:#E0D8D3;margin-top:3px;">Consulta do pallet</div>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    if _pallet_publico:
-        _corredor_pub = html.escape(str(_pallet_publico.get("corredor", "")))
-        _pallet_nome_pub = html.escape(str(_pallet_publico.get("pallet", "")))
-        _lado_pub = html.escape(str(_pallet_publico.get("lado", "")))
-        _vinhos_pub = _pallet_publico.get("vinhos", []) or []
-
+    if _dados_publicos:
+        _corredor_pub = html.escape(_dados_publicos["corredor"])
+        _pallet_nome_pub = html.escape(_dados_publicos["pallet"])
+        _lado_pub = html.escape(_dados_publicos["lado"])
         st.markdown(
             f"""
-            <div style="background:#17171b;border:1px solid #34343b;border-radius:16px;padding:18px 20px;margin-bottom:16px;">
-                <div style="color:#f3c45b;font-size:1.15rem;font-weight:800;">📍 {_corredor_pub} • {_pallet_nome_pub} • {_lado_pub}</div>
-                <div style="color:#c9c9cf;margin-top:6px;">{len(_vinhos_pub)} vinho(s) nesta posição</div>
+            <div style="background:#272125;border:1px solid #534049;border-radius:16px;padding:18px 20px;margin-bottom:16px;">
+                <div style="color:#F0C97A;font-size:1.15rem;font-weight:800;">📍 {_corredor_pub} • {_pallet_nome_pub} • {_lado_pub}</div>
+                <div style="color:#D6CCC7;margin-top:6px;">{len(_vinhos_pub)} vinho(s) nesta posição</div>
             </div>
             """,
             unsafe_allow_html=True,
         )
-
         if _vinhos_pub:
             st.markdown("### Vinhos nesta posição")
             for _i, _vinho in enumerate(_vinhos_pub, start=1):
                 _nome = html.escape(str(_vinho.get("nome", "Vinho")))
                 _safra = html.escape(str(_vinho.get("safra", "N/A")))
+                _lit = html.escape(str(_vinho.get("litragem", "") or ""))
+                _lit_html = f" • {_lit}" if _lit else ""
                 st.markdown(
                     f"""
-                    <div style="background:#17171b;border:1px solid #34343b;border-radius:12px;padding:14px 16px;margin:8px 0;">
-                        <div style="font-weight:750;color:#f0f0f3;">{_i}. {_nome}</div>
-                        <div style="color:#b9b9c0;margin-top:3px;">Safra: {_safra}</div>
+                    <div style="background:#272125;border:1px solid #534049;border-radius:12px;padding:14px 16px;margin:8px 0;">
+                        <div style="font-weight:750;color:#F5F0EC;">{_i}. {_nome}</div>
+                        <div style="color:#CFC4BE;margin-top:3px;">Safra: {_safra}{_lit_html}</div>
                     </div>
                     """,
                     unsafe_allow_html=True,
@@ -1985,8 +2069,7 @@ if _pallet_publico_param:
         else:
             st.info("Nenhum vinho cadastrado nesta posição no momento.")
     else:
-        st.error("Esta posição de pallet não foi encontrada no sistema.")
-
+        st.error("QR Code de pallet inválido.")
     st.stop()
 
 for key, val in list(qp.items()):
@@ -2013,6 +2096,10 @@ for key, val in list(qp.items()):
             st.session_state.codigo_bipado_checkout = (
                 valor_limpo
             )
+            st.session_state.menu_atual = "PedidosMatriz"
+            st.session_state["checkout_forcar_aba"] = True
+            st.session_state["checkout_codigo_pendente"] = valor_limpo
+            st.session_state["checkout_auto_conferir"] = True
 
         elif sess_key == "pedido_scanner":
 
@@ -2195,6 +2282,8 @@ def render_page_header(icone, titulo, descricao, secao="Premium Wines • Galpã
 cargo_logado = st.session_state.usuario_logado.get("cargo", "Operador")
 acesso_gestao = cargo_logado in ["Administrador Principal", "Desenvolvedor"]
 usuario_nome = st.session_state.usuario_logado.get("nome", "Usuário")
+
+instalar_atalhos_teclado()
 
 # Menu lateral inspirado no mockup Premium Wines
 with st.sidebar:
@@ -3017,12 +3106,38 @@ elif st.session_state.menu_atual == "PedidosMatriz":
 
     render_page_header("📦", "Checkout de Expedição", "Crie pedidos, faça a separação, confira por código de barras e trate divergências antes da expedição.", "Operação • Separação")
 
+    if st.session_state.pop("_limpar_pedido_apos_salvar", False):
+        st.session_state.itens_pedido_scanner = []
+        for _chave_limpar in [
+            "id_novo_pedido", "modo_novo_pedido", "arquivo_novo_pedido",
+            "texto_manual_novo_pedido", "codigo_manual_lista_pedido",
+            "qtd_lista_pedido", "mensagem_adicao_pedido", "itens_pedido_retomados",
+        ]:
+            st.session_state.pop(_chave_limpar, None)
+
     aba_ped1, aba_ped2 = st.tabs(
         [
             "📋 Enviar / Cadastrar / Excluir Pedidos",
             "🔍 Conferência (Checkout de Expedição)"
         ]
     )
+
+    if st.session_state.get("checkout_forcar_aba"):
+        components.html(
+            """
+            <script>
+            setTimeout(() => {
+                try {
+                    const tabs = Array.from(window.parent.document.querySelectorAll('[data-baseweb="tab"]'));
+                    const alvo = tabs.find(t => (t.innerText || '').toLowerCase().includes('conferência'));
+                    if (alvo) alvo.click();
+                } catch (e) {}
+            }, 250);
+            </script>
+            """,
+            height=0,
+        )
+        st.session_state["checkout_forcar_aba"] = False
 
     with aba_ped1:
 
@@ -3153,7 +3268,10 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 "O vinho será incluído na lista do pedido."
             )
 
-            componente_leitor_codigo_barras("pedido_scanner")
+            componente_leitor_codigo_barras(
+                "pedido_scanner",
+                tela_retorno="PedidosMatriz",
+            )
 
             codigo_camera = st.session_state.get("codigo_bipado_pedido", "").strip()
             if codigo_camera:
@@ -3287,8 +3405,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         "Cadastrou Pedido",
                         str(id_pedido).strip(),
                     )
-                    if modo_novo_pedido == "📷 Leitor de código de barras":
-                        st.session_state.itens_pedido_scanner = []
+                    st.session_state["_limpar_pedido_apos_salvar"] = True
                     st.session_state.pop("rascunho_pedido_pendente", None)
                     st.success("Pedido salvo no sistema!")
                     st.rerun()
@@ -3429,8 +3546,9 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     == "📷 Câmera do Celular"
                 ):
 
-                    componente_leitor_qr(
-                        "checkout_camera"
+                    componente_leitor_codigo_barras(
+                        "checkout_camera",
+                        tela_retorno="PedidosMatriz",
                     )
 
                     codigo_capturado = (
@@ -3548,6 +3666,9 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                                         "checkout_codigo_pendente", ""
                                     )
                                 ).strip()
+
+                if modo_leitura == "⌨️ Seleção / Pistola USB":
+                    autofoco_campo_checkout()
 
                 with col_b2:
 
@@ -4089,6 +4210,7 @@ elif st.session_state.menu_atual in ["Filtros", "Estoque"]:
                 "Localização": v.get("localizacao", ""),
                 "Lado": v.get("lado", ""),
                 "Caixa": v.get("caixa", ""),
+                "Litragem": v.get("litragem", ""),
                 "Cód. Barras": v.get("codigo_barras", ""),
             }
             for v in resultados
@@ -4112,7 +4234,7 @@ elif st.session_state.menu_atual == "Cadastrar":
             "o sistema voltará automaticamente para o pedido."
         )
 
-    with st.form("form_cadastrar_vinho"):
+    with st.form("form_cadastrar_vinho", clear_on_submit=True):
         nome = st.text_input(
             "*Nome do Vinho",
             value=str(cadastro_prefill.get("nome", "")),
@@ -4136,8 +4258,15 @@ elif st.session_state.menu_atual == "Cadastrar":
         with col_l4:
             lado = st.selectbox("Lado", LISTA_LADOS)
 
-        caixa = st.selectbox("Embalagem / Caixa", OPCOES_CAIXA)
-        codigo_barras = st.text_input("Código de Barras (Opcional)").strip()
+        col_cx1, col_cx2 = st.columns(2)
+        with col_cx1:
+            caixa = st.selectbox("Embalagem / Caixa", OPCOES_CAIXA)
+        with col_cx2:
+            litragem = st.selectbox("Litragem da Garrafa", LISTA_LITRAGENS)
+        codigo_barras = st.text_input(
+            "Código de Barras (Opcional)",
+            help="Pode digitar ou bipar com a pistola USB.",
+        ).strip()
         foto_upload = st.file_uploader(
             "📷 Imagem do vinho (opcional)",
             type=["jpg", "jpeg", "png", "webp"],
@@ -4148,6 +4277,31 @@ elif st.session_state.menu_atual == "Cadastrar":
             if not nome:
                 st.error("Informe o nome do vinho.")
             else:
+                duplicado_nome = next(
+                    (
+                        v for v in st.session_state.estoque
+                        if normalizar_nome_vinho(v.get("nome", "")) == normalizar_nome_vinho(nome)
+                        and str(v.get("safra", "")).strip() == str(safra).strip()
+                    ),
+                    None,
+                )
+                duplicado_codigo = (
+                    next(
+                        (
+                            v for v in st.session_state.estoque
+                            if codigo_barras and str(v.get("codigo_barras", "")).strip() == codigo_barras
+                        ),
+                        None,
+                    )
+                    if codigo_barras else None
+                )
+                if duplicado_nome:
+                    st.error("Este vinho com a mesma safra já está cadastrado.")
+                    st.stop()
+                if duplicado_codigo:
+                    st.error("Este código de barras já pertence a outro vinho cadastrado.")
+                    st.stop()
+
                 foto_path = salvar_foto_vinho(foto_upload, nome)
                 localizacao_completa = localizacao_por_campos(
                     corredor, local_tipo, num_local
@@ -4159,6 +4313,7 @@ elif st.session_state.menu_atual == "Cadastrar":
                     "localizacao": localizacao_completa,
                     "lado": lado,
                     "caixa": caixa,
+                    "litragem": litragem,
                     "codigo_barras": codigo_barras,
                     "foto": foto_path,
                 }
@@ -4270,11 +4425,20 @@ elif st.session_state.menu_atual == "Editar":
                 )
 
             caixa_atual = vinho_obj.get("caixa", OPCOES_CAIXA[0])
-            nova_caixa = st.selectbox(
-                "Embalagem / Caixa",
-                OPCOES_CAIXA,
-                index=OPCOES_CAIXA.index(caixa_atual) if caixa_atual in OPCOES_CAIXA else 0,
-            )
+            litragem_atual = vinho_obj.get("litragem", LISTA_LITRAGENS[2])
+            col_ec1, col_ec2 = st.columns(2)
+            with col_ec1:
+                nova_caixa = st.selectbox(
+                    "Embalagem / Caixa",
+                    OPCOES_CAIXA,
+                    index=OPCOES_CAIXA.index(caixa_atual) if caixa_atual in OPCOES_CAIXA else 0,
+                )
+            with col_ec2:
+                nova_litragem = st.selectbox(
+                    "Litragem da Garrafa",
+                    LISTA_LITRAGENS,
+                    index=LISTA_LITRAGENS.index(litragem_atual) if litragem_atual in LISTA_LITRAGENS else 2,
+                )
             novo_cb = st.text_input(
                 "Código de Barras", value=str(vinho_obj.get("codigo_barras", ""))
             ).strip()
@@ -4282,6 +4446,12 @@ elif st.session_state.menu_atual == "Editar":
                 "📷 Trocar / inserir imagem do vinho",
                 type=["jpg", "jpeg", "png", "webp"],
                 key=f"foto_editar_{indice_escolhido}",
+            )
+
+            senha_exclusao = st.text_input(
+                "Senha para excluir este vinho",
+                type="password",
+                help="Use a mesma senha do usuário que está logado.",
             )
 
             col_e1, col_e2 = st.columns(2)
@@ -4295,6 +4465,7 @@ elif st.session_state.menu_atual == "Editar":
                 vinho_obj["tipo"] = novo_tipo
                 vinho_obj["safra"] = nova_safra
                 vinho_obj["caixa"] = nova_caixa
+                vinho_obj["litragem"] = nova_litragem
                 vinho_obj["codigo_barras"] = novo_cb
                 vinho_obj["foto"] = salvar_foto_vinho(
                     nova_foto_upload,
@@ -4329,16 +4500,39 @@ elif st.session_state.menu_atual == "Editar":
                 st.rerun()
 
             if btn_excluir_vinho:
-                remover_vinho_de_todos_pallets(nome_original)
-                st.session_state.estoque.pop(indice_escolhido)
-                salvar_dados(st.session_state.estoque)
-                registrar_log(
-                    st.session_state.usuario_logado["nome"],
-                    "Excluiu Vinho",
-                    nome_original,
-                )
-                st.success("Vinho excluído!")
-                st.rerun()
+                nome_usuario_atual = st.session_state.usuario_logado.get("nome", "")
+                cargo_usuario_atual = st.session_state.usuario_logado.get("cargo", "Operador")
+
+                if cargo_usuario_atual == "Desenvolvedor":
+                    senha_correta_exclusao = SENHA_DEV
+                else:
+                    usuario_atual = next(
+                        (
+                            u for u in st.session_state.usuarios
+                            if str(u.get("nome", "")).lower() == str(nome_usuario_atual).lower()
+                        ),
+                        None,
+                    )
+                    senha_correta_exclusao = (
+                        str(usuario_atual.get("senha", ""))
+                        if usuario_atual else ""
+                    )
+
+                if not senha_exclusao:
+                    st.error("Digite sua senha para confirmar a exclusão.")
+                elif senha_exclusao != senha_correta_exclusao:
+                    st.error("Senha incorreta. O vinho não foi excluído.")
+                else:
+                    remover_vinho_de_todos_pallets(nome_original)
+                    st.session_state.estoque.pop(indice_escolhido)
+                    salvar_dados(st.session_state.estoque)
+                    registrar_log(
+                        st.session_state.usuario_logado["nome"],
+                        "Excluiu Vinho",
+                        nome_original,
+                    )
+                    st.success("Vinho excluído!")
+                    st.rerun()
 
 
 # ============================================================
@@ -4584,4 +4778,3 @@ elif st.session_state.menu_atual == "GerenciarUsuarios":
                 )
             else:
                 st.info("Nenhum usuário comum cadastrado.")
-
