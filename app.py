@@ -1772,7 +1772,12 @@ def vinhos_atuais_da_posicao(pallet_id, estoque):
 # ============================================================
 
 def componente_leitor_qr(chave_sessao, tela_retorno=None):
-    """Leitor de QR de pallet. Ao ler, abre imediatamente a consulta da posição."""
+    """Leitor de QR do pallet dentro do app.
+
+    Em vez de tentar navegar o iframe para outra página (comportamento instável em
+    alguns celulares), grava o resultado na URL da própria tela e recarrega o app.
+    Assim a sessão permanece ativa e o resultado aparece imediatamente abaixo.
+    """
     html_code = f"""
     <div style="text-align:center;background:#211B1E;padding:15px;border-radius:12px;border:1px solid #4A3A40;">
         <div id="reader_{chave_sessao}" style="width:100%;max-width:400px;margin:auto;border-radius:8px;overflow:hidden;"></div>
@@ -1781,22 +1786,39 @@ def componente_leitor_qr(chave_sessao, tela_retorno=None):
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script>
     let leituraConcluida_{chave_sessao} = false;
+
+    function extrairCodigoPallet(texto) {{
+        const valor = String(texto || '').trim();
+        const m = valor.match(/C[0-9]{{2}}-P[0-9]{{2}}-[DEC]/i);
+        return m ? m[0].toUpperCase() : valor;
+    }}
+
+    function publicarResultado(decodedText) {{
+        const codigo = extrairCodigoPallet(decodedText);
+        const url = new URL(window.parent.location.href);
+        url.searchParams.delete('pallet');
+        url.searchParams.delete('public');
+        url.searchParams.delete('scan_pallet');
+        url.searchParams.set('screen', 'LerQRPallet');
+        url.searchParams.set('scanned_{chave_sessao}', codigo);
+        window.parent.history.replaceState({{}}, '', url.toString());
+        window.parent.location.reload();
+    }}
+
     function onScanSuccess(decodedText, decodedResult) {{
         if (leituraConcluida_{chave_sessao}) return;
         leituraConcluida_{chave_sessao} = true;
-        document.getElementById("resultado_{chave_sessao}").innerText = "QR lido. Abrindo pallet...";
+        document.getElementById("resultado_{chave_sessao}").innerText = "QR lido. Carregando vinhos...";
 
-        const destino = new URL(window.parent.location.origin + window.parent.location.pathname);
-        destino.searchParams.set('pallet', decodedText);
-        destino.searchParams.set('public', '1');
-
-        const abrir = () => {{ window.parent.location.href = destino.toString(); }};
         if (window.html5QrCode_{chave_sessao}) {{
-            window.html5QrCode_{chave_sessao}.stop().then(abrir).catch(abrir);
+            window.html5QrCode_{chave_sessao}.stop()
+                .then(() => publicarResultado(decodedText))
+                .catch(() => publicarResultado(decodedText));
         }} else {{
-            abrir();
+            publicarResultado(decodedText);
         }}
     }}
+
     try {{
         const html5QrCode = new Html5Qrcode("reader_{chave_sessao}");
         window.html5QrCode_{chave_sessao} = html5QrCode;
@@ -1807,7 +1829,9 @@ def componente_leitor_qr(chave_sessao, tela_retorno=None):
         ).catch(err => {{
             document.getElementById("resultado_{chave_sessao}").innerText = "Não foi possível iniciar a câmera.";
         }});
-    }} catch (e) {{}}
+    }} catch (e) {{
+        document.getElementById("resultado_{chave_sessao}").innerText = "Não foi possível iniciar a câmera.";
+    }}
     </script>
     """
     components.html(html_code, height=420)
@@ -2045,15 +2069,24 @@ if _scan_publico:
         <script src="https://unpkg.com/html5-qrcode"></script>
         <script>
         let concluiu = false;
+        function extrairCodigoPallet(texto) {
+            const valor = String(texto || '').trim();
+            const m = valor.match(/C[0-9]{2}-P[0-9]{2}-[DEC]/i);
+            return m ? m[0].toUpperCase() : valor;
+        }
         function sucesso(decodedText) {
             if (concluiu) return;
             concluiu = true;
-            document.getElementById('resultado_publico').innerText = 'QR lido. Abrindo pallet...';
+            document.getElementById('resultado_publico').innerText = 'QR lido. Carregando vinhos...';
+            const codigo = extrairCodigoPallet(decodedText);
             const url = new URL(window.parent.location.href);
             url.search = '';
-            url.searchParams.set('pallet', decodedText);
+            url.searchParams.set('pallet', codigo);
             url.searchParams.set('public', '1');
-            const ir = () => { window.parent.location.href = url.toString(); };
+            const ir = () => {
+                window.parent.history.replaceState({}, '', url.toString());
+                window.parent.location.reload();
+            };
             if (window.readerPublico) {
                 window.readerPublico.stop().then(ir).catch(ir);
             } else { ir(); }
@@ -2180,9 +2213,8 @@ for key, val in list(qp.items()):
 
         if sess_key == "leitor_pallet":
 
-            st.session_state.qr_pallet_lido = (
-                valor_limpo
-            )
+            st.session_state.qr_pallet_lido = extrair_id_do_qr(valor_limpo)
+            st.session_state.menu_atual = "LerQRPallet"
 
         elif sess_key == "checkout_camera":
 
