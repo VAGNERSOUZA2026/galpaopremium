@@ -2043,8 +2043,12 @@ if _scan_publico:
     st.markdown(
         """
         <style>
-        [data-testid='stSidebar']{display:none!important;}
-        [data-testid='stHeader']{display:none!important;}
+        [data-testid='stSidebar'],
+        [data-testid='stHeader'],
+        [data-testid='stToolbar'],
+        [data-testid='stDecoration'],
+        [data-testid='stMainMenu'],
+        footer, #MainMenu, .stDeployButton, .stAppToolbar {display:none!important;visibility:hidden!important;}
         .block-container{padding-top:1.2rem!important;max-width:900px!important;}
         .stApp{background:linear-gradient(135deg,#21181C,#2A2024)!important;}
         </style>
@@ -2082,8 +2086,7 @@ if _scan_publico:
             const codigo = extrairCodigoPallet(decodedText);
             const url = new URL(window.parent.location.href);
             url.search = '';
-            url.searchParams.set('pallet', codigo);
-            url.searchParams.set('public', '1');
+            url.searchParams.set('p', codigo);
             const ir = () => {
                 window.parent.history.replaceState({}, '', url.toString());
                 window.parent.location.reload();
@@ -2124,8 +2127,9 @@ if _pallet_publico_param:
         <script>
         try {
             const doc = window.parent.document;
+            doc.title = 'Premium Wines - Consulta do Pallet';
             doc.querySelectorAll('link[rel="manifest"]').forEach(el => el.remove());
-            doc.querySelectorAll('meta[name="mobile-web-app-capable"], meta[name="apple-mobile-web-app-capable"]').forEach(el => el.remove());
+            doc.querySelectorAll('meta[name="mobile-web-app-capable"], meta[name="apple-mobile-web-app-capable"], meta[name="application-name"]').forEach(el => el.remove());
         } catch (e) {}
         </script>
         """,
@@ -2135,8 +2139,12 @@ if _pallet_publico_param:
     st.markdown(
         """
         <style>
-        [data-testid='stSidebar']{display:none!important;}
-        [data-testid='stHeader']{display:none!important;}
+        [data-testid='stSidebar'],
+        [data-testid='stHeader'],
+        [data-testid='stToolbar'],
+        [data-testid='stDecoration'],
+        [data-testid='stMainMenu'],
+        footer, #MainMenu, .stDeployButton, .stAppToolbar {display:none!important;visibility:hidden!important;}
         .block-container{padding-top:1.2rem!important;max-width:900px!important;}
         .stApp{background:linear-gradient(135deg,#21181C,#2A2024)!important;}
         </style>
@@ -2148,7 +2156,7 @@ if _pallet_publico_param:
         """
         <div style="background:linear-gradient(135deg,#2B2024,#3A1823);border:1px solid #735063;border-radius:18px;padding:22px 24px;margin-bottom:18px;">
             <div style="font-size:1.45rem;font-weight:800;color:#F0C97A;">🍷 PREMIUM WINES</div>
-            <div style="color:#E0D8D3;margin-top:3px;">Consulta do pallet</div>
+            <div style="color:#E0D8D3;margin-top:3px;">Consulta pública do pallet • somente leitura</div>
         </div>
         """,
         unsafe_allow_html=True,
