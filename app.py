@@ -2497,7 +2497,8 @@ elif st.session_state.menu_atual == "LerQRPallet":
             "📷 Câmera do celular",
             "⌨️ Digitar código"
         ],
-        horizontal=True
+        horizontal=True,
+        key="modo_leitura_qr_pallet",
     )
 
     codigo_lido = ""
@@ -2662,6 +2663,24 @@ elif st.session_state.menu_atual == "LerQRPallet":
                 "Entre em 'Gerenciar Pallets' "
                 "para cadastrar esta posição."
             )
+
+        def _nova_leitura_pallet():
+            st.session_state["qr_pallet_lido"] = ""
+            st.session_state["modo_leitura_qr_pallet"] = "📷 Câmera do celular"
+            try:
+                if "scanned_leitor_pallet" in st.query_params:
+                    del st.query_params["scanned_leitor_pallet"]
+            except Exception:
+                pass
+
+        st.markdown("---")
+        st.button(
+            "📷 Escanear outro pallet",
+            key="btn_escanear_outro_pallet",
+            use_container_width=True,
+            on_click=_nova_leitura_pallet,
+            help="Limpa este resultado e abre novamente a câmera para ler o próximo pallet.",
+        )
 
 
 # ============================================================
