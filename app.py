@@ -1665,7 +1665,7 @@ def url_publica_pallet(pallet_id):
     # o texto da posição quando o app estiver atrás do proxy do Streamlit.
     base_url = "https://galpaopremium-gwiywrdxssrwmzv9tdpeff.streamlit.app/"
     pallet_limpo = str(pallet_id or "").strip().upper()
-    return f"{base_url}?pallet={pallet_limpo}&public=1"
+    return f"{base_url}?p={pallet_limpo}"
 
 
 def gerar_qr_pallet(
@@ -1798,6 +1798,7 @@ def componente_leitor_qr(chave_sessao, tela_retorno=None):
         const url = new URL(window.parent.location.href);
         url.searchParams.delete('pallet');
         url.searchParams.delete('public');
+        url.searchParams.delete('p');
         url.searchParams.delete('scan_pallet');
         url.searchParams.set('screen', 'LerQRPallet');
         url.searchParams.set('scanned_{chave_sessao}', codigo);
@@ -2112,7 +2113,7 @@ if _scan_publico:
 # CONSULTA PÚBLICA DO PALLET PELO QR CODE
 # Não exige login e é somente leitura.
 # ------------------------------------------------------------
-_pallet_publico_param = qp.get("pallet", None)
+_pallet_publico_param = qp.get("p", None) or qp.get("pallet", None)
 if _pallet_publico_param:
     _id_publico = extrair_id_do_qr(_pallet_publico_param)
     _dados_publicos = dados_posicao_pallet_id(_id_publico)
