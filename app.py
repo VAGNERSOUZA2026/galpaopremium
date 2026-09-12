@@ -1660,50 +1660,68 @@ def validar_itens_pedido_no_estoque(itens):
 # ============================================================
 
 def url_publica_pallet(pallet_id):
-    """Retorna a URL pública fixa usada nas etiquetas QR do galpão."""
-    # Usar uma URL absoluta e fixa evita que o QR seja criado apenas com
-    # o texto da posição quando o app estiver atrás do proxy do Streamlit.
+    """Mantido apenas por compatibilidade com QR Codes antigos que continham URL."""
     base_url = "https://galpaopremium-gwiywrdxssrwmzv9tdpeff.streamlit.app/"
     pallet_limpo = str(pallet_id or "").strip().upper()
     return f"{base_url}?p={pallet_limpo}"
 
 
-def gerar_qr_pallet(
-    pallet_id,
-    pallet=None
-):
+def montar_conteudo_qr_pallet(pallet_id, estoque=None):
+    """Monta o texto visível diretamente ao escanear o QR fora do aplicativo."""
+    pallet_id = str(pallet_id or "").strip().upper()
+    dados = dados_posicao_pallet_id(pallet_id)
+    if not dados:
+        return f"PREMIUM WINES\nLocalizacao: {pallet_id}"
 
+    if estoque is None:
+        estoque = st.session_state.get("estoque", [])
+
+    vinhos = vinhos_atuais_da_posicao(pallet_id, estoque)
+
+    linhas = [
+        "PREMIUM WINES",
+        f"Localizacao: {dados['id']}",
+        f"{dados['corredor']} | {dados['pallet']} | {dados['lado']}",
+        "Vinhos:",
+    ]
+
+    if vinhos:
+        for idx, vinho in enumerate(vinhos, start=1):
+            nome = str(vinho.get("nome", "") or "Vinho sem nome").strip()
+            safra = str(vinho.get("safra", "") or "N/A").strip()
+            linhas.append(f"{idx}. {nome} - Safra {safra}")
+    else:
+        linhas.append("Nenhum vinho cadastrado nesta posicao.")
+
+    return "\n".join(linhas)
+
+
+def gerar_qr_pallet(pallet_id, pallet=None, estoque=None):
+    """Gera QR preto e branco contendo localização + vinhos + safras.
+
+    Assim, qualquer leitor de QR mostra o conteúdo imediatamente, sem precisar
+    abrir navegador ou pesquisar. Como o conteúdo fica gravado na etiqueta, o
+    QR deve ser gerado novamente quando os vinhos daquela posição mudarem.
+    """
     if not QRCODE_DISPONIVEL:
         return None
 
-    # O QR Code grava uma URL pública que contém somente a identificação
-    # da posição física do pallet. A página aberta consulta os vinhos atuais.
-    conteudo_qr = url_publica_pallet(pallet_id)
+    conteudo_qr = montar_conteudo_qr_pallet(pallet_id, estoque=estoque)
 
-    caminho = os.path.join(
-        PASTA_QR,
-        f"{pallet_id}.png"
-    )
+    caminho = os.path.join(PASTA_QR, f"{pallet_id}.png")
 
     qr = qrcode.QRCode(
-        version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_H,
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
         box_size=10,
-        border=4
+        border=4,
     )
-
     qr.add_data(conteudo_qr)
     qr.make(fit=True)
 
-    img = qr.make_image(
-        fill_color="black",
-        back_color="white"
-    )
-
+    img = qr.make_image(fill_color="black", back_color="white")
     img.save(caminho)
-
     return caminho
-
 
 def extrair_id_do_qr(conteudo):
     """
@@ -2706,7 +2724,7 @@ elif st.session_state.menu_atual == "GerarQRPallets":
 
             id_qr = gerar_id_pallet(corredor_qr, pallet_qr, lado_qr)
             pallet_preview = obter_pallet(st.session_state.pallets, id_qr)
-            vinhos_preview = pallet_preview.get("vinhos", []) if pallet_preview else []
+            vinhos_preview = vinhos_atuais_da_posicao(id_qr, st.session_state.estoque)
 
             resumo = (
                 '<div style="background:#17171b;border:1px solid #34343b;border-radius:14px;padding:18px 20px;margin:14px 0;">'
@@ -2728,10 +2746,10 @@ elif st.session_state.menu_atual == "GerarQRPallets":
             if st.button("🏷️ Gerar QR Code", use_container_width=True, key="gerar_qr_unico"):
                 pallet_obj = criar_ou_atualizar_pallet(corredor_qr, pallet_qr, lado_qr, st.session_state.pallets)
                 salvar_pallets(st.session_state.pallets)
-                caminho_qr = gerar_qr_pallet(id_qr, pallet_obj)
+                caminho_qr = gerar_qr_pallet(id_qr, pallet_obj, st.session_state.estoque)
                 if caminho_qr and os.path.exists(caminho_qr):
                     registrar_log(st.session_state.usuario_logado.get("nome", "Usuário"), "Gerou QR Code de Pallet", f"Posição: {id_qr}")
-                    st.success(f"QR Code {id_qr} gerado com sucesso.")
+                    st.success(f"QR Code {id_qr} gerado com {len(vinhos_preview)} vinho(s).")
                     st.image(caminho_qr, width=280)
                     with open(caminho_qr, "rb") as arquivo_qr:
                         st.download_button("⬇️ Baixar QR Code", data=arquivo_qr.read(), file_name=f"QR_{id_qr}.png", mime="image/png", use_container_width=True, key=f"download_qr_{id_qr}")
@@ -2791,7 +2809,7 @@ elif st.session_state.menu_atual == "GerarQRPallets":
 
                             id_lote = gerar_id_pallet(corredor_lote, pallet_nome, lado_lote)
                             pallet_obj = criar_ou_atualizar_pallet(corredor_lote, pallet_nome, lado_lote, st.session_state.pallets)
-                            caminho_qr = gerar_qr_pallet(id_lote, pallet_obj)
+                            caminho_qr = gerar_qr_pallet(id_lote, pallet_obj, st.session_state.estoque)
                             if not caminho_qr or not os.path.exists(caminho_qr):
                                 continue
 
