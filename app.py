@@ -260,7 +260,19 @@ st.markdown(
         background:linear-gradient(180deg,#19191D,#141417); border:1px solid #2E2E34 !important;
         border-radius:13px !important; overflow:hidden; box-shadow:0 8px 22px rgba(0,0,0,.10);
     }
-    [data-testid="stExpander"] summary { color:#F3ECE7 !important; font-weight:760 !important; }
+    [data-testid="stExpander"] summary {
+        color:#F3ECE7 !important;
+        font-weight:760 !important;
+        background:#29262B !important;
+        border-radius:10px !important;
+    }
+    [data-testid="stExpander"] summary:hover { background:#34242B !important; }
+    [data-testid="stExpander"] summary * { color:#F3ECE7 !important; }
+    [data-testid="stExpander"] details[open] > summary {
+        background:#32262C !important;
+        border-bottom:1px solid #4A353D !important;
+        border-radius:10px 10px 0 0 !important;
+    }
     [data-testid="stFileUploader"] section {
         background:#151519 !important; border:1px dashed #56424A !important; border-radius:13px !important;
     }
@@ -1882,21 +1894,24 @@ def instalar_atalhos_teclado():
         <script>
         try {
             const win = window.parent;
-            const doc = win.document;
+            function voltarHome(e) {
+                if (e.key === 'Escape' || e.key === 'Esc') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const url = new URL(win.location.href);
+                    url.searchParams.set('screen', 'home');
+                    url.searchParams.delete('checkout');
+                    Array.from(url.searchParams.keys()).forEach(key => {
+                        if (key.startsWith('scanned_')) url.searchParams.delete(key);
+                    });
+                    win.location.href = url.toString();
+                }
+            }
+            // Captura ESC tanto quando o foco está no app quanto dentro deste componente.
+            document.addEventListener('keydown', voltarHome, true);
             if (!win.__premiumWinesAtalhosInstalados) {
                 win.__premiumWinesAtalhosInstalados = true;
-                doc.addEventListener('keydown', function(e) {
-                    if (e.key === 'Escape') {
-                        e.preventDefault();
-                        const url = new URL(win.location.href);
-                        url.searchParams.set('screen', 'home');
-                        url.searchParams.delete('checkout');
-                        Array.from(url.searchParams.keys()).forEach(key => {
-                            if (key.startsWith('scanned_')) url.searchParams.delete(key);
-                        });
-                        win.location.href = url.toString();
-                    }
-                }, true);
+                win.document.addEventListener('keydown', voltarHome, true);
             }
         } catch (e) {}
         </script>
@@ -2988,7 +3003,7 @@ elif st.session_state.menu_atual == "PainelMatriz":
         with col_status:
             filtro_status_painel = st.selectbox(
                 "Status",
-                ["Escolher...", "Todos", "Pendente", "Concluído / Expedido"],
+                ["Escolher...", "Todos", "Pendente", "Concluído / Expedido", "Concluído com Divergência"],
                 key="filtro_status_painel_matriz_v2",
             )
 
@@ -3042,11 +3057,13 @@ elif st.session_state.menu_atual == "PainelMatriz":
 
                     resumo = f"Pedido {pedido_id}  •  {pedido_data}  •  {status_p}  •  {total_itens} item(ns)"
                     with st.expander(resumo, expanded=False):
-                        status_col = (
-                            "#66C38A"
-                            if normalizar_nome_vinho(status_p) == normalizar_nome_vinho("Concluído / Expedido")
-                            else "#E0A95A"
-                        )
+                        status_norm_p = normalizar_nome_vinho(status_p)
+                        if status_norm_p == normalizar_nome_vinho("Concluído / Expedido"):
+                            status_col = "#66C38A"
+                        elif status_norm_p == normalizar_nome_vinho("Concluído com Divergência"):
+                            status_col = "#F3C45B"
+                        else:
+                            status_col = "#E0A95A"
 
                         st.markdown(
                             f"""
@@ -3083,6 +3100,7 @@ elif st.session_state.menu_atual == "PainelMatriz":
                             df_itens.append({
                                 "Produto": item.get("nome", ""),
                                 "Safra": item.get("safra", "N/A"),
+                                "Origem": "Fora da lista / Extra" if item.get("fora_lista", False) else "Pedido original",
                                 "Qtd Pedida": item.get("quantidade", 0),
                                 "Qtd Separada": item.get("qtd_separada", 0),
                                 "Divergência": dif_str,
@@ -3106,10 +3124,14 @@ elif st.session_state.menu_atual == "PedidosMatriz":
 
     render_page_header("📦", "Checkout de Expedição", "Crie pedidos, faça a separação, confira por código de barras e trate divergências antes da expedição.", "Operação • Separação")
 
+    _msg_pedido_salvo = st.session_state.pop("mensagem_pedido_salvo", None)
+    if _msg_pedido_salvo:
+        st.success(_msg_pedido_salvo)
+
     if st.session_state.pop("_limpar_pedido_apos_salvar", False):
         st.session_state.itens_pedido_scanner = []
         for _chave_limpar in [
-            "id_novo_pedido", "modo_novo_pedido", "arquivo_novo_pedido",
+            "id_novo_pedido", "modo_novo_pedido",
             "texto_manual_novo_pedido", "codigo_manual_lista_pedido",
             "qtd_lista_pedido", "mensagem_adicao_pedido", "itens_pedido_retomados",
         ]:
@@ -3201,10 +3223,12 @@ elif st.session_state.menu_atual == "PedidosMatriz":
             st.info("🔄 Retomando o pedido que estava em andamento...")
 
         if modo_novo_pedido == "📄 Enviar arquivo":
+            if "arquivo_pedido_versao" not in st.session_state:
+                st.session_state.arquivo_pedido_versao = 0
             arq_pedido = st.file_uploader(
                 "Arquivo de Pedido (Excel ou TXT)",
                 type=["xlsx", "xls", "txt"],
-                key="arquivo_novo_pedido",
+                key=f"arquivo_novo_pedido_{st.session_state.arquivo_pedido_versao}",
             )
             if st.button("💾 Salvar Pedido do Arquivo", use_container_width=True):
                 itens_novos = (
@@ -3344,8 +3368,18 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         itens_novos = [dict(item) for item in lista_scanner]
 
         if itens_novos is not None:
-            if not str(id_pedido).strip():
+            id_pedido_limpo = str(id_pedido).strip()
+            pedido_id_existente = next(
+                (p for p in st.session_state.pedidos if str(p.get("id", "")).strip() == id_pedido_limpo),
+                None,
+            )
+            if not id_pedido_limpo:
                 st.error("Informe a identificação do pedido.")
+            elif pedido_id_existente is not None:
+                st.error(
+                    f"Já existe um pedido com o número {id_pedido_limpo}. "
+                    "Para evitar duplicidade, o sistema não permite salvar outro pedido com o mesmo número."
+                )
             elif not itens_novos:
                 st.error("Nenhum item foi adicionado ao pedido.")
             else:
@@ -3405,9 +3439,15 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         "Cadastrou Pedido",
                         str(id_pedido).strip(),
                     )
+                    # Limpa completamente a montagem do pedido para impedir
+                    # clique duplo/reenvio acidental do mesmo arquivo ou lista.
+                    st.session_state.itens_pedido_scanner = []
+                    st.session_state.arquivo_pedido_versao = int(
+                        st.session_state.get("arquivo_pedido_versao", 0)
+                    ) + 1
                     st.session_state["_limpar_pedido_apos_salvar"] = True
                     st.session_state.pop("rascunho_pedido_pendente", None)
-                    st.success("Pedido salvo no sistema!")
+                    st.session_state["mensagem_pedido_salvo"] = f"Pedido {id_pedido_limpo} salvo no sistema!"
                     st.rerun()
 
         st.markdown("---")
@@ -3451,7 +3491,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
             pedidos_pendentes_checkout = [
                 p
                 for p in st.session_state.pedidos
-                if p.get("status", "Pendente") != "Concluído / Expedido"
+                if not normalizar_nome_vinho(str(p.get("status", "Pendente"))).startswith("concluido")
             ]
 
             mapas_disponiveis = [p["id"] for p in pedidos_pendentes_checkout]
@@ -3488,12 +3528,13 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     )
                 )
 
-                cor_status = (
-                    "#2E7D32"
-                    if status_atual
-                    == "Concluído / Expedido"
-                    else "#7A1C2E"
-                )
+                status_norm_atual = normalizar_nome_vinho(status_atual)
+                if status_norm_atual == normalizar_nome_vinho("Concluído / Expedido"):
+                    cor_status = "#2E7D32"
+                elif status_norm_atual == normalizar_nome_vinho("Concluído com Divergência"):
+                    cor_status = "#C58A18"
+                else:
+                    cor_status = "#7A1C2E"
 
                 st.markdown(
                     f"""
@@ -3529,6 +3570,79 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     """,
                     unsafe_allow_html=True
                 )
+
+                with st.expander("➕ Adicionar vinho extra / fora da lista", expanded=False):
+                    st.caption(
+                        "Use quando a matriz solicitar um vinho que não estava no pedido original. "
+                        "Ele será acrescentado ao mesmo pedido e ficará identificado no Painel da Matriz como 'Fora da lista / Extra'."
+                    )
+                    col_extra1, col_extra2, col_extra3 = st.columns([2, 1, 1])
+                    with col_extra1:
+                        extra_busca = st.text_input(
+                            "Nome ou código de barras do vinho extra",
+                            key=f"extra_busca_{pedido_ativo['id']}",
+                            placeholder="Digite o nome ou bipe o código",
+                        ).strip()
+                    with col_extra2:
+                        extra_qtd = st.number_input(
+                            "Quantidade extra", min_value=1, value=1, step=1,
+                            key=f"extra_qtd_{pedido_ativo['id']}"
+                        )
+                    with col_extra3:
+                        st.write("")
+                        st.write("")
+                        adicionar_extra = st.button(
+                            "Adicionar extra",
+                            key=f"btn_extra_{pedido_ativo['id']}",
+                            use_container_width=True,
+                        )
+
+                    if adicionar_extra:
+                        if not extra_busca:
+                            st.error("Informe o nome ou o código de barras do vinho.")
+                        else:
+                            busca_norm = normalizar_nome_vinho(extra_busca)
+                            vinho_extra = next(
+                                (
+                                    v for v in st.session_state.estoque
+                                    if str(v.get("codigo_barras", "")).strip() == extra_busca
+                                    or busca_norm == normalizar_nome_vinho(v.get("nome", ""))
+                                ),
+                                None,
+                            )
+                            if vinho_extra is None:
+                                st.error("Este vinho não está cadastrado no estoque.")
+                            else:
+                                ja_no_pedido = next(
+                                    (i for i in pedido_ativo.get("itens", [])
+                                     if normalizar_nome_vinho(i.get("nome", "")) == normalizar_nome_vinho(vinho_extra.get("nome", ""))),
+                                    None,
+                                )
+                                if ja_no_pedido is not None:
+                                    st.warning(
+                                        "Este vinho já faz parte do pedido. Se vier quantidade maior, "
+                                        "faça a conferência com a quantidade real; o sistema registrará a divergência excedente."
+                                    )
+                                else:
+                                    pedido_ativo.setdefault("itens", []).append({
+                                        "nome": vinho_extra.get("nome", ""),
+                                        "safra": vinho_extra.get("safra", ""),
+                                        "quantidade": int(extra_qtd),
+                                        "separado": False,
+                                        "qtd_separada": 0,
+                                        "divergencia": 0,
+                                        "autorizado_divergencia": False,
+                                        "fora_lista": True,
+                                        "origem": "Extra solicitado durante checkout",
+                                    })
+                                    salvar_pedidos(st.session_state.pedidos)
+                                    registrar_log(
+                                        st.session_state.usuario_logado["nome"],
+                                        "Adicionou item extra ao pedido",
+                                        f"Pedido {pedido_ativo['id']} | {vinho_extra.get('nome','')} | Qtd {int(extra_qtd)}",
+                                    )
+                                    st.success("Vinho extra acrescentado ao mesmo pedido.")
+                                    st.rerun()
 
                 modo_leitura = st.radio(
                     "Forma de Leitura:",
@@ -4129,9 +4243,15 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         use_container_width=True
                     ):
 
-                        pedido_ativo[
-                            "status"
-                        ] = "Concluído / Expedido"
+                        possui_divergencia_final = any(
+                            int(i.get("divergencia", 0) or 0) != 0
+                            for i in pedido_ativo.get("itens", [])
+                        )
+                        pedido_ativo["status"] = (
+                            "Concluído com Divergência"
+                            if possui_divergencia_final
+                            else "Concluído / Expedido"
+                        )
 
                         salvar_pedidos(
                             st.session_state.pedidos
@@ -4145,9 +4265,10 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                             pedido_ativo["id"]
                         )
 
-                        st.success(
-                            "🎉 Expedição concluída!"
-                        )
+                        if possui_divergencia_final:
+                            st.success("✅ Expedição concluída com divergência registrada.")
+                        else:
+                            st.success("🎉 Expedição concluída!")
 
                         st.rerun()
 
