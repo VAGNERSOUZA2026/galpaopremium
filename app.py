@@ -1828,14 +1828,15 @@ def componente_leitor_qr(chave_sessao, tela_retorno=None):
         url.searchParams.delete('scan_pallet');
         url.searchParams.set('screen', 'LerQRPallet');
         url.searchParams.set('scanned_{chave_sessao}', codigo);
-        window.parent.history.replaceState({{}}, '', url.toString());
-        window.parent.location.reload();
+        // Navega a própria página do Streamlit já com o código lido.
+        // No celular isso é mais confiável do que replaceState + reload dentro do iframe.
+        window.parent.location.href = url.toString();
     }}
 
     function onScanSuccess(decodedText, decodedResult) {{
         if (leituraConcluida_{chave_sessao}) return;
         leituraConcluida_{chave_sessao} = true;
-        document.getElementById("resultado_{chave_sessao}").innerText = "QR lido. Carregando vinhos...";
+        document.getElementById("resultado_{chave_sessao}").innerText = "QR lido. Consultando vinhos desta posição...";
 
         if (window.html5QrCode_{chave_sessao}) {{
             window.html5QrCode_{chave_sessao}.stop()
@@ -2618,6 +2619,8 @@ if st.session_state.menu_atual == "🏠 Home":
 elif st.session_state.menu_atual == "LerQRPallet":
 
     render_page_header("📱", "Leitura de QR Code do Pallet", "Aponte a câmera para a etiqueta do pallet e veja imediatamente os vinhos e safras cadastrados naquela posição.", "Estoque • Localização")
+
+    st.caption("O QR identifica somente a posição física. A lista abaixo é consultada no estoque atual, portanto não é necessário reimprimir o QR quando os vinhos mudarem de pallet.")
 
     # Se já existe resultado, escondemos a câmera para deixar a consulta limpa.
     codigo_ja_lido = str(st.session_state.get("qr_pallet_lido", "") or "").strip()
