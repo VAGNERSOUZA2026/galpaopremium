@@ -1697,16 +1697,24 @@ def montar_conteudo_qr_pallet(pallet_id, estoque=None):
 
 
 def gerar_qr_pallet(pallet_id, pallet=None, estoque=None):
-    """Gera QR preto e branco contendo localização + vinhos + safras.
+    """Gera um QR FIXO por posição física do galpão.
 
-    Assim, qualquer leitor de QR mostra o conteúdo imediatamente, sem precisar
-    abrir navegador ou pesquisar. Como o conteúdo fica gravado na etiqueta, o
-    QR deve ser gerado novamente quando os vinhos daquela posição mudarem.
+    O conteúdo do QR é somente o identificador da posição (ex.: C01-P01-D).
+    Assim, o QR de uma mesma posição será sempre o mesmo, independentemente
+    dos vinhos que entrarem ou saírem do pallet. Os vinhos são consultados
+    pelo aplicativo no momento da leitura.
     """
     if not QRCODE_DISPONIVEL:
         return None
 
-    conteudo_qr = montar_conteudo_qr_pallet(pallet_id, estoque=estoque)
+    pallet_id = str(pallet_id or "").strip().upper()
+    dados = dados_posicao_pallet_id(pallet_id)
+    if dados:
+        pallet_id = dados["id"]
+
+    # IMPORTANTE: não incluir nomes, safras ou quantidade de vinhos aqui.
+    # Isso garante que a mesma posição gere exatamente o mesmo QR para sempre.
+    conteudo_qr = pallet_id
 
     caminho = os.path.join(PASTA_QR, f"{pallet_id}.png")
 
@@ -2749,7 +2757,7 @@ elif st.session_state.menu_atual == "GerarQRPallets":
                 caminho_qr = gerar_qr_pallet(id_qr, pallet_obj, st.session_state.estoque)
                 if caminho_qr and os.path.exists(caminho_qr):
                     registrar_log(st.session_state.usuario_logado.get("nome", "Usuário"), "Gerou QR Code de Pallet", f"Posição: {id_qr}")
-                    st.success(f"QR Code {id_qr} gerado com {len(vinhos_preview)} vinho(s).")
+                    st.success(f"QR Code fixo da posição {id_qr} gerado com sucesso.")
                     st.image(caminho_qr, width=280)
                     with open(caminho_qr, "rb") as arquivo_qr:
                         st.download_button("⬇️ Baixar QR Code", data=arquivo_qr.read(), file_name=f"QR_{id_qr}.png", mime="image/png", use_container_width=True, key=f"download_qr_{id_qr}")
@@ -2778,7 +2786,7 @@ elif st.session_state.menu_atual == "GerarQRPallets":
                 st.warning("O pallet inicial precisa ser menor ou igual ao pallet final.")
             else:
                 qtd_qrs = int(pallet_fim - pallet_inicio + 1)
-                st.caption(f"Serão gerados {qtd_qrs} QR Codes em um arquivo A4 pronto para impressão.")
+                st.caption(f"Serão gerados {qtd_qrs} QR Codes fixos por posição em um arquivo A4 pronto para impressão.")
 
                 if st.button("🖨️ Preparar QR Codes para imprimir", use_container_width=True, key="gerar_qr_lote"):
                     try:
