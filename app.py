@@ -30,6 +30,12 @@ try:
 except ImportError:
     QRCODE_DISPONIVEL = False
 
+try:
+    import psycopg2
+    PSYCOPG2_DISPONIVEL = True
+except ImportError:
+    PSYCOPG2_DISPONIVEL = False
+
 
 # ============================================================
 # CONFIGURAÇÃO
@@ -594,6 +600,51 @@ PASTA_QR = "qr_pallets"
 
 SENHA_DEV = "1980"
 SENHA_DIVERGENCIA = "2026"
+
+
+# ============================================================
+# SUPABASE / POSTGRESQL — ETAPA 1
+# ============================================================
+
+def obter_url_postgres():
+    """Lê a conexão salva em Settings > Secrets do Streamlit Cloud."""
+    try:
+        return str(st.secrets["postgres"]["url"]).strip()
+    except Exception:
+        return ""
+
+
+def testar_conexao_supabase():
+    """Testa a conexão sem alterar nenhum dado do aplicativo."""
+    if not PSYCOPG2_DISPONIVEL:
+        return False, "Dependência psycopg2-binary não instalada."
+
+    url = obter_url_postgres()
+    if not url:
+        return False, "Secret [postgres].url não encontrado."
+
+    conn = None
+    try:
+        conn = psycopg2.connect(url, connect_timeout=8)
+        with conn.cursor() as cur:
+            cur.execute("select 1;")
+            ok = cur.fetchone()
+        return bool(ok and ok[0] == 1), "Conexão com Supabase/PostgreSQL confirmada."
+    except Exception as e:
+        # Não exibe a connection string nem a senha em mensagens na tela.
+        tipo = e.__class__.__name__
+        return False, f"Falha de conexão ({tipo}). Verifique o Secret e a senha do banco."
+    finally:
+        if conn is not None:
+            try:
+                conn.close()
+            except Exception:
+                pass
+
+
+@st.cache_data(ttl=60, show_spinner=False)
+def status_supabase_cache():
+    return testar_conexao_supabase()
 
 
 # ============================================================
@@ -1660,50 +1711,76 @@ def validar_itens_pedido_no_estoque(itens):
 # ============================================================
 
 def url_publica_pallet(pallet_id):
-    """Retorna a URL pública fixa usada nas etiquetas QR do galpão."""
-    # Usar uma URL absoluta e fixa evita que o QR seja criado apenas com
-    # o texto da posição quando o app estiver atrás do proxy do Streamlit.
+    """Mantido apenas por compatibilidade com QR Codes antigos que continham URL."""
     base_url = "https://galpaopremium-gwiywrdxssrwmzv9tdpeff.streamlit.app/"
     pallet_limpo = str(pallet_id or "").strip().upper()
     return f"{base_url}?p={pallet_limpo}"
 
 
-def gerar_qr_pallet(
-    pallet_id,
-    pallet=None
-):
+def montar_conteudo_qr_pallet(pallet_id, estoque=None):
+    """Monta o texto visível diretamente ao escanear o QR fora do aplicativo."""
+    pallet_id = str(pallet_id or "").strip().upper()
+    dados = dados_posicao_pallet_id(pallet_id)
+    if not dados:
+        return f"PREMIUM WINES\nLocalizacao: {pallet_id}"
 
+    if estoque is None:
+        estoque = st.session_state.get("estoque", [])
+
+    vinhos = vinhos_atuais_da_posicao(pallet_id, estoque)
+
+    linhas = [
+        "PREMIUM WINES",
+        f"Localizacao: {dados['id']}",
+        f"{dados['corredor']} | {dados['pallet']} | {dados['lado']}",
+        "Vinhos:",
+    ]
+
+    if vinhos:
+        for idx, vinho in enumerate(vinhos, start=1):
+            nome = str(vinho.get("nome", "") or "Vinho sem nome").strip()
+            safra = str(vinho.get("safra", "") or "N/A").strip()
+            linhas.append(f"{idx}. {nome} - Safra {safra}")
+    else:
+        linhas.append("Nenhum vinho cadastrado nesta posicao.")
+
+    return "\n".join(linhas)
+
+
+def gerar_qr_pallet(pallet_id, pallet=None, estoque=None):
+    """Gera um QR FIXO por posição física do galpão.
+
+    O conteúdo do QR é somente o identificador da posição (ex.: C01-P01-D).
+    Assim, o QR de uma mesma posição será sempre o mesmo, independentemente
+    dos vinhos que entrarem ou saírem do pallet. Os vinhos são consultados
+    pelo aplicativo no momento da leitura.
+    """
     if not QRCODE_DISPONIVEL:
         return None
 
-    # O QR Code grava uma URL pública que contém somente a identificação
-    # da posição física do pallet. A página aberta consulta os vinhos atuais.
-    conteudo_qr = url_publica_pallet(pallet_id)
+    pallet_id = str(pallet_id or "").strip().upper()
+    dados = dados_posicao_pallet_id(pallet_id)
+    if dados:
+        pallet_id = dados["id"]
 
-    caminho = os.path.join(
-        PASTA_QR,
-        f"{pallet_id}.png"
-    )
+    # IMPORTANTE: não incluir nomes, safras ou quantidade de vinhos aqui.
+    # Isso garante que a mesma posição gere exatamente o mesmo QR para sempre.
+    conteudo_qr = pallet_id
+
+    caminho = os.path.join(PASTA_QR, f"{pallet_id}.png")
 
     qr = qrcode.QRCode(
-        version=1,
-        error_correction=qrcode.constants.ERROR_CORRECT_H,
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
         box_size=10,
-        border=4
+        border=4,
     )
-
     qr.add_data(conteudo_qr)
     qr.make(fit=True)
 
-    img = qr.make_image(
-        fill_color="black",
-        back_color="white"
-    )
-
+    img = qr.make_image(fill_color="black", back_color="white")
     img.save(caminho)
-
     return caminho
-
 
 def extrair_id_do_qr(conteudo):
     """
@@ -1802,14 +1879,15 @@ def componente_leitor_qr(chave_sessao, tela_retorno=None):
         url.searchParams.delete('scan_pallet');
         url.searchParams.set('screen', 'LerQRPallet');
         url.searchParams.set('scanned_{chave_sessao}', codigo);
-        window.parent.history.replaceState({{}}, '', url.toString());
-        window.parent.location.reload();
+        // Navega a própria página do Streamlit já com o código lido.
+        // No celular isso é mais confiável do que replaceState + reload dentro do iframe.
+        window.parent.location.href = url.toString();
     }}
 
     function onScanSuccess(decodedText, decodedResult) {{
         if (leituraConcluida_{chave_sessao}) return;
         leituraConcluida_{chave_sessao} = true;
-        document.getElementById("resultado_{chave_sessao}").innerText = "QR lido. Carregando vinhos...";
+        document.getElementById("resultado_{chave_sessao}").innerText = "QR lido. Consultando vinhos desta posição...";
 
         if (window.html5QrCode_{chave_sessao}) {{
             window.html5QrCode_{chave_sessao}.stop()
@@ -2043,8 +2121,12 @@ if _scan_publico:
     st.markdown(
         """
         <style>
-        [data-testid='stSidebar']{display:none!important;}
-        [data-testid='stHeader']{display:none!important;}
+        [data-testid='stSidebar'],
+        [data-testid='stHeader'],
+        [data-testid='stToolbar'],
+        [data-testid='stDecoration'],
+        [data-testid='stMainMenu'],
+        footer, #MainMenu, .stDeployButton, .stAppToolbar {display:none!important;visibility:hidden!important;}
         .block-container{padding-top:1.2rem!important;max-width:900px!important;}
         .stApp{background:linear-gradient(135deg,#21181C,#2A2024)!important;}
         </style>
@@ -2082,8 +2164,7 @@ if _scan_publico:
             const codigo = extrairCodigoPallet(decodedText);
             const url = new URL(window.parent.location.href);
             url.search = '';
-            url.searchParams.set('pallet', codigo);
-            url.searchParams.set('public', '1');
+            url.searchParams.set('p', codigo);
             const ir = () => {
                 window.parent.history.replaceState({}, '', url.toString());
                 window.parent.location.reload();
@@ -2124,8 +2205,9 @@ if _pallet_publico_param:
         <script>
         try {
             const doc = window.parent.document;
+            doc.title = 'Premium Wines - Consulta do Pallet';
             doc.querySelectorAll('link[rel="manifest"]').forEach(el => el.remove());
-            doc.querySelectorAll('meta[name="mobile-web-app-capable"], meta[name="apple-mobile-web-app-capable"]').forEach(el => el.remove());
+            doc.querySelectorAll('meta[name="mobile-web-app-capable"], meta[name="apple-mobile-web-app-capable"], meta[name="application-name"]').forEach(el => el.remove());
         } catch (e) {}
         </script>
         """,
@@ -2135,8 +2217,12 @@ if _pallet_publico_param:
     st.markdown(
         """
         <style>
-        [data-testid='stSidebar']{display:none!important;}
-        [data-testid='stHeader']{display:none!important;}
+        [data-testid='stSidebar'],
+        [data-testid='stHeader'],
+        [data-testid='stToolbar'],
+        [data-testid='stDecoration'],
+        [data-testid='stMainMenu'],
+        footer, #MainMenu, .stDeployButton, .stAppToolbar {display:none!important;visibility:hidden!important;}
         .block-container{padding-top:1.2rem!important;max-width:900px!important;}
         .stApp{background:linear-gradient(135deg,#21181C,#2A2024)!important;}
         </style>
@@ -2148,7 +2234,7 @@ if _pallet_publico_param:
         """
         <div style="background:linear-gradient(135deg,#2B2024,#3A1823);border:1px solid #735063;border-radius:18px;padding:22px 24px;margin-bottom:18px;">
             <div style="font-size:1.45rem;font-weight:800;color:#F0C97A;">🍷 PREMIUM WINES</div>
-            <div style="color:#E0D8D3;margin-top:3px;">Consulta do pallet</div>
+            <div style="color:#E0D8D3;margin-top:3px;">Consulta pública do pallet • somente leitura</div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -2288,6 +2374,12 @@ if st.session_state.usuario_logado is None:
 
     _, cc, _ = st.columns([1, 1.1, 1])
     with cc:
+        _db_ok, _db_msg = status_supabase_cache()
+        if _db_ok:
+            st.success("✅ Supabase conectado. Banco PostgreSQL pronto para a migração.")
+        else:
+            st.warning(f"⚠️ Supabase ainda não conectado: {_db_msg}")
+
         st.markdown('<div class="login-card">', unsafe_allow_html=True)
         tab1, tab2, tab3 = st.tabs(["🔑 Entrar", "👤 Criar Conta", "⚙️ Dev"])
 
@@ -2585,6 +2677,8 @@ elif st.session_state.menu_atual == "LerQRPallet":
 
     render_page_header("📱", "Leitura de QR Code do Pallet", "Aponte a câmera para a etiqueta do pallet e veja imediatamente os vinhos e safras cadastrados naquela posição.", "Estoque • Localização")
 
+    st.caption("O QR identifica somente a posição física. A lista abaixo é consultada no estoque atual, portanto não é necessário reimprimir o QR quando os vinhos mudarem de pallet.")
+
     # Se já existe resultado, escondemos a câmera para deixar a consulta limpa.
     codigo_ja_lido = str(st.session_state.get("qr_pallet_lido", "") or "").strip()
 
@@ -2698,7 +2792,7 @@ elif st.session_state.menu_atual == "GerarQRPallets":
 
             id_qr = gerar_id_pallet(corredor_qr, pallet_qr, lado_qr)
             pallet_preview = obter_pallet(st.session_state.pallets, id_qr)
-            vinhos_preview = pallet_preview.get("vinhos", []) if pallet_preview else []
+            vinhos_preview = vinhos_atuais_da_posicao(id_qr, st.session_state.estoque)
 
             resumo = (
                 '<div style="background:#17171b;border:1px solid #34343b;border-radius:14px;padding:18px 20px;margin:14px 0;">'
@@ -2720,10 +2814,10 @@ elif st.session_state.menu_atual == "GerarQRPallets":
             if st.button("🏷️ Gerar QR Code", use_container_width=True, key="gerar_qr_unico"):
                 pallet_obj = criar_ou_atualizar_pallet(corredor_qr, pallet_qr, lado_qr, st.session_state.pallets)
                 salvar_pallets(st.session_state.pallets)
-                caminho_qr = gerar_qr_pallet(id_qr, pallet_obj)
+                caminho_qr = gerar_qr_pallet(id_qr, pallet_obj, st.session_state.estoque)
                 if caminho_qr and os.path.exists(caminho_qr):
                     registrar_log(st.session_state.usuario_logado.get("nome", "Usuário"), "Gerou QR Code de Pallet", f"Posição: {id_qr}")
-                    st.success(f"QR Code {id_qr} gerado com sucesso.")
+                    st.success(f"QR Code fixo da posição {id_qr} gerado com sucesso.")
                     st.image(caminho_qr, width=280)
                     with open(caminho_qr, "rb") as arquivo_qr:
                         st.download_button("⬇️ Baixar QR Code", data=arquivo_qr.read(), file_name=f"QR_{id_qr}.png", mime="image/png", use_container_width=True, key=f"download_qr_{id_qr}")
@@ -2752,7 +2846,7 @@ elif st.session_state.menu_atual == "GerarQRPallets":
                 st.warning("O pallet inicial precisa ser menor ou igual ao pallet final.")
             else:
                 qtd_qrs = int(pallet_fim - pallet_inicio + 1)
-                st.caption(f"Serão gerados {qtd_qrs} QR Codes em um arquivo A4 pronto para impressão.")
+                st.caption(f"Serão gerados {qtd_qrs} QR Codes fixos por posição em um arquivo A4 pronto para impressão.")
 
                 if st.button("🖨️ Preparar QR Codes para imprimir", use_container_width=True, key="gerar_qr_lote"):
                     try:
@@ -2783,7 +2877,7 @@ elif st.session_state.menu_atual == "GerarQRPallets":
 
                             id_lote = gerar_id_pallet(corredor_lote, pallet_nome, lado_lote)
                             pallet_obj = criar_ou_atualizar_pallet(corredor_lote, pallet_nome, lado_lote, st.session_state.pallets)
-                            caminho_qr = gerar_qr_pallet(id_lote, pallet_obj)
+                            caminho_qr = gerar_qr_pallet(id_lote, pallet_obj, st.session_state.estoque)
                             if not caminho_qr or not os.path.exists(caminho_qr):
                                 continue
 
