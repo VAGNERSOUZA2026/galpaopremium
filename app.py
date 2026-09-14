@@ -614,6 +614,36 @@ def obter_url_postgres():
         return ""
 
 
+def diagnosticar_erro_postgres(erro):
+    """Converte o erro técnico em diagnóstico seguro, sem mostrar senha/URI."""
+    texto = str(erro or "").lower()
+
+    if "password authentication failed" in texto or "authentication failed" in texto:
+        return "A senha do banco foi recusada pelo Supabase."
+    if "could not translate host name" in texto or "name or service not known" in texto:
+        return "O endereço (host) da conexão está incorreto ou não pôde ser encontrado."
+    if "connection timed out" in texto or "timeout expired" in texto or "timeout" in texto:
+        return "A conexão expirou. Confira o host e a porta do Pooler."
+    if "connection refused" in texto:
+        return "O servidor recusou a conexão. Confira a porta do Pooler."
+    if "no pg_hba.conf entry" in texto or "ssl" in texto and "required" in texto:
+        return "A conexão exige SSL/configuração compatível com o Supabase."
+    if "database" in texto and "does not exist" in texto:
+        return "O nome do banco na Connection String está incorreto."
+    if "role" in texto and "does not exist" in texto:
+        return "O usuário da Connection String está incorreto."
+    if "invalid dsn" in texto or "missing \"=\" after" in texto:
+        return "A Connection String está em formato inválido."
+    if "invalid integer value" in texto and "port" in texto:
+        return "A porta da Connection String está inválida."
+
+    # Mostra apenas a primeira linha genérica, removendo possíveis credenciais/URIs.
+    primeira = str(erro or "").strip().splitlines()[0] if str(erro or "").strip() else "Erro desconhecido"
+    primeira = re.sub(r"postgres(?:ql)?://[^\s]+", "[CONEXAO_OCULTA]", primeira, flags=re.I)
+    primeira = re.sub(r"password=[^\s]+", "password=[OCULTA]", primeira, flags=re.I)
+    return f"Erro técnico: {primeira}"
+
+
 def testar_conexao_supabase():
     """Testa a conexão sem alterar nenhum dado do aplicativo."""
     if not PSYCOPG2_DISPONIVEL:
@@ -625,15 +655,15 @@ def testar_conexao_supabase():
 
     conn = None
     try:
-        conn = psycopg2.connect(url, connect_timeout=8)
+        conn = psycopg2.connect(url, connect_timeout=8, sslmode="require")
         with conn.cursor() as cur:
-            cur.execute("select 1;")
+            cur.execute("select current_database(), current_user;")
             ok = cur.fetchone()
-        return bool(ok and ok[0] == 1), "Conexão com Supabase/PostgreSQL confirmada."
+        if ok:
+            return True, "Conexão com Supabase/PostgreSQL confirmada."
+        return False, "O servidor respondeu, mas o teste SQL não retornou resultado."
     except Exception as e:
-        # Não exibe a connection string nem a senha em mensagens na tela.
-        tipo = e.__class__.__name__
-        return False, f"Falha de conexão ({tipo}). Verifique o Secret e a senha do banco."
+        return False, diagnosticar_erro_postgres(e)
     finally:
         if conn is not None:
             try:
@@ -642,7 +672,7 @@ def testar_conexao_supabase():
                 pass
 
 
-@st.cache_data(ttl=60, show_spinner=False)
+@st.cache_data(ttl=10, show_spinner=False)
 def status_supabase_cache():
     return testar_conexao_supabase()
 
