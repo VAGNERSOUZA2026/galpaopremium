@@ -3,3 +3,4 @@ pandas
 pytz
 openpyxl
 qrcode[pil]
+psycopg2-binary
