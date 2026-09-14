@@ -663,7 +663,10 @@ def testar_conexao_supabase():
             return True, "Conexão com Supabase/PostgreSQL confirmada."
         return False, "O servidor respondeu, mas o teste SQL não retornou resultado."
     except Exception as e:
-        return False, diagnosticar_erro_postgres(e)
+        # Diagnóstico V2: mostra a causa útil sem expor a URI/senha.
+        detalhe = diagnosticar_erro_postgres(e)
+        tipo = type(e).__name__
+        return False, f"DIAGNÓSTICO V2 — {tipo}: {detalhe}"
     finally:
         if conn is not None:
             try:
