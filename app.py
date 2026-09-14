@@ -606,12 +606,19 @@ SENHA_DIVERGENCIA = "2026"
 # SUPABASE / POSTGRESQL — ETAPA 1
 # ============================================================
 
-def obter_url_postgres():
-    """Lê a conexão salva em Settings > Secrets do Streamlit Cloud."""
+def obter_config_postgres():
+    """Lê os parâmetros separados salvos em Settings > Secrets do Streamlit Cloud."""
     try:
-        return str(st.secrets["postgres"]["url"]).strip()
+        cfg = st.secrets["postgres"]
+        return {
+            "host": str(cfg["host"]).strip(),
+            "port": int(cfg["port"]),
+            "dbname": str(cfg["dbname"]).strip(),
+            "user": str(cfg["user"]).strip(),
+            "password": str(cfg["password"]),
+        }
     except Exception:
-        return ""
+        return None
 
 
 def diagnosticar_erro_postgres(erro):
@@ -649,13 +656,21 @@ def testar_conexao_supabase():
     if not PSYCOPG2_DISPONIVEL:
         return False, "Dependência psycopg2-binary não instalada."
 
-    url = obter_url_postgres()
-    if not url:
-        return False, "Secret [postgres].url não encontrado."
+    cfg = obter_config_postgres()
+    if not cfg:
+        return False, "Secrets [postgres] incompletos. Verifique host, port, dbname, user e password."
 
     conn = None
     try:
-        conn = psycopg2.connect(url, connect_timeout=8, sslmode="require")
+        conn = psycopg2.connect(
+            host=cfg["host"],
+            port=cfg["port"],
+            dbname=cfg["dbname"],
+            user=cfg["user"],
+            password=cfg["password"],
+            connect_timeout=8,
+            sslmode="require",
+        )
         with conn.cursor() as cur:
             cur.execute("select current_database(), current_user;")
             ok = cur.fetchone()
@@ -663,10 +678,9 @@ def testar_conexao_supabase():
             return True, "Conexão com Supabase/PostgreSQL confirmada."
         return False, "O servidor respondeu, mas o teste SQL não retornou resultado."
     except Exception as e:
-        # Diagnóstico V2: mostra a causa útil sem expor a URI/senha.
         detalhe = diagnosticar_erro_postgres(e)
         tipo = type(e).__name__
-        return False, f"DIAGNÓSTICO V2 — {tipo}: {detalhe}"
+        return False, f"DIAGNÓSTICO V3 — {tipo}: {detalhe}"
     finally:
         if conn is not None:
             try:
