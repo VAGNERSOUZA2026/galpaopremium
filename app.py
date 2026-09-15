@@ -828,30 +828,49 @@ def carregar_dados():
 
 
 def salvar_dados(estoque):
-
     estoque_ordenado = sorted(
         estoque,
         key=lambda x: x.get("nome", "").lower()
     )
-
-    with open(
-        NOME_ARQUIVO,
-        "w",
-        encoding="utf-8"
-    ) as f:
-
-        json.dump(
-            estoque_ordenado,
-            f,
-            ensure_ascii=False,
-            indent=4
+    
+    # Salvar no banco de dados Postgres (Supabase)
+    try:
+        import psycopg2
+        import json
+        
+        # Conecta usando os secrets configurados no Streamlit
+        db_config = st.secrets["postgres"]
+        conn = psycopg2.connect(
+            host=db_config["host"],
+            database=db_config["dbname"],
+            user=db_config["user"],
+            password=db_config["password"],
+            port=db_config.get("port", 5432)
         )
-
-    realizar_backup(NOME_ARQUIVO)
+        cursor = conn.cursor()
+        
+        # Cria a tabela de estoque se ela não existir
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS estoque_vinhos (
+                id SERIAL PRIMARY KEY,
+                dados JSONB
+            );
+        """)
+        
+        # Limpa os dados antigos e insere a lista atualizada de forma segura
+        cursor.execute("DELETE FROM estoque_vinhos;")
+        cursor.execute(
+            "INSERT INTO estoque_vinhos (dados) VALUES (%s);",
+            (json.dumps(estoque_ordenado, ensure_ascii=False),)
+        )
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        st.error(f"Erro ao salvar no banco de dados: {e}")
 
     st.session_state.estoque = estoque_ordenado
-
-
 # ============================================================
 # USUÁRIOS
 # ============================================================
