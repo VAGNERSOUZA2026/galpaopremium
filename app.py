@@ -622,6 +622,8 @@ def obter_config_postgres():
 
 
 def diagnosticar_erro_postgres(erro):
+    """Diagnóstico desativado para limpar a interface."""
+    return ""
     """Converte o erro técnico em diagnóstico seguro, sem mostrar senha/URI."""
     texto = str(erro or "").lower()
 
