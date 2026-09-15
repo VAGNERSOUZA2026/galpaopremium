@@ -5063,3 +5063,4 @@ elif st.session_state.menu_atual == "GerenciarUsuarios":
                 )
             else:
                 st.info("Nenhum usuário comum cadastrado.")
+Atualiza salvamento para o Supabase
