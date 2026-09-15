@@ -622,33 +622,29 @@ def obter_config_postgres():
 
 
 def diagnosticar_erro_postgres(erro):
-    """Converte o erro técnico em diagnóstico seguro, sem mostrar senha/URI."""
-    texto = str(erro or "").lower()
+    """Diagnóstico seguro: nunca devolve host, usuário, senha ou URI."""
+    texto = str(erro or "")
+    baixo = texto.lower()
 
-    if "password authentication failed" in texto or "authentication failed" in texto:
-        return "A senha do banco foi recusada pelo Supabase."
-    if "could not translate host name" in texto or "name or service not known" in texto:
-        return "O endereço (host) da conexão está incorreto ou não pôde ser encontrado."
-    if "connection timed out" in texto or "timeout expired" in texto or "timeout" in texto:
-        return "A conexão expirou. Confira o host e a porta do Pooler."
-    if "connection refused" in texto:
-        return "O servidor recusou a conexão. Confira a porta do Pooler."
-    if "no pg_hba.conf entry" in texto or "ssl" in texto and "required" in texto:
-        return "A conexão exige SSL/configuração compatível com o Supabase."
-    if "database" in texto and "does not exist" in texto:
-        return "O nome do banco na Connection String está incorreto."
-    if "role" in texto and "does not exist" in texto:
-        return "O usuário da Connection String está incorreto."
-    if "invalid dsn" in texto or "missing \"=\" after" in texto:
-        return "A Connection String está em formato inválido."
-    if "invalid integer value" in texto and "port" in texto:
-        return "A porta da Connection String está inválida."
-
-    # Mostra apenas a primeira linha genérica, removendo possíveis credenciais/URIs.
-    primeira = str(erro or "").strip().splitlines()[0] if str(erro or "").strip() else "Erro desconhecido"
-    primeira = re.sub(r"postgres(?:ql)?://[^\s]+", "[CONEXAO_OCULTA]", primeira, flags=re.I)
-    primeira = re.sub(r"password=[^\s]+", "password=[OCULTA]", primeira, flags=re.I)
-    return f"Erro técnico: {primeira}"
+    if "password authentication failed" in baixo or "authentication failed" in baixo:
+        return "AUTENTICAÇÃO: o Supabase recusou usuário ou senha."
+    if "tenant or user not found" in baixo:
+        return "USUÁRIO/POOLER: confira o campo user copiado do Supabase e o modo de conexão."
+    if "could not translate host name" in baixo or "name or service not known" in baixo:
+        return "HOST/DNS: o endereço do servidor não foi encontrado."
+    if "unix-domain socket path" in baixo:
+        return "HOST: o campo host contém dados extras. Ele deve conter somente o endereço do servidor."
+    if "connection timed out" in baixo or "timeout expired" in baixo or "timeout" in baixo:
+        return "REDE/PORTA: a tentativa de conexão expirou."
+    if "connection refused" in baixo:
+        return "PORTA: o servidor recusou a conexão nessa porta."
+    if "database" in baixo and "does not exist" in baixo:
+        return "BANCO: o nome do banco está incorreto."
+    if "role" in baixo and "does not exist" in baixo:
+        return "USUÁRIO: o usuário informado não existe."
+    if "ssl" in baixo and ("required" in baixo or "certificate" in baixo):
+        return "SSL: houve falha na conexão segura."
+    return "POSTGRESQL: a conexão falhou. Use o teste seguro abaixo para identificar a etapa."
 
 
 def testar_conexao_supabase():
@@ -687,6 +683,49 @@ def testar_conexao_supabase():
                 conn.close()
             except Exception:
                 pass
+
+
+def diagnostico_conexao_supabase():
+    """Verifica configuração, DNS, porta e login sem exibir credenciais."""
+    import socket
+
+    if not PSYCOPG2_DISPONIVEL:
+        return False, "1/4 Dependência: psycopg2-binary não está instalada."
+
+    cfg = obter_config_postgres()
+    if not cfg:
+        return False, "1/4 Secrets: faltam campos em [postgres]."
+
+    host = cfg["host"]
+    port = cfg["port"]
+
+    # Validação local sem mostrar valores secretos
+    if any(x in host for x in ("postgres://", "postgresql://", "@", "/", ":")):
+        return False, "1/4 Secrets: HOST está incorreto. Deve conter somente o endereço do servidor."
+    if port not in (5432, 6543):
+        return False, "1/4 Secrets: PORT deve ser 5432 (Session) ou 6543 (Transaction)."
+    if not cfg["dbname"]:
+        return False, "1/4 Secrets: DBNAME está vazio."
+    if not cfg["user"]:
+        return False, "1/4 Secrets: USER está vazio."
+    if not cfg["password"]:
+        return False, "1/4 Secrets: PASSWORD está vazia."
+
+    try:
+        socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
+    except Exception:
+        return False, "2/4 DNS: o HOST não foi encontrado."
+
+    try:
+        s = socket.create_connection((host, port), timeout=6)
+        s.close()
+    except Exception:
+        return False, f"3/4 Rede: o HOST existe, mas a PORTA {port} não respondeu."
+
+    ok, msg = testar_conexao_supabase()
+    if ok:
+        return True, "4/4 SUCESSO: Supabase/PostgreSQL conectado."
+    return False, "4/4 Login no banco: " + diagnosticar_erro_postgres(msg)
 
 
 @st.cache_data(ttl=10, show_spinner=False)
@@ -2503,6 +2542,16 @@ if st.session_state.usuario_logado is None:
                             st.success("Solicitação enviada a um Administrador Principal.")
 
         with tab3:
+            st.markdown("#### Teste seguro do Supabase")
+            st.caption("Não mostra host, usuário nem senha.")
+            if st.button("TESTAR CONEXÃO SUPABASE", key="teste_supabase_seguro", use_container_width=True):
+                status_supabase_cache.clear()
+                ok_diag, msg_diag = diagnostico_conexao_supabase()
+                if ok_diag:
+                    st.success(msg_diag)
+                else:
+                    st.error(msg_diag)
+
             st.caption("Área restrita do desenvolvedor.")
             with st.form("d_form"):
                 sp = st.text_input("Senha Mestra", type="password")
