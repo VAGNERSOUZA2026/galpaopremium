@@ -622,8 +622,6 @@ def obter_config_postgres():
 
 
 def diagnosticar_erro_postgres(erro):
-    """Diagnóstico desativado para limpar a interface."""
-    return ""
     """Converte o erro técnico em diagnóstico seguro, sem mostrar senha/URI."""
     texto = str(erro or "").lower()
 
@@ -830,49 +828,30 @@ def carregar_dados():
 
 
 def salvar_dados(estoque):
+
     estoque_ordenado = sorted(
         estoque,
         key=lambda x: x.get("nome", "").lower()
     )
-    
-    # Salvar no banco de dados Postgres (Supabase)
-    try:
-        import psycopg2
-        import json
-        
-        # Conecta usando os secrets configurados no Streamlit
-        db_config = st.secrets["postgres"]
-        conn = psycopg2.connect(
-            host=db_config["host"],
-            database=db_config["dbname"],
-            user=db_config["user"],
-            password=db_config["password"],
-            port=db_config.get("port", 5432)
+
+    with open(
+        NOME_ARQUIVO,
+        "w",
+        encoding="utf-8"
+    ) as f:
+
+        json.dump(
+            estoque_ordenado,
+            f,
+            ensure_ascii=False,
+            indent=4
         )
-        cursor = conn.cursor()
-        
-        # Cria a tabela de estoque se ela não existir
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS estoque_vinhos (
-                id SERIAL PRIMARY KEY,
-                dados JSONB
-            );
-        """)
-        
-        # Limpa os dados antigos e insere a lista atualizada de forma segura
-        cursor.execute("DELETE FROM estoque_vinhos;")
-        cursor.execute(
-            "INSERT INTO estoque_vinhos (dados) VALUES (%s);",
-            (json.dumps(estoque_ordenado, ensure_ascii=False),)
-        )
-        
-        conn.commit()
-        cursor.close()
-        conn.close()
-    except Exception as e:
-        st.error(f"Erro ao salvar no banco de dados: {e}")
+
+    realizar_backup(NOME_ARQUIVO)
 
     st.session_state.estoque = estoque_ordenado
+
+
 # ============================================================
 # USUÁRIOS
 # ============================================================
@@ -2443,10 +2422,7 @@ if st.session_state.usuario_logado is None:
     _, cc, _ = st.columns([1, 1.1, 1])
     with cc:
         _db_ok, _db_msg = status_supabase_cache()
-        if _db_ok:
-            st.success("✅ Supabase conectado. Banco PostgreSQL pronto para a migração.")
-        else:
-            st.warning(f"⚠️ Supabase ainda não conectado: {_db_msg}")
+        # Status técnico do Supabase oculto da tela de login.
 
         st.markdown('<div class="login-card">', unsafe_allow_html=True)
         tab1, tab2, tab3 = st.tabs(["🔑 Entrar", "👤 Criar Conta", "⚙️ Dev"])
