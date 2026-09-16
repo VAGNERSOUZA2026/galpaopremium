@@ -776,62 +776,248 @@ def realizar_backup(nome):
 # ESTOQUE
 # ============================================================
 
-def carregar_dados():
-    """Carrega o estoque sem criar vinhos de exemplo automaticamente."""
-    estoque = []
+def _supabase_request(method, tabela, query="", payload=None, prefer=None):
+    """Faz chamadas REST ao Supabase sem expor a Secret Key."""
+    import urllib.request
+    import urllib.error
 
-    if os.path.exists(NOME_ARQUIVO):
-        try:
-            with open(NOME_ARQUIVO, "r", encoding="utf-8") as f:
-                dados = json.load(f)
-                if isinstance(dados, list):
-                    estoque = dados
-        except Exception:
-            estoque = []
+    cfg = obter_config_supabase()
+    if not cfg:
+        raise RuntimeError("Secrets [supabase] incompletos.")
 
-    # Remove o registro de demonstração antigo que versões anteriores
-    # recriavam quando o último vinho real era apagado.
-    estoque_limpo = []
-    for vinho in estoque:
-        registro_demo_campana = (
-            str(vinho.get("nome", "")).strip().lower() == "campana merlot"
-            and str(vinho.get("safra", "")).strip() == "2024"
-            and str(vinho.get("codigo_barras", "")).strip() == "7891008116632"
-            and str(vinho.get("localizacao", "")).strip() == "Corredor 01 - Pallet Item 01"
-        )
-        if not registro_demo_campana:
-            estoque_limpo.append(vinho)
+    endpoint = f'{cfg["url"]}/rest/v1/{tabela}'
+    if query:
+        endpoint += "?" + query.lstrip("?")
 
-    # Se o arquivo estiver vazio, o estoque permanece realmente vazio.
-    return sorted(
-        estoque_limpo,
-        key=lambda x: x.get("nome", "").lower()
+    headers = {
+        "apikey": cfg["key"],
+        "Authorization": "Bearer " + cfg["key"],
+        "Accept": "application/json",
+    }
+
+    body = None
+    if payload is not None:
+        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        headers["Content-Type"] = "application/json"
+
+    if prefer:
+        headers["Prefer"] = prefer
+
+    req = urllib.request.Request(
+        endpoint,
+        data=body,
+        headers=headers,
+        method=method,
     )
+
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            raw = resp.read().decode("utf-8").strip()
+            return json.loads(raw) if raw else None
+    except urllib.error.HTTPError as e:
+        try:
+            detalhe = e.read().decode("utf-8", errors="ignore")
+            detalhe_json = json.loads(detalhe) if detalhe else {}
+            mensagem = (
+                detalhe_json.get("message")
+                or detalhe_json.get("hint")
+                or detalhe_json.get("details")
+                or f"HTTP {e.code}"
+            )
+        except Exception:
+            mensagem = f"HTTP {e.code}"
+        raise RuntimeError(f"Supabase: {mensagem}") from None
+    except urllib.error.URLError as e:
+        raise RuntimeError("Não foi possível comunicar com o Supabase.") from None
+
+
+def _campos_localizacao_para_supabase(vinho):
+    """Converte a localização usada pelo app para as colunas do banco."""
+    localizacao = str(vinho.get("localizacao", "") or "").strip()
+    corredor = ""
+    tipo_local = ""
+    pallet = ""
+
+    m = re.match(
+        r"^(Corredor\s+\d+)\s*-\s*(Pallet|Prateleira)\s+(Item\s+\d+)$",
+        localizacao,
+        flags=re.IGNORECASE,
+    )
+    if m:
+        corredor = m.group(1).title()
+        tipo_local = m.group(2).title()
+        pallet = m.group(3).title()
+    else:
+        partes = [p.strip() for p in localizacao.split("-", 1)]
+        corredor = partes[0] if partes else ""
+        if len(partes) > 1:
+            resto = partes[1]
+            if resto.lower().startswith("pallet"):
+                tipo_local = "Pallet"
+                pallet = resto[len("pallet"):].strip()
+            elif resto.lower().startswith("prateleira"):
+                tipo_local = "Prateleira"
+                pallet = resto[len("prateleira"):].strip()
+
+    return corredor, tipo_local, pallet
+
+
+def _vinho_app_para_supabase(vinho):
+    corredor, tipo_local, pallet = _campos_localizacao_para_supabase(vinho)
+    return {
+        "nome": str(vinho.get("nome", "") or "").strip(),
+        "safra": str(vinho.get("safra", "") or "").strip(),
+        "tipo": str(vinho.get("tipo", "") or "").strip(),
+        "litragem": str(vinho.get("litragem", "") or "").strip(),
+        "embalagem": str(vinho.get("caixa", "") or "").strip(),
+        "codigo_barras": str(vinho.get("codigo_barras", "") or "").strip() or None,
+        "corredor": corredor or None,
+        "tipo_local": tipo_local or None,
+        "pallet": pallet or None,
+        "lado": str(vinho.get("lado", "") or "").strip() or None,
+        "foto_url": str(vinho.get("foto", "") or "").strip() or None,
+        "ativo": True,
+    }
+
+
+def _vinho_supabase_para_app(registro):
+    corredor = str(registro.get("corredor", "") or "").strip()
+    tipo_local = str(registro.get("tipo_local", "") or "").strip()
+    pallet = str(registro.get("pallet", "") or "").strip()
+
+    localizacao = corredor
+    if tipo_local or pallet:
+        localizacao = f"{corredor} - {tipo_local} {pallet}".strip()
+
+    return {
+        "_db_id": registro.get("id"),
+        "nome": str(registro.get("nome", "") or ""),
+        "tipo": str(registro.get("tipo", "") or ""),
+        "safra": str(registro.get("safra", "") or ""),
+        "localizacao": localizacao,
+        "lado": str(registro.get("lado", "") or ""),
+        "caixa": str(registro.get("embalagem", "") or ""),
+        "litragem": str(registro.get("litragem", "") or ""),
+        "codigo_barras": str(registro.get("codigo_barras", "") or ""),
+        "foto": str(registro.get("foto_url", "") or ""),
+    }
+
+
+def carregar_dados():
+    """Carrega os vinhos diretamente do Supabase. JSON fica apenas como backup local."""
+    try:
+        registros = _supabase_request(
+            "GET",
+            "vinhos",
+            "select=*&ativo=eq.true&order=nome.asc",
+        ) or []
+
+        estoque = [_vinho_supabase_para_app(r) for r in registros]
+
+        # Mantém uma cópia local somente como backup de emergência.
+        try:
+            with open(NOME_ARQUIVO, "w", encoding="utf-8") as f:
+                json.dump(estoque, f, ensure_ascii=False, indent=4)
+        except Exception:
+            pass
+
+        return estoque
+
+    except Exception as e:
+        # Se houver uma indisponibilidade temporária, tenta abrir o último backup local.
+        estoque = []
+        if os.path.exists(NOME_ARQUIVO):
+            try:
+                with open(NOME_ARQUIVO, "r", encoding="utf-8") as f:
+                    dados = json.load(f)
+                    if isinstance(dados, list):
+                        estoque = dados
+            except Exception:
+                estoque = []
+
+        if estoque:
+            st.warning(
+                "Supabase temporariamente indisponível. "
+                "Exibindo o último backup local; alterações não serão perdidas no banco."
+            )
+            return sorted(estoque, key=lambda x: x.get("nome", "").lower())
+
+        st.error(f"Não foi possível carregar o estoque do Supabase: {e}")
+        return []
 
 
 def salvar_dados(estoque):
-
+    """
+    Sincroniza o estoque com o Supabase:
+    - registros existentes são atualizados pelo id;
+    - novos vinhos são inseridos;
+    - vinhos removidos no app recebem ativo=false (soft delete).
+    """
     estoque_ordenado = sorted(
         estoque,
         key=lambda x: x.get("nome", "").lower()
     )
 
-    with open(
-        NOME_ARQUIVO,
-        "w",
-        encoding="utf-8"
-    ) as f:
+    try:
+        existentes = _supabase_request(
+            "GET",
+            "vinhos",
+            "select=id&ativo=eq.true",
+        ) or []
+        ids_banco = {str(r.get("id")) for r in existentes if r.get("id") is not None}
+        ids_app = {
+            str(v.get("_db_id"))
+            for v in estoque_ordenado
+            if v.get("_db_id") is not None
+        }
 
-        json.dump(
-            estoque_ordenado,
-            f,
-            ensure_ascii=False,
-            indent=4
-        )
+        # Soft delete dos itens removidos no aplicativo.
+        for db_id in ids_banco - ids_app:
+            _supabase_request(
+                "PATCH",
+                "vinhos",
+                "id=eq." + str(db_id),
+                {"ativo": False},
+                prefer="return=minimal",
+            )
 
-    realizar_backup(NOME_ARQUIVO)
+        # Atualiza existentes e insere novos.
+        for vinho in estoque_ordenado:
+            payload = _vinho_app_para_supabase(vinho)
+            db_id = vinho.get("_db_id")
 
-    st.session_state.estoque = estoque_ordenado
+            if db_id is not None:
+                _supabase_request(
+                    "PATCH",
+                    "vinhos",
+                    "id=eq." + str(db_id),
+                    payload,
+                    prefer="return=minimal",
+                )
+            else:
+                criado = _supabase_request(
+                    "POST",
+                    "vinhos",
+                    "",
+                    payload,
+                    prefer="return=representation",
+                )
+                if isinstance(criado, list) and criado:
+                    vinho["_db_id"] = criado[0].get("id")
+
+        # Backup local secundário.
+        try:
+            with open(NOME_ARQUIVO, "w", encoding="utf-8") as f:
+                json.dump(estoque_ordenado, f, ensure_ascii=False, indent=4)
+            realizar_backup(NOME_ARQUIVO)
+        except Exception:
+            pass
+
+        st.session_state.estoque = estoque_ordenado
+
+    except Exception as e:
+        st.error(f"Não foi possível salvar no Supabase: {e}")
+        st.stop()
 
 
 # ============================================================
