@@ -603,129 +603,59 @@ SENHA_DIVERGENCIA = "2026"
 
 
 # ============================================================
-# SUPABASE / POSTGRESQL — ETAPA 1
+# SUPABASE — API REST
 # ============================================================
 
-def obter_config_postgres():
-    """Lê os parâmetros separados salvos em Settings > Secrets do Streamlit Cloud."""
+def obter_config_supabase():
+    """Lê URL e chave salvas em Settings > Secrets do Streamlit Cloud."""
     try:
-        cfg = st.secrets["postgres"]
-        return {
-            "host": str(cfg["host"]).strip(),
-            "port": int(cfg["port"]),
-            "dbname": str(cfg["dbname"]).strip(),
-            "user": str(cfg["user"]).strip(),
-            "password": str(cfg["password"]),
-        }
+        cfg = st.secrets["supabase"]
+        url = str(cfg["url"]).strip().rstrip("/")
+        key = str(cfg["key"]).strip()
+        if not url or not key:
+            return None
+        return {"url": url, "key": key}
     except Exception:
         return None
 
 
-def diagnosticar_erro_postgres(erro):
-    """Diagnóstico seguro: nunca devolve host, usuário, senha ou URI."""
-    texto = str(erro or "")
-    baixo = texto.lower()
-
-    if "password authentication failed" in baixo or "authentication failed" in baixo:
-        return "AUTENTICAÇÃO: o Supabase recusou usuário ou senha."
-    if "tenant or user not found" in baixo:
-        return "USUÁRIO/POOLER: confira o campo user copiado do Supabase e o modo de conexão."
-    if "could not translate host name" in baixo or "name or service not known" in baixo:
-        return "HOST/DNS: o endereço do servidor não foi encontrado."
-    if "unix-domain socket path" in baixo:
-        return "HOST: o campo host contém dados extras. Ele deve conter somente o endereço do servidor."
-    if "connection timed out" in baixo or "timeout expired" in baixo or "timeout" in baixo:
-        return "REDE/PORTA: a tentativa de conexão expirou."
-    if "connection refused" in baixo:
-        return "PORTA: o servidor recusou a conexão nessa porta."
-    if "database" in baixo and "does not exist" in baixo:
-        return "BANCO: o nome do banco está incorreto."
-    if "role" in baixo and "does not exist" in baixo:
-        return "USUÁRIO: o usuário informado não existe."
-    if "ssl" in baixo and ("required" in baixo or "certificate" in baixo):
-        return "SSL: houve falha na conexão segura."
-    return "POSTGRESQL: a conexão falhou. Use o teste seguro abaixo para identificar a etapa."
-
-
 def testar_conexao_supabase():
-    """Testa a conexão sem alterar nenhum dado do aplicativo."""
-    if not PSYCOPG2_DISPONIVEL:
-        return False, "Dependência psycopg2-binary não instalada."
+    """Testa a API do Supabase sem exibir URL, chave ou outros segredos."""
+    import urllib.request
+    import urllib.error
 
-    cfg = obter_config_postgres()
+    cfg = obter_config_supabase()
     if not cfg:
-        return False, "Secrets [postgres] incompletos. Verifique host, port, dbname, user e password."
+        return False, "Secrets [supabase] incompletos. São necessários apenas url e key."
 
-    conn = None
     try:
-        conn = psycopg2.connect(
-            host=cfg["host"],
-            port=cfg["port"],
-            dbname=cfg["dbname"],
-            user=cfg["user"],
-            password=cfg["password"],
-            connect_timeout=8,
-            sslmode="require",
+        endpoint = cfg["url"] + "/rest/v1/vinhos?select=id&limit=1"
+        req = urllib.request.Request(
+            endpoint,
+            headers={
+                "apikey": cfg["key"],
+                "Authorization": "Bearer " + cfg["key"],
+                "Accept": "application/json",
+            },
+            method="GET",
         )
-        with conn.cursor() as cur:
-            cur.execute("select current_database(), current_user;")
-            ok = cur.fetchone()
-        if ok:
-            return True, "Conexão com Supabase/PostgreSQL confirmada."
-        return False, "O servidor respondeu, mas o teste SQL não retornou resultado."
-    except Exception as e:
-        detalhe = diagnosticar_erro_postgres(e)
-        tipo = type(e).__name__
-        return False, f"DIAGNÓSTICO V3 — {tipo}: {detalhe}"
-    finally:
-        if conn is not None:
-            try:
-                conn.close()
-            except Exception:
-                pass
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            if 200 <= resp.status < 300:
+                return True, "Supabase conectado com sucesso. A tabela vinhos respondeu normalmente."
+            return False, "O Supabase respondeu, mas não confirmou o acesso à tabela vinhos."
+    except urllib.error.HTTPError as e:
+        if e.code in (401, 403):
+            return False, "A chave do Supabase foi recusada. Confira somente o campo key em Secrets."
+        if e.code == 404:
+            return False, "Conexão chegou ao Supabase, mas a tabela vinhos não foi encontrada."
+        return False, f"Supabase respondeu com erro HTTP {e.code}."
+    except Exception:
+        return False, "Não foi possível alcançar o Supabase. Confira a URL salva em Secrets."
 
 
 def diagnostico_conexao_supabase():
-    """Verifica configuração, DNS, porta e login sem exibir credenciais."""
-    import socket
-
-    if not PSYCOPG2_DISPONIVEL:
-        return False, "1/4 Dependência: psycopg2-binary não está instalada."
-
-    cfg = obter_config_postgres()
-    if not cfg:
-        return False, "1/4 Secrets: faltam campos em [postgres]."
-
-    host = cfg["host"]
-    port = cfg["port"]
-
-    # Validação local sem mostrar valores secretos
-    if any(x in host for x in ("postgres://", "postgresql://", "@", "/", ":")):
-        return False, "1/4 Secrets: HOST está incorreto. Deve conter somente o endereço do servidor."
-    if port not in (5432, 6543):
-        return False, "1/4 Secrets: PORT deve ser 5432 (Session) ou 6543 (Transaction)."
-    if not cfg["dbname"]:
-        return False, "1/4 Secrets: DBNAME está vazio."
-    if not cfg["user"]:
-        return False, "1/4 Secrets: USER está vazio."
-    if not cfg["password"]:
-        return False, "1/4 Secrets: PASSWORD está vazia."
-
-    try:
-        socket.getaddrinfo(host, port, type=socket.SOCK_STREAM)
-    except Exception:
-        return False, "2/4 DNS: o HOST não foi encontrado."
-
-    try:
-        s = socket.create_connection((host, port), timeout=6)
-        s.close()
-    except Exception:
-        return False, f"3/4 Rede: o HOST existe, mas a PORTA {port} não respondeu."
-
-    ok, msg = testar_conexao_supabase()
-    if ok:
-        return True, "4/4 SUCESSO: Supabase/PostgreSQL conectado."
-    return False, "4/4 Login no banco: " + diagnosticar_erro_postgres(msg)
+    """Mantém compatibilidade com o botão de diagnóstico existente."""
+    return testar_conexao_supabase()
 
 
 @st.cache_data(ttl=10, show_spinner=False)
