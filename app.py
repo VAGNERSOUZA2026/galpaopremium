@@ -2737,14 +2737,48 @@ if st.session_state.usuario_logado is None:
     }}
     [data-baseweb="tab"] {{ background:transparent !important; color:#4B2630 !important; }}
     [aria-selected="true"][data-baseweb="tab"] {{ color:#6E1730 !important; background:#FFF !important; }}
+    /* Card do formulário: contraste forte contra o fundo claro */
     [data-testid="stForm"] {{
-        background:rgba(255,255,255,.88) !important;
-        border:1px solid rgba(110,23,48,.18) !important;
-        box-shadow:0 14px 40px rgba(75,13,29,.10) !important;
-        backdrop-filter:blur(10px);
+        background:linear-gradient(160deg, rgba(74,16,34,.97), rgba(42,14,24,.97)) !important;
+        border:1px solid rgba(197,146,65,.58) !important;
+        border-radius:18px !important;
+        box-shadow:0 18px 48px rgba(55,15,28,.28) !important;
+        backdrop-filter:blur(12px);
+        padding:18px !important;
     }}
     [data-testid="stForm"] label, [data-testid="stForm"] label *,
-    [data-testid="stForm"] p {{ color:#351F26 !important; -webkit-text-fill-color:#351F26 !important; }}
+    [data-testid="stForm"] p {{
+        color:#FFF8F2 !important;
+        -webkit-text-fill-color:#FFF8F2 !important;
+        opacity:1 !important;
+    }}
+    [data-testid="stForm"] input {{
+        background:#FFFFFF !important;
+        color:#2B2024 !important;
+        -webkit-text-fill-color:#2B2024 !important;
+        border:1px solid #E1D7D0 !important;
+    }}
+
+    /* Login: textos sempre visíveis sem precisar selecionar com o mouse */
+    [data-baseweb="tab-list"] {{ min-height:44px !important; }}
+    [data-baseweb="tab"] *, [data-baseweb="tab"] p {{
+        color:#4B2630 !important; -webkit-text-fill-color:#4B2630 !important; opacity:1 !important;
+    }}
+    [aria-selected="true"][data-baseweb="tab"] *,
+    [aria-selected="true"][data-baseweb="tab"] p {{
+        color:#6E1730 !important; -webkit-text-fill-color:#6E1730 !important; font-weight:800 !important;
+    }}
+    .stCaptionContainer, .stCaptionContainer p, [data-testid="stCaptionContainer"], [data-testid="stCaptionContainer"] p {{
+        color:#66555A !important; -webkit-text-fill-color:#66555A !important; opacity:1 !important;
+    }}
+    [data-testid="stFormSubmitButton"] button {{
+        background:linear-gradient(135deg,#8B1738,#651027) !important;
+        color:#FFFFFF !important; -webkit-text-fill-color:#FFFFFF !important;
+        border:1px solid #9D3150 !important; opacity:1 !important;
+    }}
+    [data-testid="stFormSubmitButton"] button *, [data-testid="stFormSubmitButton"] button p {{
+        color:#FFFFFF !important; -webkit-text-fill-color:#FFFFFF !important; opacity:1 !important; font-weight:800 !important;
+    }}
     </style>
     """, unsafe_allow_html=True)
     st.markdown(
@@ -2784,7 +2818,6 @@ if st.session_state.usuario_logado is None:
         _db_ok, _db_msg = status_supabase_cache()
         # Status técnico do Supabase oculto da tela de login.
 
-        st.markdown('<div class="login-card">', unsafe_allow_html=True)
         tab1, tab2, tab3 = st.tabs(["🔑 Entrar", "👤 Criar Conta", "⚙️ Dev"])
 
         with tab1:
@@ -2878,7 +2911,6 @@ if st.session_state.usuario_logado is None:
                         st.rerun()
                     else:
                         st.error("Senha incorreta.")
-        st.markdown('</div>', unsafe_allow_html=True)
 
     st.stop()
 
