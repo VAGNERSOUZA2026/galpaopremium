@@ -3134,63 +3134,8 @@ with col_top1:
         unsafe_allow_html=True
     )
 with col_top2:
-    # Menu alternativo sempre acessível, inclusive no celular.
-    # Assim o usuário não depende da sidebar para navegar ou sair.
-    with st.popover("☰ Menu", use_container_width=True):
-        st.markdown("##### Navegação")
-
-        if st.button("🏠 Início", use_container_width=True, key="top_menu_home"):
-            st.session_state.menu_atual = "🏠 Home"
-            st.rerun()
-
-        if st.button("📦 Checkout de Expedição", use_container_width=True, key="top_menu_checkout"):
-            st.session_state.menu_atual = "PedidosMatriz"
-            st.rerun()
-
-        if st.button("🏢 Painel da Matriz", use_container_width=True, key="top_menu_painel"):
-            st.session_state.menu_atual = "PainelMatriz"
-            st.rerun()
-
-        if st.button("🍷 Estoque / Buscar", use_container_width=True, key="top_menu_estoque"):
-            st.session_state.menu_atual = "Filtros"
-            st.rerun()
-
-        if st.button("📱 Ler QR do Pallet", use_container_width=True, key="top_menu_lerqr"):
-            st.session_state.menu_atual = "LerQRPallet"
-            st.rerun()
-
-        if st.button("🏷️ Gerar QR dos Pallets", use_container_width=True, key="top_menu_gerarqr"):
-            st.session_state.menu_atual = "GerarQRPallets"
-            st.rerun()
-
-        if st.button("➕ Cadastrar Vinho", use_container_width=True, key="top_menu_cadastrar"):
-            st.session_state.menu_atual = "Cadastrar"
-            st.rerun()
-
-        if st.button("✏️ Editar Vinho", use_container_width=True, key="top_menu_editar"):
-            st.session_state.menu_atual = "Editar"
-            st.rerun()
-
-        if st.button("🗂️ Gerenciar Pallets", use_container_width=True, key="top_menu_pallets"):
-            st.session_state.menu_atual = "GerenciarPallets"
-            st.rerun()
-
-        if acesso_gestao:
-            st.markdown("---")
-            if st.button("📋 Histórico", use_container_width=True, key="top_menu_historico"):
-                st.session_state.menu_atual = "Historico"
-                st.rerun()
-
-            if st.button("⚙️ Gerenciar Usuários", use_container_width=True, key="top_menu_usuarios"):
-                st.session_state.menu_atual = "GerenciarUsuarios"
-                st.rerun()
-
-        st.markdown("---")
-        st.caption(f"{usuario_nome} • {cargo_logado}")
-
-        if st.button("🚪 SAIR DO SISTEMA", use_container_width=True, key="top_menu_sair"):
-            st.session_state.usuario_logado = None
-            st.query_params.clear()
+    if st.session_state.menu_atual != "🏠 Home":
+        if st.button("← Início", use_container_width=True, key="top_voltar"):
             st.session_state.menu_atual = "🏠 Home"
             st.rerun()
 
@@ -6962,105 +6907,67 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
+
+
+
 # ============================================================
-# V8.3 — BOTÃO PARA REABRIR O MENU NO CELULAR
+# V8.7 — SIDEBAR DESLIZANTE COM ALÇA PARA REABRIR
 # ============================================================
 st.markdown("""
 <style>
-@media (max-width: 900px) {
-    /*
-      O app ocultava o header nativo inteiro. No celular o botão que
-      reabre a sidebar vive dentro desse header, então ele desaparecia.
-      Mantemos somente a estrutura mínima do header no mobile.
-    */
-    header[data-testid="stHeader"],
-    [data-testid="stHeader"] {
-        display: block !important;
-        visibility: visible !important;
-        height: 0 !important;
-        min-height: 0 !important;
-        background: transparent !important;
-        border: 0 !important;
-        box-shadow: none !important;
-        z-index: 99990 !important;
-    }
+/* Mantém o header tecnicamente presente para o Streamlit criar o controle nativo,
+   mas sem a barra visual padrão. */
+header[data-testid="stHeader"],
+[data-testid="stHeader"] {
+    display:block !important;
+    visibility:visible !important;
+    height:0 !important;
+    min-height:0 !important;
+    background:transparent !important;
+    border:0 !important;
+    box-shadow:none !important;
+    z-index:99990 !important;
+}
+[data-testid="stToolbar"],
+[data-testid="stDecoration"],
+[data-testid="stMainMenu"],
+.stAppToolbar,
+.stDeployButton {
+    display:none !important;
+    visibility:hidden !important;
+}
 
-    /* Continua escondendo os elementos que não queremos do Streamlit. */
-    [data-testid="stToolbar"],
-    [data-testid="stDecoration"],
-    [data-testid="stMainMenu"],
-    .stAppToolbar,
-    .stDeployButton {
-        display: none !important;
-        visibility: hidden !important;
-    }
+/* O controle nativo continua existindo, mas fica escondido: a alça Premium o aciona. */
+[data-testid="stSidebarCollapsedControl"],
+[data-testid="collapsedControl"] {
+    opacity:0 !important;
+    pointer-events:none !important;
+}
 
-    /*
-      Botão nativo para abrir novamente a barra lateral.
-      Fica flutuante no canto superior esquerdo quando o menu está fechado.
-    */
-    [data-testid="stSidebarCollapsedControl"],
-    [data-testid="collapsedControl"] {
-        display: flex !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        pointer-events: auto !important;
-        position: fixed !important;
-        top: 12px !important;
-        left: 12px !important;
-        width: 46px !important;
-        height: 46px !important;
-        align-items: center !important;
-        justify-content: center !important;
-        background: linear-gradient(135deg,#751A35,#541125) !important;
-        border: 1px solid rgba(214,174,99,.55) !important;
-        border-radius: 13px !important;
-        box-shadow: 0 8px 24px rgba(74,16,33,.25) !important;
-        z-index: 100000 !important;
-    }
+/* Sidebar aberta permanece clicável e acima do conteúdo. */
+[data-testid="stSidebar"] {
+    z-index:99995 !important;
+}
+[data-testid="stSidebar"] .stButton,
+[data-testid="stSidebar"] .stButton > button {
+    pointer-events:auto !important;
+}
+[data-testid="stSidebarCollapseButton"],
+[data-testid="stSidebarCollapseButton"] button {
+    pointer-events:auto !important;
+    z-index:99999 !important;
+}
 
-    [data-testid="stSidebarCollapsedControl"] button,
-    [data-testid="collapsedControl"] button {
-        display: flex !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        pointer-events: auto !important;
-        width: 100% !important;
-        height: 100% !important;
-        color: #FFFFFF !important;
-        background: transparent !important;
-        border: 0 !important;
-    }
-
-    [data-testid="stSidebarCollapsedControl"] svg,
-    [data-testid="collapsedControl"] svg {
-        color: #FFFFFF !important;
-        fill: #FFFFFF !important;
-        width: 24px !important;
-        height: 24px !important;
-    }
-
-    /* Botão de fechar dentro da sidebar continua clicável. */
-    [data-testid="stSidebarCollapseButton"] {
-        display: flex !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        pointer-events: auto !important;
-        z-index: 100001 !important;
-    }
-
-    /* Quando a sidebar está aberta, ela fica acima do conteúdo. */
-    [data-testid="stSidebar"][aria-expanded="true"] {
-        z-index: 99999 !important;
+/* No celular, o drawer fica em largura confortável. */
+@media (max-width:900px) {
+    [data-testid="stSidebar"] {
+        width:min(82vw, 330px) !important;
+        max-width:330px !important;
     }
 }
 </style>
 """, unsafe_allow_html=True)
 
-
-# ============================================================
-# V8.4 — GESTO MOBILE PARA ABRIR/FECHAR O MENU LATERAL
-# ============================================================
 components.html(
     """
     <script>
@@ -7068,132 +6975,128 @@ components.html(
       const w = window.parent;
       const d = w.document;
 
-      // Evita instalar o mesmo gesto mais de uma vez na mesma página.
-      if (w.__premiumWinesSwipeV84) return;
-      w.__premiumWinesSwipeV84 = true;
+      // Reinstala somente uma vez por carregamento.
+      if (w.__premiumWinesSidebarV87) return;
+      w.__premiumWinesSidebarV87 = true;
 
-      let startX = 0;
-      let startY = 0;
-      let startTime = 0;
-
-      function sidebarIsOpen() {
-        const sidebar = d.querySelector('[data-testid="stSidebar"]');
-        if (!sidebar) return false;
-        return sidebar.getAttribute('aria-expanded') === 'true';
+      function getSidebar() {
+        return d.querySelector('[data-testid="stSidebar"]');
       }
 
-      function clickFirst(selectors) {
-        for (const selector of selectors) {
-          const el = d.querySelector(selector);
-          if (!el) continue;
-          const button = el.matches('button') ? el : el.querySelector('button');
-          (button || el).click();
-          return true;
-        }
-        return false;
+      function sidebarOpen() {
+        const sb = getSidebar();
+        if (!sb) return false;
+        const r = sb.getBoundingClientRect();
+        const cs = w.getComputedStyle(sb);
+        return cs.display !== 'none' && cs.visibility !== 'hidden' && r.width > 40 && r.right > 10;
       }
 
-      function openSidebar() {
-        clickFirst([
+      function findNativeOpenControl() {
+        const selectors = [
           '[data-testid="stSidebarCollapsedControl"] button',
           '[data-testid="collapsedControl"] button',
           '[data-testid="stSidebarCollapsedControl"]',
-          '[data-testid="collapsedControl"]'
-        ]);
+          '[data-testid="collapsedControl"]',
+          'button[aria-label="Open sidebar"]',
+          'button[title="Open sidebar"]',
+          'button[aria-label*="sidebar" i]'
+        ];
+        for (const s of selectors) {
+          const el = d.querySelector(s);
+          if (el && !el.closest('[data-testid="stSidebar"]')) return el;
+        }
+
+        // Fallback: procura pelo texto acessível do botão.
+        for (const b of d.querySelectorAll('button')) {
+          if (b.closest('[data-testid="stSidebar"]')) continue;
+          const a = `${b.getAttribute('aria-label') || ''} ${b.getAttribute('title') || ''}`.toLowerCase();
+          if (a.includes('sidebar') && (a.includes('open') || a.includes('show'))) return b;
+        }
+        return null;
       }
 
-      function closeSidebar() {
-        clickFirst([
-          '[data-testid="stSidebarCollapseButton"] button',
-          '[data-testid="stSidebarCollapseButton"]'
-        ]);
+      function openSidebar() {
+        const control = findNativeOpenControl();
+        if (!control) return false;
+        const btn = control.matches('button') ? control : (control.querySelector('button') || control);
+        btn.click();
+        setTimeout(updateHandle, 120);
+        setTimeout(updateHandle, 420);
+        return true;
       }
 
+      function makeHandle() {
+        let h = d.getElementById('pw-sidebar-handle-v87');
+        if (h) return h;
+
+        h = d.createElement('button');
+        h.id = 'pw-sidebar-handle-v87';
+        h.type = 'button';
+        h.setAttribute('aria-label', 'Abrir menu lateral');
+        h.innerHTML = '<span style="font-size:22px;line-height:1">☰</span>';
+        Object.assign(h.style, {
+          position:'fixed',
+          left:'0px',
+          top:'50%',
+          transform:'translateY(-50%)',
+          width:'42px',
+          height:'76px',
+          border:'1px solid rgba(214,174,99,.58)',
+          borderLeft:'0',
+          borderRadius:'0 14px 14px 0',
+          background:'linear-gradient(180deg,#741833,#4A1021)',
+          color:'#fff',
+          boxShadow:'5px 8px 22px rgba(74,16,33,.24)',
+          zIndex:'100000',
+          cursor:'pointer',
+          display:'none',
+          alignItems:'center',
+          justifyContent:'center',
+          padding:'0',
+          touchAction:'manipulation'
+        });
+        h.addEventListener('click', (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          openSidebar();
+        });
+        d.body.appendChild(h);
+        return h;
+      }
+
+      function updateHandle() {
+        const h = makeHandle();
+        h.style.display = sidebarOpen() ? 'none' : 'flex';
+      }
+
+      // Gesto natural no celular: arrastar da esquerda para a direita abre o drawer.
+      let sx = 0, sy = 0, st = 0;
       d.addEventListener('touchstart', (ev) => {
         if (!ev.touches || ev.touches.length !== 1) return;
-        const t = ev.touches[0];
-        startX = t.clientX;
-        startY = t.clientY;
-        startTime = Date.now();
-      }, { passive: true });
+        sx = ev.touches[0].clientX;
+        sy = ev.touches[0].clientY;
+        st = Date.now();
+      }, {passive:true});
 
       d.addEventListener('touchend', (ev) => {
-        if (!ev.changedTouches || ev.changedTouches.length !== 1) return;
+        if (!ev.changedTouches || ev.changedTouches.length !== 1 || sidebarOpen()) return;
+        const dx = ev.changedTouches[0].clientX - sx;
+        const dy = ev.changedTouches[0].clientY - sy;
+        const dt = Date.now() - st;
+        if (sx <= 90 && dx >= 65 && Math.abs(dy) < 100 && dt < 900) openSidebar();
+      }, {passive:true});
 
-        const t = ev.changedTouches[0];
-        const dx = t.clientX - startX;
-        const dy = t.clientY - startY;
-        const elapsed = Date.now() - startTime;
+      const observer = new MutationObserver(updateHandle);
+      observer.observe(d.documentElement, {subtree:true, childList:true, attributes:true, attributeFilter:['style','class','aria-expanded']});
 
-        // Evita disparar ao rolar verticalmente.
-        if (elapsed > 800 || Math.abs(dy) > 90) return;
-
-        const open = sidebarIsOpen();
-
-        // MENU FECHADO:
-        // deslize da borda esquerda para a direita.
-        if (!open && startX <= 55 && dx >= 75) {
-          openSidebar();
-          return;
-        }
-
-        // MENU ABERTO:
-        // deslize para a esquerda para fechar.
-        if (open && dx <= -75) {
-          closeSidebar();
-        }
-      }, { passive: true });
+      w.addEventListener('resize', updateHandle);
+      setInterval(updateHandle, 700);
+      updateHandle();
+      setTimeout(updateHandle, 300);
+      setTimeout(updateHandle, 1000);
     })();
     </script>
     """,
     height=0,
     width=0,
 )
-
-
-
-# ============================================================
-# V8.6 — MENU E SAÍDA SEM DEPENDER DA SIDEBAR
-# ============================================================
-st.markdown("""
-<style>
-/* Botão Menu da topbar */
-[data-testid="stPopover"] > button {
-    min-height:46px !important;
-    border-radius:12px !important;
-    background:linear-gradient(135deg,#751A35,#541125) !important;
-    color:#FFFFFF !important;
-    border:1px solid #8C2944 !important;
-    font-weight:800 !important;
-}
-[data-testid="stPopover"] > button * {
-    color:#FFFFFF !important;
-    -webkit-text-fill-color:#FFFFFF !important;
-}
-
-/* Popover de navegação */
-div[data-baseweb="popover"] {
-    z-index:100000 !important;
-}
-div[data-baseweb="popover"] [data-testid="stVerticalBlock"] {
-    min-width:280px !important;
-}
-
-/* No celular o botão fica grande e fácil de tocar */
-@media (max-width:900px) {
-    [data-testid="stPopover"] > button {
-        min-height:50px !important;
-        font-size:1rem !important;
-    }
-
-    div[data-baseweb="popover"] {
-        width:min(92vw,360px) !important;
-    }
-
-    div[data-baseweb="popover"] .stButton > button {
-        min-height:46px !important;
-        font-size:.95rem !important;
-    }
-}
-</style>
-""", unsafe_allow_html=True)
