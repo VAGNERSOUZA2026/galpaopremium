@@ -2737,6 +2737,41 @@ if st.session_state.usuario_logado is None:
     }}
     [data-baseweb="tab"] {{ background:transparent !important; color:#4B2630 !important; }}
     [aria-selected="true"][data-baseweb="tab"] {{ color:#6E1730 !important; background:#FFF !important; }}
+    /* V7.8 - abas do login sempre legíveis */
+    div[data-baseweb="tab-list"] {{
+        background:rgba(255,255,255,.96) !important;
+        border:1px solid #D8C9C1 !important;
+        box-shadow:0 8px 24px rgba(72,25,38,.10) !important;
+    }}
+    button[data-baseweb="tab"] {{
+        background:transparent !important;
+        color:#4A1A28 !important;
+        opacity:1 !important;
+    }}
+    button[data-baseweb="tab"] *,
+    button[data-baseweb="tab"] p,
+    button[data-baseweb="tab"] span {{
+        color:#4A1A28 !important;
+        -webkit-text-fill-color:#4A1A28 !important;
+        opacity:1 !important;
+        text-shadow:none !important;
+        font-weight:700 !important;
+    }}
+    button[data-baseweb="tab"][aria-selected="true"],
+    button[data-baseweb="tab"][aria-selected="true"] * {{
+        color:#7A1733 !important;
+        -webkit-text-fill-color:#7A1733 !important;
+        background:#FFF8F2 !important;
+    }}
+    /* Títulos e textos externos do login */
+    .login-shell + div p,
+    [data-testid="stCaptionContainer"] p {{
+        color:#5B474D !important;
+        -webkit-text-fill-color:#5B474D !important;
+        opacity:1 !important;
+    }}
+    h4 {{ color:#8A5912 !important; -webkit-text-fill-color:#8A5912 !important; opacity:1 !important; }}
+
     /* Card do formulário: contraste forte contra o fundo claro */
     [data-testid="stForm"] {{
         background:linear-gradient(160deg, rgba(74,16,34,.97), rgba(42,14,24,.97)) !important;
