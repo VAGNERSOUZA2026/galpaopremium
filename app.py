@@ -2705,7 +2705,48 @@ if (
 
 
 if st.session_state.usuario_logado is None:
-    st.markdown("<style>[data-testid=\"stSidebar\"]{display:none!important;}</style>", unsafe_allow_html=True)
+    # Tela de login clara com a identidade Premium Wines em marca d'água.
+    st.markdown(f"""
+    <style>
+    [data-testid="stSidebar"]{{display:none!important;}}
+    .stApp {{
+        background-color:#F6F1EC !important;
+        background-image:
+            linear-gradient(rgba(250,247,243,.86), rgba(250,247,243,.90)),
+            url("{PREMIUM_LOGO_DATA_URI}") !important;
+        background-repeat:no-repeat !important;
+        background-position:center center !important;
+        background-size:min(78vh, 760px) auto !important;
+        background-attachment:fixed !important;
+    }}
+    .login-title {{ color:#35101B !important; text-shadow:none !important; }}
+    .login-title span {{ color:#A56B16 !important; }}
+    .login-subtitle {{ color:#6E5A60 !important; }}
+    .login-shell {{ position:relative; z-index:2; }}
+    .pw-login-logo {{
+        background:rgba(255,255,255,.92) !important;
+        border:1px solid rgba(110,23,48,.18) !important;
+        box-shadow:0 14px 38px rgba(75,13,29,.16) !important;
+    }}
+    [data-baseweb="tab-list"] {{
+        background:rgba(255,255,255,.72) !important;
+        border:1px solid rgba(110,23,48,.12) !important;
+        border-radius:12px !important;
+        padding:4px !important;
+        backdrop-filter:blur(8px);
+    }}
+    [data-baseweb="tab"] {{ background:transparent !important; color:#4B2630 !important; }}
+    [aria-selected="true"][data-baseweb="tab"] {{ color:#6E1730 !important; background:#FFF !important; }}
+    [data-testid="stForm"] {{
+        background:rgba(255,255,255,.88) !important;
+        border:1px solid rgba(110,23,48,.18) !important;
+        box-shadow:0 14px 40px rgba(75,13,29,.10) !important;
+        backdrop-filter:blur(10px);
+    }}
+    [data-testid="stForm"] label, [data-testid="stForm"] label *,
+    [data-testid="stForm"] p {{ color:#351F26 !important; -webkit-text-fill-color:#351F26 !important; }}
+    </style>
+    """, unsafe_allow_html=True)
     st.markdown(
         f"""
         <div class="login-shell">
@@ -6086,3 +6127,67 @@ try:
     )
 except Exception:
     pass
+
+
+# ============================================================
+# CORREÇÃO FINAL DE CONTRASTE — CARDS / EXPANDERS / ALERTAS
+# ============================================================
+st.markdown(r"""
+<style>
+/* Expanders/cards interativos: sempre legíveis, sem depender de seleção do mouse */
+div[data-testid="stExpander"] {
+    background:#FFFFFF !important;
+    border:1px solid #D9CEC7 !important;
+    border-radius:13px !important;
+    overflow:hidden !important;
+    box-shadow:0 6px 18px rgba(42,34,36,.08) !important;
+}
+div[data-testid="stExpander"] details,
+div[data-testid="stExpander"] details[open] {
+    background:#FFFFFF !important;
+}
+div[data-testid="stExpander"] summary,
+div[data-testid="stExpander"] details[open] > summary {
+    background:#F4EEE9 !important;
+    color:#2A2224 !important;
+    border:0 !important;
+    border-radius:0 !important;
+}
+div[data-testid="stExpander"] summary:hover {
+    background:#EADFD7 !important;
+}
+div[data-testid="stExpander"] summary *,
+div[data-testid="stExpander"] summary p,
+div[data-testid="stExpander"] summary span,
+div[data-testid="stExpander"] summary svg,
+div[data-testid="stExpander"] [data-testid="stExpanderDetails"],
+div[data-testid="stExpander"] [data-testid="stExpanderDetails"] * {
+    color:#2A2224 !important;
+    -webkit-text-fill-color:#2A2224 !important;
+    opacity:1 !important;
+}
+
+/* Cards, métricas e mensagens claras */
+div[data-testid="stMetric"],
+div[data-testid="stAlert"],
+.wine-card,.wine-item,.qr-card,.result-card,.card-light,.content-card {
+    background:#FFFFFF !important;
+    color:#2A2224 !important;
+    border-color:#D9CEC7 !important;
+}
+div[data-testid="stMetric"] *,
+div[data-testid="stAlert"] *,
+.wine-card *,.wine-item *,.qr-card *,.result-card *,.card-light *,.content-card * {
+    color:#2A2224 !important;
+    -webkit-text-fill-color:#2A2224 !important;
+    opacity:1 !important;
+}
+
+/* Labels e textos de formulário nunca somem */
+label, label *, [data-testid="stWidgetLabel"], [data-testid="stWidgetLabel"] *,
+.stCaptionContainer, .stCaptionContainer * {
+    opacity:1 !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
