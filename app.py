@@ -2728,40 +2728,49 @@ if st.session_state.usuario_logado is None:
         border:1px solid rgba(110,23,48,.18) !important;
         box-shadow:0 14px 38px rgba(75,13,29,.16) !important;
     }}
-    [data-baseweb="tab-list"] {{
-        background:rgba(255,255,255,.72) !important;
-        border:1px solid rgba(110,23,48,.12) !important;
-        border-radius:12px !important;
-        padding:4px !important;
-        backdrop-filter:blur(8px);
+    /* Navegação do login via rádio horizontal: sempre visível */
+    div[data-testid="stRadio"] > div {{
+        display:flex !important;
+        flex-direction:row !important;
+        justify-content:center !important;
+        gap:10px !important;
+        margin: 0 0 12px 0 !important;
     }}
-    [data-baseweb="tab"] {{ background:transparent !important; color:#4B2630 !important; }}
-    [aria-selected="true"][data-baseweb="tab"] {{ color:#6E1730 !important; background:#FFF !important; }}
-    /* V7.8 - abas do login sempre legíveis */
-    div[data-baseweb="tab-list"] {{
+    div[data-testid="stRadio"] label {{
         background:rgba(255,255,255,.96) !important;
         border:1px solid #D8C9C1 !important;
+        border-radius:12px !important;
+        padding:8px 14px !important;
+        min-height:44px !important;
+        display:flex !important;
+        align-items:center !important;
+        gap:8px !important;
         box-shadow:0 8px 24px rgba(72,25,38,.10) !important;
-    }}
-    button[data-baseweb="tab"] {{
-        background:transparent !important;
-        color:#4A1A28 !important;
+        cursor:pointer !important;
         opacity:1 !important;
     }}
-    button[data-baseweb="tab"] *,
-    button[data-baseweb="tab"] p,
-    button[data-baseweb="tab"] span {{
+    div[data-testid="stRadio"] label p,
+    div[data-testid="stRadio"] label span {{
         color:#4A1A28 !important;
         -webkit-text-fill-color:#4A1A28 !important;
         opacity:1 !important;
         text-shadow:none !important;
         font-weight:700 !important;
+        margin:0 !important;
     }}
-    button[data-baseweb="tab"][aria-selected="true"],
-    button[data-baseweb="tab"][aria-selected="true"] * {{
+    div[data-testid="stRadio"] label:has(input:checked) {{
+        background:#FFF8F2 !important;
+        border-color:#8B1738 !important;
+        box-shadow:0 10px 26px rgba(72,25,38,.18) !important;
+    }}
+    div[data-testid="stRadio"] label:has(input:checked) p,
+    div[data-testid="stRadio"] label:has(input:checked) span {{
         color:#7A1733 !important;
         -webkit-text-fill-color:#7A1733 !important;
-        background:#FFF8F2 !important;
+        font-weight:800 !important;
+    }}
+    div[data-testid="stRadio"] input {{
+        accent-color:#7A1733 !important;
     }}
     /* Títulos e textos externos do login */
     .login-shell + div p,
@@ -2794,15 +2803,6 @@ if st.session_state.usuario_logado is None:
         border:1px solid #E1D7D0 !important;
     }}
 
-    /* Login: textos sempre visíveis sem precisar selecionar com o mouse */
-    [data-baseweb="tab-list"] {{ min-height:44px !important; }}
-    [data-baseweb="tab"] *, [data-baseweb="tab"] p {{
-        color:#4B2630 !important; -webkit-text-fill-color:#4B2630 !important; opacity:1 !important;
-    }}
-    [aria-selected="true"][data-baseweb="tab"] *,
-    [aria-selected="true"][data-baseweb="tab"] p {{
-        color:#6E1730 !important; -webkit-text-fill-color:#6E1730 !important; font-weight:800 !important;
-    }}
     .stCaptionContainer, .stCaptionContainer p, [data-testid="stCaptionContainer"], [data-testid="stCaptionContainer"] p {{
         color:#66555A !important; -webkit-text-fill-color:#66555A !important; opacity:1 !important;
     }}
@@ -2853,9 +2853,15 @@ if st.session_state.usuario_logado is None:
         _db_ok, _db_msg = status_supabase_cache()
         # Status técnico do Supabase oculto da tela de login.
 
-        tab1, tab2, tab3 = st.tabs(["🔑 Entrar", "👤 Criar Conta", "⚙️ Dev"])
+        login_modo = st.radio(
+            "Escolha o tipo de acesso",
+            ["🔑 Entrar", "👤 Criar Conta", "⚙️ Dev"],
+            horizontal=True,
+            label_visibility="collapsed",
+            key="login_modo"
+        )
 
-        with tab1:
+        if login_modo == "🔑 Entrar":
             st.caption("Acesse sua área de operação.")
             with st.form("l_form"):
                 u = st.text_input("Usuário", placeholder="Digite seu usuário").strip().title()
@@ -2878,7 +2884,7 @@ if st.session_state.usuario_logado is None:
                     else:
                         st.error("Usuário, senha ou autorização inválidos.")
 
-        with tab2:
+        elif login_modo == "👤 Criar Conta":
             st.caption(
                 "Administrador Principal precisa de aprovação do DEV. "
                 "Usuário comum precisa de aprovação de um Administrador Principal."
@@ -2930,7 +2936,7 @@ if st.session_state.usuario_logado is None:
                         else:
                             st.success("Solicitação enviada a um Administrador Principal.")
 
-        with tab3:
+        else:
             st.markdown("#### Acesso do Desenvolvedor")
             st.caption("Área restrita do desenvolvedor.")
             with st.form("d_form"):
