@@ -3134,8 +3134,63 @@ with col_top1:
         unsafe_allow_html=True
     )
 with col_top2:
-    if st.session_state.menu_atual != "🏠 Home":
-        if st.button("← Início", use_container_width=True, key="top_voltar"):
+    # Menu alternativo sempre acessível, inclusive no celular.
+    # Assim o usuário não depende da sidebar para navegar ou sair.
+    with st.popover("☰ Menu", use_container_width=True):
+        st.markdown("##### Navegação")
+
+        if st.button("🏠 Início", use_container_width=True, key="top_menu_home"):
+            st.session_state.menu_atual = "🏠 Home"
+            st.rerun()
+
+        if st.button("📦 Checkout de Expedição", use_container_width=True, key="top_menu_checkout"):
+            st.session_state.menu_atual = "PedidosMatriz"
+            st.rerun()
+
+        if st.button("🏢 Painel da Matriz", use_container_width=True, key="top_menu_painel"):
+            st.session_state.menu_atual = "PainelMatriz"
+            st.rerun()
+
+        if st.button("🍷 Estoque / Buscar", use_container_width=True, key="top_menu_estoque"):
+            st.session_state.menu_atual = "Filtros"
+            st.rerun()
+
+        if st.button("📱 Ler QR do Pallet", use_container_width=True, key="top_menu_lerqr"):
+            st.session_state.menu_atual = "LerQRPallet"
+            st.rerun()
+
+        if st.button("🏷️ Gerar QR dos Pallets", use_container_width=True, key="top_menu_gerarqr"):
+            st.session_state.menu_atual = "GerarQRPallets"
+            st.rerun()
+
+        if st.button("➕ Cadastrar Vinho", use_container_width=True, key="top_menu_cadastrar"):
+            st.session_state.menu_atual = "Cadastrar"
+            st.rerun()
+
+        if st.button("✏️ Editar Vinho", use_container_width=True, key="top_menu_editar"):
+            st.session_state.menu_atual = "Editar"
+            st.rerun()
+
+        if st.button("🗂️ Gerenciar Pallets", use_container_width=True, key="top_menu_pallets"):
+            st.session_state.menu_atual = "GerenciarPallets"
+            st.rerun()
+
+        if acesso_gestao:
+            st.markdown("---")
+            if st.button("📋 Histórico", use_container_width=True, key="top_menu_historico"):
+                st.session_state.menu_atual = "Historico"
+                st.rerun()
+
+            if st.button("⚙️ Gerenciar Usuários", use_container_width=True, key="top_menu_usuarios"):
+                st.session_state.menu_atual = "GerenciarUsuarios"
+                st.rerun()
+
+        st.markdown("---")
+        st.caption(f"{usuario_nome} • {cargo_logado}")
+
+        if st.button("🚪 SAIR DO SISTEMA", use_container_width=True, key="top_menu_sair"):
+            st.session_state.usuario_logado = None
+            st.query_params.clear()
             st.session_state.menu_atual = "🏠 Home"
             st.rerun()
 
@@ -7095,3 +7150,50 @@ components.html(
     width=0,
 )
 
+
+
+# ============================================================
+# V8.6 — MENU E SAÍDA SEM DEPENDER DA SIDEBAR
+# ============================================================
+st.markdown("""
+<style>
+/* Botão Menu da topbar */
+[data-testid="stPopover"] > button {
+    min-height:46px !important;
+    border-radius:12px !important;
+    background:linear-gradient(135deg,#751A35,#541125) !important;
+    color:#FFFFFF !important;
+    border:1px solid #8C2944 !important;
+    font-weight:800 !important;
+}
+[data-testid="stPopover"] > button * {
+    color:#FFFFFF !important;
+    -webkit-text-fill-color:#FFFFFF !important;
+}
+
+/* Popover de navegação */
+div[data-baseweb="popover"] {
+    z-index:100000 !important;
+}
+div[data-baseweb="popover"] [data-testid="stVerticalBlock"] {
+    min-width:280px !important;
+}
+
+/* No celular o botão fica grande e fácil de tocar */
+@media (max-width:900px) {
+    [data-testid="stPopover"] > button {
+        min-height:50px !important;
+        font-size:1rem !important;
+    }
+
+    div[data-baseweb="popover"] {
+        width:min(92vw,360px) !important;
+    }
+
+    div[data-baseweb="popover"] .stButton > button {
+        min-height:46px !important;
+        font-size:.95rem !important;
+    }
+}
+</style>
+""", unsafe_allow_html=True)
