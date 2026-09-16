@@ -5902,3 +5902,187 @@ try:
     )
 except Exception:
     pass
+
+
+# ===== CORRECOES V6 =====
+
+st.markdown("""
+<style>
+/* ===== PREMIUM WINES V6: LEGIBILIDADE TOTAL ===== */
+.pw-login-logo{
+    width:150px;
+    height:150px;
+    margin:0 auto 16px auto;
+    background:#fff;
+    border-radius:30px;
+    padding:7px;
+    box-shadow:0 12px 35px rgba(0,0,0,.28);
+    overflow:hidden;
+}
+.pw-login-logo img{
+    width:100%; height:100%; object-fit:cover; border-radius:24px;
+}
+
+/* LOGIN: quando ainda existir o quadrado da taça, troca visualmente pela logo */
+.login-icon,.auth-icon,.brand-icon {
+    width:150px !important; height:150px !important;
+    background-image:url(""" + PREMIUM_LOGO_DATA_URI + """) !important;
+    background-size:cover !important;
+    background-position:center !important;
+    border-radius:30px !important;
+    font-size:0 !important;
+    color:transparent !important;
+}
+
+/* FORMULÁRIOS ESCUROS: labels e títulos SEM fundo amarelo/seleção */
+[data-testid="stForm"] label,
+[data-testid="stForm"] label *,
+[data-testid="stForm"] p,
+[data-testid="stForm"] h1,
+[data-testid="stForm"] h2,
+[data-testid="stForm"] h3,
+[data-testid="stForm"] h4,
+[data-testid="stForm"] h5,
+[data-testid="stForm"] h6 {
+    color:#FFF8F2 !important;
+    -webkit-text-fill-color:#FFF8F2 !important;
+    background:transparent !important;
+    opacity:1 !important;
+}
+
+/* Labels de widgets fora de stForm também precisam ser visíveis sobre cards escuros */
+div[data-testid="stVerticalBlock"] label[data-testid="stWidgetLabel"] p,
+div[data-testid="stVerticalBlock"] label[data-testid="stWidgetLabel"] span,
+[data-testid="stWidgetLabel"] p,
+[data-testid="stWidgetLabel"] span {
+    color:inherit !important;
+    opacity:1 !important;
+}
+
+/* Dentro de containers escuros usados no cadastro/edição */
+.premium-form label,.premium-form label *,
+.dark-card label,.dark-card label *,
+.form-card label,.form-card label *,
+.edit-card label,.edit-card label *,
+.cadastro-card label,.cadastro-card label * {
+    color:#FFF8F2 !important;
+    -webkit-text-fill-color:#FFF8F2 !important;
+    background:transparent !important;
+    opacity:1 !important;
+}
+
+/* Inputs SEMPRE brancos, texto preto. */
+input, textarea,
+.stTextInput input,.stNumberInput input,.stTextArea textarea,
+[data-baseweb="input"] input,[data-baseweb="textarea"] textarea {
+    background:#FFFFFF !important;
+    color:#241B1E !important;
+    -webkit-text-fill-color:#241B1E !important;
+    caret-color:#71172F !important;
+    opacity:1 !important;
+}
+input::placeholder,textarea::placeholder{
+    color:#75686B !important;
+    -webkit-text-fill-color:#75686B !important;
+    opacity:1 !important;
+}
+
+/* SELECT: área preta = texto branco; seta clara separada */
+[data-baseweb="select"] > div {
+    background:#191A1F !important;
+    border-color:#E9E1DC !important;
+}
+[data-baseweb="select"] span,
+[data-baseweb="select"] input,
+[data-baseweb="select"] div[role="combobox"] {
+    color:#FFFFFF !important;
+    -webkit-text-fill-color:#FFFFFF !important;
+    opacity:1 !important;
+}
+[data-baseweb="select"] svg { fill:#B68534 !important; }
+
+/* Menus abertos */
+[role="listbox"],[role="option"] {
+    background:#FFFFFF !important;
+    color:#241B1E !important;
+}
+[role="option"] * {
+    color:#241B1E !important;
+    -webkit-text-fill-color:#241B1E !important;
+}
+
+/* Radio */
+[data-testid="stRadio"] label,
+[data-testid="stRadio"] label * {
+    color:#241B1E !important;
+    -webkit-text-fill-color:#241B1E !important;
+    background:transparent !important;
+}
+
+/* Upload */
+[data-testid="stFileUploaderDropzone"] {
+    background:#17181D !important;
+    border:1px dashed #B68534 !important;
+}
+[data-testid="stFileUploaderDropzone"] *,
+[data-testid="stFileUploader"] section * {
+    color:#FFF8F2 !important;
+    -webkit-text-fill-color:#FFF8F2 !important;
+    background-color:transparent !important;
+}
+[data-testid="stFileUploaderDropzone"] button {
+    background:#851A3A !important;
+    color:#FFFFFF !important;
+}
+
+/* Evita qualquer label parecendo seleção amarela */
+[data-testid="stMain"] label,
+[data-testid="stMain"] label *,
+[data-testid="stMain"] [data-testid="stWidgetLabel"],
+[data-testid="stMain"] [data-testid="stWidgetLabel"] * {
+    text-shadow:none !important;
+}
+
+/* Seleção do mouse não é necessária para leitura */
+::selection { background:#C89A4A !important; color:#171217 !important; }
+</style>
+""", unsafe_allow_html=True)
+
+
+try:
+    components.html(
+        f"""
+        <script>
+        (function() {{
+          const doc = window.parent.document;
+          function applyLogo() {{
+            const imgs = doc.querySelectorAll('img');
+            let hasPremiumLogo = false;
+            imgs.forEach(i => {{
+              if ((i.alt || '').toLowerCase().includes('premium wines')) hasPremiumLogo = true;
+            }});
+            const candidates = Array.from(doc.querySelectorAll('div')).filter(el => {{
+              const t=(el.innerText||'').trim();
+              const r=el.getBoundingClientRect();
+              return (t==='🍷' || t==='🍸' || t==='🏆' || t==='🍷') &&
+                     r.width>35 && r.width<120 && r.height>35 && r.height<120;
+            }});
+            if (candidates.length && !hasPremiumLogo) {{
+              const el=candidates[0];
+              el.innerHTML='<img alt="Premium Wines" src="{PREMIUM_LOGO_DATA_URI}" style="width:138px;height:138px;object-fit:cover;border-radius:26px;display:block;">';
+              el.style.width='150px'; el.style.height='150px';
+              el.style.padding='6px'; el.style.background='#fff';
+              el.style.borderRadius='30px'; el.style.overflow='hidden';
+            }}
+          }}
+          applyLogo();
+          setTimeout(applyLogo,400);
+          setTimeout(applyLogo,1200);
+        }})();
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
+except Exception:
+    pass
