@@ -2819,6 +2819,41 @@ if st.session_state.usuario_logado is None:
     [data-testid="stFormSubmitButton"] button *, [data-testid="stFormSubmitButton"] button p {{
         color:#FFFFFF !important; -webkit-text-fill-color:#FFFFFF !important; opacity:1 !important; font-weight:800 !important;
     }}
+    .login-switch-card {
+        max-width:340px !important;
+        margin:0 auto 10px auto !important;
+        padding:10px !important;
+        border-radius:16px !important;
+        background:rgba(255,255,255,.78) !important;
+        border:1px solid rgba(110,23,48,.12) !important;
+        box-shadow:0 12px 28px rgba(75,13,29,.10) !important;
+        backdrop-filter:blur(8px) !important;
+    }
+    .login-switch-card + div [data-testid="stHorizontalBlock"] {
+        align-items:center !important;
+    }
+    div[data-testid="stButton"] > button[kind] {
+        min-height:38px !important;
+        border-radius:12px !important;
+        font-weight:800 !important;
+    }
+    /* Navegação do login mais compacta e centralizada */
+    button[kind="secondary"] {
+        background:#FFFFFF !important;
+        color:#5C1A2B !important;
+        border:1px solid #DCCBC4 !important;
+        box-shadow:0 6px 16px rgba(72,25,38,.08) !important;
+    }
+    button[kind="secondary"] * {
+        color:#5C1A2B !important;
+        -webkit-text-fill-color:#5C1A2B !important;
+        font-weight:800 !important;
+    }
+    button[kind="primary"] {
+        background:linear-gradient(135deg,#8B1738,#651027) !important;
+        border:1px solid #9D3150 !important;
+        box-shadow:0 8px 20px rgba(72,25,38,.18) !important;
+    }
     </style>
     """, unsafe_allow_html=True)
     st.markdown(
@@ -2858,13 +2893,41 @@ if st.session_state.usuario_logado is None:
         _db_ok, _db_msg = status_supabase_cache()
         # Status técnico do Supabase oculto da tela de login.
 
-        login_modo = st.radio(
-            "",
-            ["🔑 Entrar", "👤 Criar Conta", "⚙️ Dev"],
-            horizontal=True,
-            label_visibility="collapsed",
-            key="login_modo"
-        )
+        if "login_modo" not in st.session_state:
+            st.session_state.login_modo = "🔑 Entrar"
+
+        st.markdown("<div class='login-switch-card'>", unsafe_allow_html=True)
+        c1, c2, c3 = st.columns([1, 1, 0.8])
+        with c1:
+            if st.button(
+                "🔑 Entrar",
+                key="login_nav_entrar",
+                use_container_width=True,
+                type="primary" if st.session_state.login_modo == "🔑 Entrar" else "secondary",
+            ):
+                st.session_state.login_modo = "🔑 Entrar"
+                st.rerun()
+        with c2:
+            if st.button(
+                "👤 Criar Conta",
+                key="login_nav_cadastro",
+                use_container_width=True,
+                type="primary" if st.session_state.login_modo == "👤 Criar Conta" else "secondary",
+            ):
+                st.session_state.login_modo = "👤 Criar Conta"
+                st.rerun()
+        with c3:
+            if st.button(
+                "⚙️ Dev",
+                key="login_nav_dev",
+                use_container_width=True,
+                type="primary" if st.session_state.login_modo == "⚙️ Dev" else "secondary",
+            ):
+                st.session_state.login_modo = "⚙️ Dev"
+                st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        login_modo = st.session_state.login_modo
 
         if login_modo == "🔑 Entrar":
             st.caption("Acesse sua área de operação.")
@@ -5855,25 +5918,35 @@ st.markdown("""
   --pw-dark:#211A1E;
 }
 
-/* Sidebar SEMPRE disponível no desktop */
+/* Sidebar: respeita o comportamento nativo do Streamlit.
+   No desktop mantém largura premium; no celular pode abrir/fechar normalmente. */
 [data-testid="stSidebar"] {
-    display:flex !important;
-    visibility:visible !important;
-    transform:none !important;
-    width:270px !important;
-    min-width:270px !important;
     background:linear-gradient(180deg,var(--pw-wine2),#2D0D17) !important;
 }
-[data-testid="stSidebar"][aria-expanded="false"] {
-    margin-left:0 !important;
-    transform:none !important;
-}
-[data-testid="collapsedControl"],
-[data-testid="stSidebarCollapsedControl"] {
-    display:block !important;
-    visibility:visible !important;
-}
 [data-testid="stSidebar"] * { color:#FFF8F2 !important; }
+
+@media (min-width: 901px) {
+    [data-testid="stSidebar"] {
+        width:270px !important;
+        min-width:270px !important;
+    }
+}
+
+/* No celular NÃO forçar display/transform.
+   Isso libera a seta de fechar e os cliques do menu. */
+@media (max-width: 900px) {
+    [data-testid="stSidebar"] {
+        width:min(82vw, 330px) !important;
+        min-width:0 !important;
+        max-width:330px !important;
+    }
+    [data-testid="stSidebar"] .stButton > button {
+        min-height:48px !important;
+        padding:.72rem .85rem !important;
+        font-size:.95rem !important;
+        touch-action:manipulation !important;
+    }
+}
 
 /* Fundo e textos */
 .stApp,[data-testid="stAppViewContainer"],[data-testid="stMain"] {
@@ -6779,5 +6852,50 @@ button[data-baseweb="tab"][aria-selected="true"] p {{
     .hero-wine {{ padding:24px 20px !important; min-height:150px !important; }}
     .block-container {{ padding-left:.8rem !important;padding-right:.8rem !important; }}
 }}
+</style>
+""", unsafe_allow_html=True)
+
+
+# ============================================================
+# V8.2 — SIDEBAR MOBILE NATIVA E CLICÁVEL
+# ============================================================
+st.markdown("""
+<style>
+@media (max-width: 900px) {
+    /* Não bloquear animação/fechamento nativo do Streamlit */
+    [data-testid="stSidebar"][aria-expanded="false"] {
+        transform: translateX(-100%) !important;
+        visibility: hidden !important;
+        pointer-events: none !important;
+    }
+
+    [data-testid="stSidebar"][aria-expanded="true"] {
+        visibility: visible !important;
+        pointer-events: auto !important;
+    }
+
+    /* Botões do menu precisam receber toque/clique */
+    [data-testid="stSidebar"] .stButton,
+    [data-testid="stSidebar"] .stButton > button {
+        position: relative !important;
+        z-index: 20 !important;
+        pointer-events: auto !important;
+    }
+
+    /* Controle nativo de fechar/abrir acima de qualquer decoração */
+    [data-testid="stSidebarCollapseButton"],
+    [data-testid="stSidebarCollapsedControl"],
+    [data-testid="collapsedControl"] {
+        z-index: 9999 !important;
+        pointer-events: auto !important;
+        visibility: visible !important;
+    }
+
+    /* Evita elementos decorativos cobrindo o menu */
+    [data-testid="stSidebar"] .sidebar-brand,
+    [data-testid="stSidebar"] .sidebar-section {
+        pointer-events: none !important;
+    }
+}
 </style>
 """, unsafe_allow_html=True)
