@@ -649,8 +649,21 @@ def testar_conexao_supabase():
         if e.code == 404:
             return False, "Conexão chegou ao Supabase, mas a tabela vinhos não foi encontrada."
         return False, f"Supabase respondeu com erro HTTP {e.code}."
-    except Exception:
-        return False, "Não foi possível alcançar o Supabase. Confira a URL salva em Secrets."
+    except urllib.error.URLError as e:
+        motivo = str(getattr(e, "reason", "erro de rede"))
+        motivo_low = motivo.lower()
+        if "name or service not known" in motivo_low or "getaddrinfo" in motivo_low:
+            return False, "DIAGNÓSTICO: o endereço do projeto Supabase não foi encontrado. Confira somente o campo url em Secrets."
+        if "timed out" in motivo_low or "timeout" in motivo_low:
+            return False, "DIAGNÓSTICO: a conexão com o Supabase expirou (timeout)."
+        if "certificate" in motivo_low or "ssl" in motivo_low:
+            return False, "DIAGNÓSTICO: ocorreu um erro SSL ao conectar ao Supabase."
+        return False, f"DIAGNÓSTICO DE REDE: {type(getattr(e, 'reason', e)).__name__}: {motivo}"
+    except ValueError as e:
+        return False, f"DIAGNÓSTICO DE URL: {type(e).__name__}: formato inválido no campo url do Supabase."
+    except Exception as e:
+        # Mostra somente o tipo do erro, sem URL, chave ou senha.
+        return False, f"DIAGNÓSTICO TÉCNICO: {type(e).__name__}."
 
 
 def diagnostico_conexao_supabase():
