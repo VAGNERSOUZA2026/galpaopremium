@@ -6258,3 +6258,48 @@ label, label *, [data-testid="stWidgetLabel"], [data-testid="stWidgetLabel"] *,
 </style>
 """, unsafe_allow_html=True)
 
+# ============================================================
+# CORREÇÃO DEFINITIVA — ABAS DO LOGIN SEMPRE VISÍVEIS
+# ============================================================
+st.markdown(r"""
+<style>
+/* Força a cor das três abas do login em todos os estados.
+   O seletor usa a estrutura real das tabs do Streamlit/BaseWeb. */
+div[data-baseweb="tab-list"] {
+    background: transparent !important;
+    min-height: 46px !important;
+}
+div[data-baseweb="tab-list"] button[data-baseweb="tab"] {
+    opacity: 1 !important;
+    background: transparent !important;
+}
+div[data-baseweb="tab-list"] button[data-baseweb="tab"] p,
+div[data-baseweb="tab-list"] button[data-baseweb="tab"] span,
+div[data-baseweb="tab-list"] button[data-baseweb="tab"] div {
+    color: #4B2630 !important;
+    -webkit-text-fill-color: #4B2630 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    font-weight: 650 !important;
+    text-shadow: none !important;
+}
+div[data-baseweb="tab-list"] button[data-baseweb="tab"]:hover p,
+div[data-baseweb="tab-list"] button[data-baseweb="tab"]:hover span,
+div[data-baseweb="tab-list"] button[data-baseweb="tab"]:hover div {
+    color: #7A1733 !important;
+    -webkit-text-fill-color: #7A1733 !important;
+}
+div[data-baseweb="tab-list"] button[data-baseweb="tab"][aria-selected="true"] p,
+div[data-baseweb="tab-list"] button[data-baseweb="tab"][aria-selected="true"] span,
+div[data-baseweb="tab-list"] button[data-baseweb="tab"][aria-selected="true"] div {
+    color: #7A1733 !important;
+    -webkit-text-fill-color: #7A1733 !important;
+    opacity: 1 !important;
+    font-weight: 800 !important;
+}
+/* Mantém a barrinha da aba ativa em bordô. */
+div[data-baseweb="tab-highlight"] {
+    background-color: #8B1738 !important;
+}
+</style>
+""", unsafe_allow_html=True)
