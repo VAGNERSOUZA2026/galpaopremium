@@ -3100,9 +3100,15 @@ with st.sidebar:
         st.rerun()
 
 # Topbar compacta e funcional
-_db_status_ok, _db_status_msg = status_supabase_cache()
-_db_label = "Banco online" if _db_status_ok else "Banco indisponível"
-_db_class = "online" if _db_status_ok else "offline"
+# O status do Supabase aparece somente para o Desenvolvedor.
+_db_chip_html = ""
+if cargo_logado == "Desenvolvedor":
+    _db_status_ok, _db_status_msg = status_supabase_cache()
+    _db_label = "Banco online" if _db_status_ok else "Banco indisponível"
+    _db_class = "online" if _db_status_ok else "offline"
+    _db_chip_html = (
+        f'<div class="db-chip-v8 {_db_class}"><span></span>{_db_label}</div>'
+    )
 
 col_top1, col_top2 = st.columns([5, 1.2])
 with col_top1:
@@ -3117,7 +3123,7 @@ with col_top1:
                 </div>
             </div>
             <div class="topbar-right-v8">
-                <div class="db-chip-v8 {_db_class}"><span></span>{_db_label}</div>
+                {_db_chip_html}
                 <div class="user-chip-v8">
                     <strong>{html.escape(usuario_nome)}</strong>
                     <small>{html.escape(cargo_logado)}</small>
@@ -6995,3 +7001,97 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
+
+
+# ============================================================
+# V8.4 — GESTO MOBILE PARA ABRIR/FECHAR O MENU LATERAL
+# ============================================================
+components.html(
+    """
+    <script>
+    (() => {
+      const w = window.parent;
+      const d = w.document;
+
+      // Evita instalar o mesmo gesto mais de uma vez na mesma página.
+      if (w.__premiumWinesSwipeV84) return;
+      w.__premiumWinesSwipeV84 = true;
+
+      let startX = 0;
+      let startY = 0;
+      let startTime = 0;
+
+      function sidebarIsOpen() {
+        const sidebar = d.querySelector('[data-testid="stSidebar"]');
+        if (!sidebar) return false;
+        return sidebar.getAttribute('aria-expanded') === 'true';
+      }
+
+      function clickFirst(selectors) {
+        for (const selector of selectors) {
+          const el = d.querySelector(selector);
+          if (!el) continue;
+          const button = el.matches('button') ? el : el.querySelector('button');
+          (button || el).click();
+          return true;
+        }
+        return false;
+      }
+
+      function openSidebar() {
+        clickFirst([
+          '[data-testid="stSidebarCollapsedControl"] button',
+          '[data-testid="collapsedControl"] button',
+          '[data-testid="stSidebarCollapsedControl"]',
+          '[data-testid="collapsedControl"]'
+        ]);
+      }
+
+      function closeSidebar() {
+        clickFirst([
+          '[data-testid="stSidebarCollapseButton"] button',
+          '[data-testid="stSidebarCollapseButton"]'
+        ]);
+      }
+
+      d.addEventListener('touchstart', (ev) => {
+        if (!ev.touches || ev.touches.length !== 1) return;
+        const t = ev.touches[0];
+        startX = t.clientX;
+        startY = t.clientY;
+        startTime = Date.now();
+      }, { passive: true });
+
+      d.addEventListener('touchend', (ev) => {
+        if (!ev.changedTouches || ev.changedTouches.length !== 1) return;
+
+        const t = ev.changedTouches[0];
+        const dx = t.clientX - startX;
+        const dy = t.clientY - startY;
+        const elapsed = Date.now() - startTime;
+
+        // Evita disparar ao rolar verticalmente.
+        if (elapsed > 800 || Math.abs(dy) > 90) return;
+
+        const open = sidebarIsOpen();
+
+        // MENU FECHADO:
+        // deslize da borda esquerda para a direita.
+        if (!open && startX <= 55 && dx >= 75) {
+          openSidebar();
+          return;
+        }
+
+        // MENU ABERTO:
+        // deslize para a esquerda para fechar.
+        if (open && dx <= -75) {
+          closeSidebar();
+        }
+      }, { passive: true });
+    })();
+    </script>
+    """,
+    height=0,
+    width=0,
+)
+
