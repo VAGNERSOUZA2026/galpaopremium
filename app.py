@@ -549,6 +549,128 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# Tema claro Premium Wines — mais confortável para uso prolongado.
+st.markdown(
+    """
+    <style>
+    :root {
+        --wine-bg: #F5F1EC;
+        --wine-panel: #FFFFFF;
+        --wine-panel-2: #FBF8F4;
+        --wine-border: #DED5CC;
+        --wine-burgundy: #6E1730;
+        --wine-burgundy-2: #4A1022;
+        --wine-gold: #9A6B22;
+        --wine-text: #2B2525;
+        --wine-muted: #6F6662;
+    }
+
+    .stApp {
+        background: linear-gradient(135deg, #F8F5F1 0%, #F2ECE6 100%) !important;
+        color: #2B2525 !important;
+    }
+
+    .main, [data-testid="stAppViewContainer"],
+    [data-testid="stMain"], .block-container {
+        color: #2B2525 !important;
+    }
+
+    h1, h2, h3, h4, h5, h6,
+    p, .stMarkdown, [data-testid="stCaptionContainer"] {
+        color: #2B2525 !important;
+    }
+
+    label { color: #403838 !important; }
+    hr { border-color: #DED5CC !important; }
+
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #65172D 0%, #4A1022 100%) !important;
+        border-right: 1px solid #7B3145 !important;
+    }
+    [data-testid="stSidebar"] *,
+    [data-testid="stSidebar"] p,
+    [data-testid="stSidebar"] label {
+        color: #FFF8F3 !important;
+    }
+    [data-testid="stSidebar"] .sidebar-brand .brand-sub {
+        color: #F1D59B !important;
+    }
+    [data-testid="stSidebar"] .stButton > button {
+        color: #FFF8F3 !important;
+    }
+    [data-testid="stSidebar"] .stButton > button:hover {
+        background: rgba(255,255,255,.12) !important;
+    }
+
+    [data-baseweb="input"] > div,
+    [data-baseweb="select"] > div,
+    [data-baseweb="textarea"] > div,
+    .stTextInput input, .stNumberInput input, .stTextArea textarea {
+        background: #FFFFFF !important;
+        color: #2B2525 !important;
+        border-color: #D7CEC6 !important;
+    }
+    input, textarea { color: #2B2525 !important; }
+    [data-baseweb="select"] span { color: #2B2525 !important; }
+
+    .wine-card, .qr-card, .wine-item,
+    [data-testid="stMetric"],
+    [data-testid="stExpander"],
+    [data-testid="stFileUploaderDropzone"],
+    [data-testid="stCameraInput"] {
+        background: #FFFFFF !important;
+        color: #2B2525 !important;
+        border-color: #DED5CC !important;
+        box-shadow: 0 5px 18px rgba(65,42,35,.07) !important;
+    }
+    .wine-card *, .qr-card *, .wine-item *,
+    [data-testid="stMetric"] * {
+        color: #2B2525 !important;
+    }
+    .wine-title, [data-testid="stMetricValue"] {
+        color: #6E1730 !important;
+    }
+    [data-testid="stMetricLabel"] { color: #6F6662 !important; }
+
+    [data-testid="stAlert"] {
+        background: #FFFFFF !important;
+        border-color: #DED5CC !important;
+        color: #2B2525 !important;
+    }
+
+    [data-baseweb="tab"] {
+        background: #EEE6DF !important;
+        color: #514746 !important;
+    }
+    [aria-selected="true"][data-baseweb="tab"] {
+        background: #6E1730 !important;
+        color: #FFFFFF !important;
+    }
+
+    [data-baseweb="popover"] > div, [role="listbox"] {
+        background: #FFFFFF !important;
+        color: #2B2525 !important;
+    }
+    [role="option"] { color: #2B2525 !important; }
+    [role="option"]:hover { background: #F3E8E9 !important; }
+
+    [data-testid="stDataFrame"] {
+        background: #FFFFFF !important;
+        border-color: #DED5CC !important;
+    }
+
+    .stButton > button, .stDownloadButton > button, .stFormSubmitButton > button {
+        background: linear-gradient(135deg, #751A35, #581326) !important;
+        color: #FFFFFF !important;
+        border-color: #8C2944 !important;
+        box-shadow: 0 5px 14px rgba(88,19,38,.15) !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+
 st.markdown(
     """
     <style>
@@ -3632,6 +3754,8 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 codigo_manual_scanner = st.text_input(
                     "Ou bipe/digite o código",
                     key="codigo_manual_lista_pedido",
+                    on_change=callback_adicionar_codigo_pedido,
+                    help="Com leitor USB, basta bipar. O código será incluído automaticamente ao enviar Enter/Tab.",
                 )
             with col_qtd:
                 qtd_scanner = st.number_input(
@@ -4782,6 +4906,16 @@ elif st.session_state.menu_atual == "Cadastrar":
                 st.session_state.pop("cadastro_vinho_prefill", None)
 
                 if destino_retorno == "PedidosMatriz":
+                    # Retoma automaticamente a lista/pedido que estava em andamento.
+                    rascunho = st.session_state.get("rascunho_pedido_pendente")
+                    if rascunho:
+                        st.session_state.id_novo_pedido = rascunho.get("id", "")
+                        st.session_state.modo_novo_pedido = rascunho.get(
+                            "modo", "📄 Enviar arquivo"
+                        )
+                        st.session_state.itens_pedido_retomados = [
+                            dict(item) for item in rascunho.get("itens", [])
+                        ]
                     st.session_state.menu_atual = "PedidosMatriz"
 
                 st.rerun()
