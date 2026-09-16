@@ -4004,43 +4004,25 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 st.markdown(
                     f"""
                     <div style="
-                        background:linear-gradient(180deg,#19191D,#141417);
-                        padding:12px;
-                        border-radius:12px;
-                        border:1px solid #2E2E34;
+                        background:#FFFFFF;
+                        padding:18px 20px;
+                        border-radius:14px;
+                        border:1px solid #DDD3D5;
+                        box-shadow:0 4px 14px rgba(35,15,20,.08);
                         margin-bottom:15px;
+                        color:#24181B;
                     ">
-
-                    <b>
-                    Conferência do Mapa
-                    cod.
-                    {html.escape(
-                        pedido_ativo["id"]
-                    )}
-                    </b>
-
-                    |
-
-                    Status:
-
-                    <b style="
-                        color:{cor_status};
-                    ">
-                    {html.escape(
-                        status_atual
-                    )}
-                    </b>
-
+                        <div style="font-size:12px;font-weight:800;letter-spacing:.08em;color:#8B5E13;margin-bottom:7px;">CONFERÊNCIA DO MAPA</div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+                            <div style="font-size:19px;font-weight:800;color:#24181B;">Pedido {html.escape(str(pedido_ativo["id"]))}</div>
+                            <div style="font-size:14px;color:#5E5053;">Status: <span style="font-weight:800;color:{cor_status};">{html.escape(status_atual)}</span></div>
+                        </div>
                     </div>
                     """,
                     unsafe_allow_html=True
                 )
 
                 with st.expander("➕ Adicionar vinho extra / fora da lista", expanded=False):
-                    st.caption(
-                        "Use quando a matriz solicitar um vinho que não estava no pedido original. "
-                        "Ele será acrescentado ao mesmo pedido e ficará identificado no Painel da Matriz como 'Fora da lista / Extra'."
-                    )
                     col_extra1, col_extra2, col_extra3 = st.columns([2, 1, 1])
                     with col_extra1:
                         extra_busca = st.text_input(
