@@ -2729,19 +2729,23 @@ if st.session_state.usuario_logado is None:
         box-shadow:0 14px 38px rgba(75,13,29,.16) !important;
     }}
     /* Navegação do login via rádio horizontal: sempre visível */
+    div[data-testid="stRadio"] {{
+        max-width:360px !important;
+        margin:0 auto 8px auto !important;
+    }}
     div[data-testid="stRadio"] > div {{
         display:flex !important;
         flex-direction:row !important;
         justify-content:center !important;
-        gap:10px !important;
-        margin: 0 0 12px 0 !important;
+        gap:6px !important;
+        margin: 0 0 10px 0 !important;
     }}
     div[data-testid="stRadio"] label {{
         background:rgba(255,255,255,.96) !important;
         border:1px solid #D8C9C1 !important;
-        border-radius:12px !important;
-        padding:8px 14px !important;
-        min-height:44px !important;
+        border-radius:10px !important;
+        padding:5px 10px !important;
+        min-height:36px !important;
         display:flex !important;
         align-items:center !important;
         gap:8px !important;
@@ -2756,6 +2760,7 @@ if st.session_state.usuario_logado is None:
         opacity:1 !important;
         text-shadow:none !important;
         font-weight:700 !important;
+        font-size:.84rem !important;
         margin:0 !important;
     }}
     div[data-testid="stRadio"] label:has(input:checked) {{
@@ -2854,7 +2859,7 @@ if st.session_state.usuario_logado is None:
         # Status técnico do Supabase oculto da tela de login.
 
         login_modo = st.radio(
-            "Escolha o tipo de acesso",
+            "",
             ["🔑 Entrar", "👤 Criar Conta", "⚙️ Dev"],
             horizontal=True,
             label_visibility="collapsed",
