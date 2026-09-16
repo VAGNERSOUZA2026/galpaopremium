@@ -5353,3 +5353,133 @@ elif st.session_state.menu_atual == "GerenciarUsuarios":
                 )
             else:
                 st.info("Nenhum usuário comum cadastrado.")
+
+
+# ============================================================
+# TEMA CLARO PREMIUM WINES - CORREÇÃO FINAL
+# ============================================================
+st.markdown("""
+<style>
+html, body, .stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"],
+section.main {
+    background: #F7F3EF !important;
+    color: #2B2525 !important;
+}
+
+[data-testid="stMainBlockContainer"],
+.block-container {
+    background: transparent !important;
+    color: #2B2525 !important;
+}
+
+.main p, .main span, .main label,
+.main div, .main li,
+[data-testid="stMain"] p,
+[data-testid="stMain"] span,
+[data-testid="stMain"] label {
+    color: #2B2525;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: #6E1730 !important;
+}
+
+/* Sidebar permanece Premium bordô */
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg,#541225 0%,#351018 100%) !important;
+}
+[data-testid="stSidebar"] *,
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] span,
+[data-testid="stSidebar"] label {
+    color: #FFF8F3 !important;
+}
+
+/* Cards, expanders e áreas de conteúdo */
+.wine-card, .wine-item, .qr-card,
+[data-testid="stExpander"],
+[data-testid="stMetric"],
+[data-testid="stAlert"],
+[data-testid="stFileUploaderDropzone"],
+[data-testid="stCameraInput"],
+div[data-testid="stVerticalBlockBorderWrapper"] > div {
+    background: #FFFFFF !important;
+    color: #2B2525 !important;
+    border-color: #DDD2CA !important;
+}
+
+.wine-card *, .wine-item *, .qr-card *,
+[data-testid="stExpander"] *,
+[data-testid="stMetric"] * {
+    color: #2B2525 !important;
+}
+
+.wine-title,
+[data-testid="stMetricValue"] {
+    color: #6E1730 !important;
+}
+
+/* Campos */
+input, textarea,
+.stTextInput input,
+.stNumberInput input,
+.stTextArea textarea,
+[data-baseweb="input"] > div,
+[data-baseweb="textarea"] > div,
+[data-baseweb="select"] > div {
+    background: #FFFFFF !important;
+    color: #2B2525 !important;
+    border-color: #CFC4BC !important;
+}
+
+[data-baseweb="select"] span,
+[data-baseweb="select"] input {
+    color: #2B2525 !important;
+}
+
+[role="listbox"],
+[data-baseweb="popover"] > div {
+    background: #FFFFFF !important;
+}
+[role="option"], [role="option"] * {
+    color: #2B2525 !important;
+}
+[role="option"]:hover {
+    background: #F1E7E5 !important;
+}
+
+/* Tabelas */
+[data-testid="stDataFrame"],
+[data-testid="stTable"] {
+    background: #FFFFFF !important;
+    color: #2B2525 !important;
+}
+
+/* Botões */
+.stButton > button,
+.stDownloadButton > button,
+.stFormSubmitButton > button {
+    background: linear-gradient(135deg,#751A35,#581326) !important;
+    color: #FFFFFF !important;
+    border: 1px solid #8D3450 !important;
+}
+.stButton > button *,
+.stDownloadButton > button *,
+.stFormSubmitButton > button * {
+    color: #FFFFFF !important;
+}
+
+/* Divisórias e textos auxiliares */
+hr { border-color: #D9CEC7 !important; }
+small, .stCaption, [data-testid="stCaptionContainer"] {
+    color: #6F6662 !important;
+}
+
+/* Cabeçalhos dourados usados no painel */
+.section-title, .gold-title {
+    color: #9A6B22 !important;
+}
+</style>
+""", unsafe_allow_html=True)
