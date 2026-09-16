@@ -2712,6 +2712,25 @@ if st.session_state.usuario_logado is None:
         unsafe_allow_html=True
     )
 
+
+st.markdown("""
+<style>
+/* V7 - alertas legíveis em qualquer tela */
+[data-testid="stAlert"] p,
+[data-testid="stAlert"] span,
+[data-testid="stAlert"] div {
+    color:#241B1E !important;
+    -webkit-text-fill-color:#241B1E !important;
+    opacity:1 !important;
+    text-shadow:none !important;
+}
+[data-testid="stAlert"] svg {
+    color:#5B1528 !important;
+    fill:#5B1528 !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
     _, cc, _ = st.columns([1, 1.1, 1])
     with cc:
         _db_ok, _db_msg = status_supabase_cache()
@@ -2753,7 +2772,7 @@ if st.session_state.usuario_logado is None:
                 if u.get("cargo") == "Administrador Principal"
                 and u.get("status", "Aprovado") == "Aprovado"
             ]
-            with st.form("c_form"):
+            with st.form("c_form", clear_on_submit=True):
                 n = st.text_input("Nome", placeholder="Nome para acesso").strip().title()
                 s_conta = st.text_input("Senha", type="password", placeholder="Crie uma senha").strip()
                 tipo_conta = st.selectbox(
