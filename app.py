@@ -6862,240 +6862,205 @@ button[data-baseweb="tab"][aria-selected="true"] p {{
 """, unsafe_allow_html=True)
 
 # ============================================================
-# V8.8 — SIDEBAR CORRETA
+# V8.9 — SIDEBAR ESTÁVEL
 # Desktop: fixa e sempre visível.
-# Celular: drawer deslizante controlado por gesto.
+# Celular: usa o comportamento nativo do Streamlit + gesto opcional.
 # ============================================================
 st.markdown("""
 <style>
 /* ---------- DESKTOP ---------- */
 @media (min-width: 901px) {
     [data-testid="stSidebar"] {
-        display: flex !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        transform: none !important;
-        margin-left: 0 !important;
-        left: 0 !important;
-        width: 270px !important;
-        min-width: 270px !important;
-        pointer-events: auto !important;
+        display:flex !important;
+        visibility:visible !important;
+        opacity:1 !important;
+        transform:none !important;
+        margin-left:0 !important;
+        left:0 !important;
+        width:270px !important;
+        min-width:270px !important;
+        pointer-events:auto !important;
     }
 
-    /* No computador a barra é fixa: não existe botão para escondê-la. */
     [data-testid="stSidebarCollapseButton"],
     [data-testid="stSidebarCollapsedControl"],
     [data-testid="collapsedControl"] {
-        display: none !important;
-        visibility: hidden !important;
-        pointer-events: none !important;
+        display:none !important;
+        visibility:hidden !important;
     }
 }
 
 /* ---------- CELULAR ---------- */
 @media (max-width: 900px) {
-    /* A sidebar fica sempre no DOM; quem abre/fecha é o gesto abaixo. */
+    /* O header precisa existir porque o botão nativo de reabrir o menu mora nele. */
+    header[data-testid="stHeader"],
+    [data-testid="stHeader"] {
+        display:block !important;
+        visibility:visible !important;
+        opacity:1 !important;
+        height:0 !important;
+        min-height:0 !important;
+        background:transparent !important;
+        border:0 !important;
+        box-shadow:none !important;
+        overflow:visible !important;
+        z-index:99990 !important;
+    }
+
+    /* Continua escondendo somente as ferramentas desnecessárias. */
+    [data-testid="stToolbar"],
+    [data-testid="stDecoration"],
+    [data-testid="stMainMenu"],
+    .stAppToolbar,
+    .stDeployButton {
+        display:none !important;
+        visibility:hidden !important;
+    }
+
+    /* Não força a sidebar aberta. Apenas define tamanho e aparência. */
     [data-testid="stSidebar"] {
-        display: flex !important;
-        visibility: visible !important;
-        opacity: 1 !important;
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        bottom: 0 !important;
-        width: min(82vw, 330px) !important;
-        min-width: 0 !important;
-        max-width: 330px !important;
-        height: 100dvh !important;
-        margin: 0 !important;
-        transform: translate3d(-105%, 0, 0) !important;
-        transition: transform .26s cubic-bezier(.22,.8,.24,1) !important;
-        pointer-events: none !important;
-        z-index: 100001 !important;
-        box-shadow: 18px 0 38px rgba(31,7,16,.28) !important;
-        overflow-y: auto !important;
-        -webkit-overflow-scrolling: touch !important;
+        width:min(84vw, 330px) !important;
+        min-width:0 !important;
+        max-width:330px !important;
+        z-index:99999 !important;
+        box-shadow:18px 0 38px rgba(31,7,16,.28) !important;
     }
 
-    html.pw-mobile-sidebar-open [data-testid="stSidebar"] {
-        transform: translate3d(0, 0, 0) !important;
-        pointer-events: auto !important;
+    /* Estado nativo aberto/fechado. */
+    [data-testid="stSidebar"][aria-expanded="true"] {
+        transform:none !important;
+        visibility:visible !important;
+        opacity:1 !important;
+        pointer-events:auto !important;
+    }
+    [data-testid="stSidebar"][aria-expanded="false"] {
+        transform:translateX(-105%) !important;
+        visibility:hidden !important;
+        opacity:0 !important;
+        pointer-events:none !important;
     }
 
-    [data-testid="stSidebar"] .stButton,
-    [data-testid="stSidebar"] .stButton > button {
-        pointer-events: auto !important;
-        touch-action: manipulation !important;
-        min-height: 48px !important;
-    }
-
-    /* Os controles nativos são escondidos para não brigarem com o drawer. */
-    [data-testid="stSidebarCollapseButton"],
+    /* Botão nativo para reabrir a sidebar. */
     [data-testid="stSidebarCollapsedControl"],
     [data-testid="collapsedControl"] {
-        display: none !important;
-        visibility: hidden !important;
-        pointer-events: none !important;
+        display:flex !important;
+        visibility:visible !important;
+        opacity:1 !important;
+        pointer-events:auto !important;
+        position:fixed !important;
+        top:12px !important;
+        left:12px !important;
+        width:46px !important;
+        height:46px !important;
+        z-index:100001 !important;
     }
 
-    #pw-sidebar-backdrop-v88 {
-        position: fixed;
-        inset: 0;
-        background: rgba(28,12,18,.38);
-        backdrop-filter: blur(1px);
-        opacity: 0;
-        visibility: hidden;
-        pointer-events: none;
-        transition: opacity .22s ease, visibility .22s ease;
-        z-index: 100000;
+    [data-testid="stSidebarCollapsedControl"] button,
+    [data-testid="collapsedControl"] button {
+        display:flex !important;
+        visibility:visible !important;
+        opacity:1 !important;
+        pointer-events:auto !important;
+        width:46px !important;
+        height:46px !important;
+        align-items:center !important;
+        justify-content:center !important;
+        background:linear-gradient(135deg,#751A35,#541125) !important;
+        color:#fff !important;
+        border:1px solid rgba(214,174,99,.55) !important;
+        border-radius:13px !important;
+        box-shadow:0 8px 24px rgba(74,16,33,.25) !important;
     }
 
-    html.pw-mobile-sidebar-open #pw-sidebar-backdrop-v88 {
-        opacity: 1;
-        visibility: visible;
-        pointer-events: auto;
+    [data-testid="stSidebarCollapsedControl"] svg,
+    [data-testid="collapsedControl"] svg {
+        color:#fff !important;
+        fill:#fff !important;
+        width:24px !important;
+        height:24px !important;
     }
 
-    #pw-sidebar-close-v88 {
-        position: fixed;
-        top: 16px;
-        left: min(calc(82vw - 50px), 280px);
-        width: 42px;
-        height: 42px;
-        border: 1px solid rgba(255,255,255,.16);
-        border-radius: 12px;
-        background: rgba(255,255,255,.10);
-        color: #fff;
-        font-size: 24px;
-        font-weight: 800;
-        line-height: 1;
-        display: none;
-        align-items: center;
-        justify-content: center;
-        z-index: 100003;
-        box-shadow: 0 7px 18px rgba(0,0,0,.18);
-        touch-action: manipulation;
+    /* Botão nativo de fechar dentro da barra. */
+    [data-testid="stSidebarCollapseButton"] {
+        display:flex !important;
+        visibility:visible !important;
+        opacity:1 !important;
+        pointer-events:auto !important;
+        z-index:100002 !important;
     }
 
-    html.pw-mobile-sidebar-open #pw-sidebar-close-v88 {
-        display: flex;
+    /* Itens do menu continuam totalmente clicáveis. */
+    [data-testid="stSidebar"] .stButton,
+    [data-testid="stSidebar"] .stButton > button {
+        pointer-events:auto !important;
+        touch-action:manipulation !important;
+        min-height:48px !important;
     }
 }
 </style>
 """, unsafe_allow_html=True)
 
+# Gesto adicional no celular: borda esquerda -> direita abre; esquerda fecha.
+# Se o navegador não aceitar o gesto, os botões nativos continuam funcionando.
 components.html(
     """
     <script>
     (() => {
       const w = window.parent;
       const d = w.document;
-      const root = d.documentElement;
+      if (w.__pwNativeSwipeV89Installed) return;
+      w.__pwNativeSwipeV89Installed = true;
 
-      // Remove restos de versões anteriores, caso o Streamlit tenha feito hot-reload.
-      ['pw-sidebar-handle-v87','pw-sidebar-backdrop-v88','pw-sidebar-close-v88']
-        .forEach(id => d.getElementById(id)?.remove());
+      let sx=0, sy=0, started=false;
 
-      // Remove listeners antigos desta própria versão antes de reinstalar em reruns.
-      if (w.__pwSidebarV88Cleanup) {
-        try { w.__pwSidebarV88Cleanup(); } catch (_) {}
-      }
-
-      const mq = w.matchMedia('(max-width: 900px)');
-
-      const backdrop = d.createElement('div');
-      backdrop.id = 'pw-sidebar-backdrop-v88';
-      d.body.appendChild(backdrop);
-
-      const closeBtn = d.createElement('button');
-      closeBtn.id = 'pw-sidebar-close-v88';
-      closeBtn.type = 'button';
-      closeBtn.setAttribute('aria-label','Fechar menu lateral');
-      closeBtn.innerHTML = '‹‹';
-      d.body.appendChild(closeBtn);
-
-      const isOpen = () => root.classList.contains('pw-mobile-sidebar-open');
-
-      const openSidebar = () => {
-        if (!mq.matches) return;
-        root.classList.add('pw-mobile-sidebar-open');
+      const sidebar = () => d.querySelector('[data-testid="stSidebar"]');
+      const isOpen = () => {
+        const el = sidebar();
+        return !!el && el.getAttribute('aria-expanded') === 'true';
       };
 
-      const closeSidebar = () => {
-        root.classList.remove('pw-mobile-sidebar-open');
-      };
-
-      const onBackdrop = (ev) => {
-        ev.preventDefault();
-        closeSidebar();
-      };
-      backdrop.addEventListener('click', onBackdrop);
-
-      const onClose = (ev) => {
-        ev.preventDefault();
-        closeSidebar();
-      };
-      closeBtn.addEventListener('click', onClose);
-
-      // Fecha automaticamente depois de tocar numa opção real do menu.
-      const onClick = (ev) => {
-        if (!mq.matches || !isOpen()) return;
-        const btn = ev.target.closest('[data-testid="stSidebar"] .stButton > button');
-        if (btn) setTimeout(closeSidebar, 80);
-      };
-      d.addEventListener('click', onClick, true);
-
-      let sx = 0, sy = 0, started = false;
-
-      const onTouchStart = (ev) => {
-        if (!mq.matches || !ev.touches || ev.touches.length !== 1) return;
-        const t = ev.touches[0];
-        sx = t.clientX;
-        sy = t.clientY;
-        // Fechado: gesto começa na borda esquerda.
-        // Aberto: pode começar em qualquer ponto dentro da área do drawer.
-        started = isOpen() ? sx <= 360 : sx <= 70;
-      };
-
-      const onTouchEnd = (ev) => {
-        if (!mq.matches || !started || !ev.changedTouches || ev.changedTouches.length !== 1) return;
-        const t = ev.changedTouches[0];
-        const dx = t.clientX - sx;
-        const dy = t.clientY - sy;
-        started = false;
-
-        // Não interfere com rolagem vertical.
-        if (Math.abs(dy) > 90) return;
-
-        if (!isOpen() && dx >= 65) {
-          openSidebar();
-        } else if (isOpen() && dx <= -65) {
-          closeSidebar();
+      const clickAny = (selectors) => {
+        for (const sel of selectors) {
+          const el = d.querySelector(sel);
+          if (!el) continue;
+          const btn = el.matches('button') ? el : el.querySelector('button');
+          (btn || el).click();
+          return true;
         }
+        return false;
       };
 
-      d.addEventListener('touchstart', onTouchStart, {passive:true});
-      d.addEventListener('touchend', onTouchEnd, {passive:true});
+      const openSidebar = () => clickAny([
+        '[data-testid="stSidebarCollapsedControl"] button',
+        '[data-testid="collapsedControl"] button',
+        '[data-testid="stSidebarCollapsedControl"]',
+        '[data-testid="collapsedControl"]'
+      ]);
 
-      const onResize = () => {
-        if (!mq.matches) closeSidebar();
+      const closeSidebar = () => clickAny([
+        '[data-testid="stSidebarCollapseButton"] button',
+        '[data-testid="stSidebarCollapseButton"]'
+      ]);
+
+      const onStart = (ev) => {
+        if (w.innerWidth > 900 || !ev.touches || ev.touches.length !== 1) return;
+        const t=ev.touches[0];
+        sx=t.clientX; sy=t.clientY;
+        started = isOpen() ? true : sx <= 55;
       };
-      w.addEventListener('resize', onResize);
 
-      // No celular começa recolhida; no PC permanece fixa/aberta.
-      if (mq.matches) closeSidebar();
-      else root.classList.remove('pw-mobile-sidebar-open');
-
-      w.__pwSidebarV88Cleanup = () => {
-        d.removeEventListener('click', onClick, true);
-        d.removeEventListener('touchstart', onTouchStart);
-        d.removeEventListener('touchend', onTouchEnd);
-        w.removeEventListener('resize', onResize);
-        backdrop.removeEventListener('click', onBackdrop);
-        closeBtn.removeEventListener('click', onClose);
-        backdrop.remove();
-        closeBtn.remove();
+      const onEnd = (ev) => {
+        if (w.innerWidth > 900 || !started || !ev.changedTouches || ev.changedTouches.length !== 1) return;
+        const t=ev.changedTouches[0];
+        const dx=t.clientX-sx, dy=t.clientY-sy;
+        started=false;
+        if (Math.abs(dy) > 90) return;
+        if (!isOpen() && dx >= 70) openSidebar();
+        else if (isOpen() && dx <= -70) closeSidebar();
       };
+
+      d.addEventListener('touchstart', onStart, {passive:true});
+      d.addEventListener('touchend', onEnd, {passive:true});
     })();
     </script>
     """,
