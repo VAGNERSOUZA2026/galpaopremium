@@ -2668,6 +2668,11 @@ for key, val in list(qp.items()):
 # LOGIN
 # ============================================================
 
+st.markdown("""<style>
+.pw-login-logo{width:150px;height:150px;margin:0 auto 16px auto;background:#fff;border-radius:30px;padding:7px;box-shadow:0 12px 35px rgba(0,0,0,.28);overflow:hidden;}
+.pw-login-logo img{width:100%;height:100%;object-fit:cover;border-radius:24px;display:block;}
+</style>""", unsafe_allow_html=True)
+
 user_url = qp.get("user", None)
 cargo_url = qp.get("cargo", "Operador")
 
@@ -2702,9 +2707,9 @@ if (
 if st.session_state.usuario_logado is None:
     st.markdown("<style>[data-testid=\"stSidebar\"]{display:none!important;}</style>", unsafe_allow_html=True)
     st.markdown(
-        """
+        f"""
         <div class="login-shell">
-            <div class="login-logo">🍷</div>
+            <div class="pw-login-logo"><img src="{PREMIUM_LOGO_DATA_URI}" alt="Premium Wines"></div>
             <div class="login-title">PREMIUM <span>WINES</span></div>
             <div class="login-subtitle">Gestão de Estoque & Expedição • Galpão</div>
         </div>
@@ -2817,16 +2822,7 @@ if st.session_state.usuario_logado is None:
                             st.success("Solicitação enviada a um Administrador Principal.")
 
         with tab3:
-            st.markdown("#### Teste seguro do Supabase")
-            st.caption("Não mostra host, usuário nem senha.")
-            if st.button("TESTAR CONEXÃO SUPABASE", key="teste_supabase_seguro", use_container_width=True):
-                status_supabase_cache.clear()
-                ok_diag, msg_diag = diagnostico_conexao_supabase()
-                if ok_diag:
-                    st.success(msg_diag)
-                else:
-                    st.error(msg_diag)
-
+            st.markdown("#### Acesso do Desenvolvedor")
             st.caption("Área restrita do desenvolvedor.")
             with st.form("d_form"):
                 sp = st.text_input("Senha Mestra", type="password")
@@ -2874,9 +2870,10 @@ instalar_atalhos_teclado()
 # Menu lateral inspirado no mockup Premium Wines
 with st.sidebar:
     st.markdown(
-        """
-        <div class="sidebar-brand">
-            <div class="brand-title">🍷 PREMIUM WINES</div>
+        f"""
+        <div class="sidebar-brand" style="text-align:center;">
+            <img src="{PREMIUM_LOGO_DATA_URI}" alt="Premium Wines" style="width:92px;height:92px;object-fit:cover;border-radius:20px;background:#fff;padding:4px;margin:0 auto 10px auto;display:block;box-shadow:0 8px 22px rgba(0,0,0,.25);">
+            <div class="brand-title">PREMIUM WINES</div>
             <div class="brand-sub">GALPÃO • WMS</div>
         </div>
         """,
