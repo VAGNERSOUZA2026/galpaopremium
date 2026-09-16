@@ -5483,3 +5483,218 @@ small, .stCaption, [data-testid="stCaptionContainer"] {
 }
 </style>
 """, unsafe_allow_html=True)
+
+
+# ============================================================
+# PREMIUM WINES - TEMA CLARO V4 / CONTRASTE E LEGIBILIDADE
+# ============================================================
+st.markdown("""
+<style>
+/* Base */
+html, body, .stApp, [data-testid="stAppViewContainer"],
+[data-testid="stMain"], section.main {
+    background: #F6F2EE !important;
+    color: #2A2224 !important;
+}
+[data-testid="stMainBlockContainer"], .block-container {
+    background: transparent !important;
+}
+
+/* Texto comum na área principal */
+[data-testid="stMain"] p,
+[data-testid="stMain"] label,
+[data-testid="stMain"] li,
+[data-testid="stMain"] small,
+[data-testid="stMain"] .stMarkdown,
+[data-testid="stMain"] [data-testid="stCaptionContainer"] {
+    color: #403538 !important;
+}
+[data-testid="stMain"] h1,
+[data-testid="stMain"] h2,
+[data-testid="stMain"] h3,
+[data-testid="stMain"] h4 {
+    color: #251D20 !important;
+}
+
+/* HERO/CABEÇALHOS ESCUROS: texto sempre claro */
+.hero, .hero-card, .page-hero, .top-card, .premium-header,
+div[class*="hero"], div[class*="header-card"] {
+    color: #FFF8F3 !important;
+}
+.hero *, .hero-card *, .page-hero *, .top-card *, .premium-header *,
+div[class*="hero"] *, div[class*="header-card"] * {
+    color: #FFF8F3 !important;
+}
+
+/* Cards escuros que permaneceram no layout */
+div[style*="background:#151"],
+div[style*="background: #151"],
+div[style*="background:#171"],
+div[style*="background: #171"],
+div[style*="background:#1"],
+div[style*="background: #1"],
+div[style*="linear-gradient"][style*="#1"] {
+    color: #FFF8F3 !important;
+}
+div[style*="background:#151"] *,
+div[style*="background: #151"] *,
+div[style*="background:#171"] *,
+div[style*="background: #171"] *,
+div[style*="background:#1"] *,
+div[style*="background: #1"] *,
+div[style*="linear-gradient"][style*="#1"] * {
+    color: #FFF8F3 !important;
+}
+
+/* Cards de conteúdo claros */
+.wine-card, .wine-item, .qr-card, .result-card,
+.card-light, .content-card,
+[data-testid="stMetric"],
+[data-testid="stAlert"] {
+    background: #FFFFFF !important;
+    border: 1px solid #D9CEC7 !important;
+    color: #2A2224 !important;
+}
+.wine-card *, .wine-item *, .qr-card *, .result-card *,
+.card-light *, .content-card *,
+[data-testid="stMetric"] * {
+    color: #2A2224 !important;
+}
+
+/* Expanders: claro, exceto os que fazem parte de uma área escura */
+[data-testid="stExpander"] {
+    background: #FFFFFF !important;
+    border: 1px solid #D9CEC7 !important;
+}
+[data-testid="stExpander"] summary,
+[data-testid="stExpander"] summary *,
+[data-testid="stExpander"] [data-testid="stExpanderDetails"],
+[data-testid="stExpander"] [data-testid="stExpanderDetails"] * {
+    color: #2A2224 !important;
+}
+
+/* Inputs */
+.stTextInput input, .stNumberInput input, .stTextArea textarea,
+[data-baseweb="input"] input,
+[data-baseweb="textarea"] textarea {
+    background: #FFFFFF !important;
+    color: #211A1C !important;
+    -webkit-text-fill-color: #211A1C !important;
+    border-color: #CFC3BC !important;
+}
+input::placeholder, textarea::placeholder {
+    color: #8A7D78 !important;
+    opacity: 1 !important;
+}
+
+/* Selects */
+[data-baseweb="select"] > div {
+    background: #FFFFFF !important;
+    border-color: #CFC3BC !important;
+}
+[data-baseweb="select"] span,
+[data-baseweb="select"] input {
+    color: #211A1C !important;
+    -webkit-text-fill-color: #211A1C !important;
+}
+[role="listbox"], [data-baseweb="popover"] > div {
+    background: #FFFFFF !important;
+}
+[role="option"], [role="option"] * {
+    color: #211A1C !important;
+}
+[role="option"]:hover {
+    background: #F0E4E5 !important;
+}
+
+/* Radio/checkbox - fundo claro, texto escuro */
+[data-testid="stRadio"] > div,
+[data-testid="stCheckbox"] > label {
+    color: #2A2224 !important;
+}
+[data-testid="stRadio"] label,
+[data-testid="stRadio"] label *,
+[data-testid="stCheckbox"] label,
+[data-testid="stCheckbox"] label * {
+    color: #2A2224 !important;
+}
+
+/* Botões bordô */
+.stButton > button,
+.stDownloadButton > button,
+.stFormSubmitButton > button {
+    background: #7B1735 !important;
+    color: #FFFFFF !important;
+    border: 1px solid #8E2947 !important;
+}
+.stButton > button *,
+.stDownloadButton > button *,
+.stFormSubmitButton > button * {
+    color: #FFFFFF !important;
+}
+
+/* Tabelas */
+[data-testid="stDataFrame"],
+[data-testid="stTable"] {
+    background: #FFFFFF !important;
+    color: #2A2224 !important;
+}
+
+/* Alertas: força contraste */
+[data-testid="stAlert"] p,
+[data-testid="stAlert"] div,
+[data-testid="stAlert"] span {
+    color: #44383A !important;
+}
+
+/* Tabs */
+[data-baseweb="tab-list"] {
+    border-bottom-color: #D8CDC6 !important;
+}
+[data-baseweb="tab"] {
+    color: #675B5E !important;
+}
+[data-baseweb="tab"][aria-selected="true"],
+[data-baseweb="tab"][aria-selected="true"] * {
+    color: #7B1735 !important;
+    font-weight: 700 !important;
+}
+
+/* Sidebar */
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg,#4C1121 0%,#301017 100%) !important;
+}
+[data-testid="stSidebar"] *,
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] span,
+[data-testid="stSidebar"] label {
+    color: #FFF8F3 !important;
+}
+
+/* Cards HTML de vinho/pallet que usam estilos inline claros */
+div[style*="background: white"],
+div[style*="background:white"],
+div[style*="background: #fff"],
+div[style*="background:#fff"],
+div[style*="background: #FFF"],
+div[style*="background:#FFF"] {
+    color: #2A2224 !important;
+}
+div[style*="background: white"] *,
+div[style*="background:white"] *,
+div[style*="background: #fff"] *,
+div[style*="background:#fff"] *,
+div[style*="background: #FFF"] *,
+div[style*="background:#FFF"] * {
+    color: #2A2224 !important;
+}
+
+/* Linha/divisórias */
+hr { border-color: #D7CBC4 !important; }
+
+/* Não deixa texto desabilitado quase invisível */
+:disabled, [aria-disabled="true"] {
+    opacity: .72 !important;
+}
+</style>
+""", unsafe_allow_html=True)
