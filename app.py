@@ -6899,3 +6899,99 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
+
+
+# ============================================================
+# V8.3 — BOTÃO PARA REABRIR O MENU NO CELULAR
+# ============================================================
+st.markdown("""
+<style>
+@media (max-width: 900px) {
+    /*
+      O app ocultava o header nativo inteiro. No celular o botão que
+      reabre a sidebar vive dentro desse header, então ele desaparecia.
+      Mantemos somente a estrutura mínima do header no mobile.
+    */
+    header[data-testid="stHeader"],
+    [data-testid="stHeader"] {
+        display: block !important;
+        visibility: visible !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        background: transparent !important;
+        border: 0 !important;
+        box-shadow: none !important;
+        z-index: 99990 !important;
+    }
+
+    /* Continua escondendo os elementos que não queremos do Streamlit. */
+    [data-testid="stToolbar"],
+    [data-testid="stDecoration"],
+    [data-testid="stMainMenu"],
+    .stAppToolbar,
+    .stDeployButton {
+        display: none !important;
+        visibility: hidden !important;
+    }
+
+    /*
+      Botão nativo para abrir novamente a barra lateral.
+      Fica flutuante no canto superior esquerdo quando o menu está fechado.
+    */
+    [data-testid="stSidebarCollapsedControl"],
+    [data-testid="collapsedControl"] {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        position: fixed !important;
+        top: 12px !important;
+        left: 12px !important;
+        width: 46px !important;
+        height: 46px !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: linear-gradient(135deg,#751A35,#541125) !important;
+        border: 1px solid rgba(214,174,99,.55) !important;
+        border-radius: 13px !important;
+        box-shadow: 0 8px 24px rgba(74,16,33,.25) !important;
+        z-index: 100000 !important;
+    }
+
+    [data-testid="stSidebarCollapsedControl"] button,
+    [data-testid="collapsedControl"] button {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        width: 100% !important;
+        height: 100% !important;
+        color: #FFFFFF !important;
+        background: transparent !important;
+        border: 0 !important;
+    }
+
+    [data-testid="stSidebarCollapsedControl"] svg,
+    [data-testid="collapsedControl"] svg {
+        color: #FFFFFF !important;
+        fill: #FFFFFF !important;
+        width: 24px !important;
+        height: 24px !important;
+    }
+
+    /* Botão de fechar dentro da sidebar continua clicável. */
+    [data-testid="stSidebarCollapseButton"] {
+        display: flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        z-index: 100001 !important;
+    }
+
+    /* Quando a sidebar está aberta, ela fica acima do conteúdo. */
+    [data-testid="stSidebar"][aria-expanded="true"] {
+        z-index: 99999 !important;
+    }
+}
+</style>
+""", unsafe_allow_html=True)
