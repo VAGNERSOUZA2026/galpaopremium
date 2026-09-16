@@ -2819,7 +2819,7 @@ if st.session_state.usuario_logado is None:
     [data-testid="stFormSubmitButton"] button *, [data-testid="stFormSubmitButton"] button p {{
         color:#FFFFFF !important; -webkit-text-fill-color:#FFFFFF !important; opacity:1 !important; font-weight:800 !important;
     }}
-    .login-switch-card {
+    .login-switch-card {{
         max-width:340px !important;
         margin:0 auto 10px auto !important;
         padding:10px !important;
@@ -2828,32 +2828,32 @@ if st.session_state.usuario_logado is None:
         border:1px solid rgba(110,23,48,.12) !important;
         box-shadow:0 12px 28px rgba(75,13,29,.10) !important;
         backdrop-filter:blur(8px) !important;
-    }
-    .login-switch-card + div [data-testid="stHorizontalBlock"] {
+    }}
+    .login-switch-card + div [data-testid="stHorizontalBlock"] {{
         align-items:center !important;
-    }
-    div[data-testid="stButton"] > button[kind] {
+    }}
+    div[data-testid="stButton"] > button[kind] {{
         min-height:38px !important;
         border-radius:12px !important;
         font-weight:800 !important;
-    }
+    }}
     /* Navegação do login mais compacta e centralizada */
-    button[kind="secondary"] {
+    button[kind="secondary"] {{
         background:#FFFFFF !important;
         color:#5C1A2B !important;
         border:1px solid #DCCBC4 !important;
         box-shadow:0 6px 16px rgba(72,25,38,.08) !important;
-    }
-    button[kind="secondary"] * {
+    }}
+    button[kind="secondary"] * {{
         color:#5C1A2B !important;
         -webkit-text-fill-color:#5C1A2B !important;
         font-weight:800 !important;
-    }
-    button[kind="primary"] {
+    }}
+    button[kind="primary"] {{
         background:linear-gradient(135deg,#8B1738,#651027) !important;
         border:1px solid #9D3150 !important;
         box-shadow:0 8px 20px rgba(72,25,38,.18) !important;
-    }
+    }}
     </style>
     """, unsafe_allow_html=True)
     st.markdown(
