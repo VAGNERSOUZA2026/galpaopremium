@@ -2713,23 +2713,25 @@ if st.session_state.usuario_logado is None:
     )
 
 
-st.markdown("""
-<style>
-/* V7 - alertas legíveis em qualquer tela */
-[data-testid="stAlert"] p,
-[data-testid="stAlert"] span,
-[data-testid="stAlert"] div {
-    color:#241B1E !important;
-    -webkit-text-fill-color:#241B1E !important;
-    opacity:1 !important;
-    text-shadow:none !important;
-}
-[data-testid="stAlert"] svg {
-    color:#5B1528 !important;
-    fill:#5B1528 !important;
-}
-</style>
-""", unsafe_allow_html=True)
+
+    st.markdown("""
+    <style>
+    /* V7 - alertas legíveis em qualquer tela */
+    [data-testid="stAlert"] p,
+    [data-testid="stAlert"] span,
+    [data-testid="stAlert"] div {
+        color:#241B1E !important;
+        -webkit-text-fill-color:#241B1E !important;
+        opacity:1 !important;
+        text-shadow:none !important;
+    }
+    [data-testid="stAlert"] svg {
+        color:#5B1528 !important;
+        fill:#5B1528 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
 
     _, cc, _ = st.columns([1, 1.1, 1])
     with cc:
