@@ -3,7 +3,6 @@ import re
 import json
 import shutil
 import html
-import hashlib
 import unicodedata
 from io import BytesIO
 from datetime import datetime, timezone, timedelta
@@ -49,7 +48,7 @@ st.set_page_config(
     page_title="Premium Wines - Galpão",
     page_icon="🍷",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="auto",
 )
 
 st.markdown(
@@ -800,249 +799,6 @@ def diagnostico_conexao_supabase():
 @st.cache_data(ttl=10, show_spinner=False)
 def status_supabase_cache():
     return testar_conexao_supabase()
-
-
-# ============================================================
-# NOTIFICAÇÕES PUSH — ONESIGNAL
-# ============================================================
-
-def obter_config_onesignal():
-    """Lê a configuração do OneSignal em Settings > Secrets sem expor chaves."""
-    try:
-        cfg = st.secrets["onesignal"]
-        app_id = str(cfg.get("app_id", "")).strip()
-        api_key = str(cfg.get("api_key", "")).strip()
-        app_url = str(
-            cfg.get(
-                "app_url",
-                "https://galpaopremium-gwiywrdxssrwmzv9tdpeff.streamlit.app/"
-            )
-        ).strip()
-        service_worker_path = str(
-            cfg.get("service_worker_path", "/OneSignalSDKWorker.js")
-        ).strip()
-        service_worker_scope = str(
-            cfg.get("service_worker_scope", "/")
-        ).strip()
-
-        if not app_id:
-            return None
-
-        return {
-            "app_id": app_id,
-            "api_key": api_key,
-            "app_url": app_url,
-            "service_worker_path": service_worker_path or "/OneSignalSDKWorker.js",
-            "service_worker_scope": service_worker_scope or "/",
-        }
-    except Exception:
-        return None
-
-
-def onesignal_pronto_para_envio():
-    cfg = obter_config_onesignal()
-    return bool(cfg and cfg.get("app_id") and cfg.get("api_key"))
-
-
-def id_externo_notificacao(nome_usuario, cargo_usuario):
-    """Gera um identificador estável sem enviar o nome puro do usuário ao OneSignal."""
-    base = f"premium-wines|{str(cargo_usuario).strip().lower()}|{str(nome_usuario).strip().lower()}"
-    return "pw_" + hashlib.sha256(base.encode("utf-8")).hexdigest()[:32]
-
-
-def renderizar_integracao_onesignal(nome_usuario, cargo_usuario, solicitar_permissao=False):
-    """
-    Inicializa o OneSignal no navegador.
-    O botão de ativação só é exibido para Operador e Desenvolvedor.
-    Administrador Principal não recebe a tag de novos pedidos.
-    """
-    cfg = obter_config_onesignal()
-    if not cfg:
-        return
-
-    permitido = cargo_usuario in ["Operador", "Desenvolvedor"]
-    external_id = id_externo_notificacao(nome_usuario, cargo_usuario)
-    cargo_tag = "operador" if cargo_usuario == "Operador" else (
-        "desenvolvedor" if cargo_usuario == "Desenvolvedor" else "administrador"
-    )
-
-    app_id_js = json.dumps(cfg["app_id"])
-    sw_path_js = json.dumps(cfg["service_worker_path"])
-    sw_scope_js = json.dumps(cfg["service_worker_scope"])
-    external_id_js = json.dumps(external_id)
-    cargo_tag_js = json.dumps(cargo_tag)
-    permitido_js = "true" if permitido else "false"
-    solicitar_js = "true" if bool(solicitar_permissao and permitido) else "false"
-
-    components.html(
-        f"""
-        <script>
-        (() => {{
-            const w = window.parent;
-            const d = w.document;
-
-            w.OneSignalDeferred = w.OneSignalDeferred || [];
-
-            if (!d.getElementById("premium-onesignal-sdk")) {{
-                const sdk = d.createElement("script");
-                sdk.id = "premium-onesignal-sdk";
-                sdk.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
-                sdk.defer = true;
-                d.head.appendChild(sdk);
-            }}
-
-            w.OneSignalDeferred.push(async function(OneSignal) {{
-                try {{
-                    if (!w.__premiumOneSignalInitialized) {{
-                        await OneSignal.init({{
-                            appId: {app_id_js},
-                            autoResubscribe: true,
-                            notifyButton: {{ enable: false }},
-                            serviceWorkerPath: {sw_path_js},
-                            serviceWorkerParam: {{ scope: {sw_scope_js} }},
-                            promptOptions: {{
-                                slidedown: {{
-                                    prompts: [{{
-                                        type: "push",
-                                        autoPrompt: false,
-                                        text: {{
-                                            actionMessage: "Receba um aviso quando uma nova lista de pedido for adicionada.",
-                                            acceptButton: "Ativar",
-                                            cancelButton: "Agora não"
-                                        }}
-                                    }}]
-                                }}
-                            }},
-                            welcomeNotification: {{ disable: true }}
-                        }});
-                        w.__premiumOneSignalInitialized = true;
-                    }}
-
-                    await OneSignal.login({external_id_js});
-
-                    const permitido = {permitido_js};
-
-                    const aplicarTags = async () => {{
-                        try {{
-                            if (permitido && OneSignal.Notifications.permission) {{
-                                try {{
-                                    await OneSignal.User.PushSubscription.optIn();
-                                }} catch (e) {{}}
-
-                                OneSignal.User.addTags({{
-                                    premium_recebe_pedidos: "sim",
-                                    premium_cargo: {cargo_tag_js}
-                                }});
-                            }} else if (!permitido) {{
-                                OneSignal.User.removeTags([
-                                    "premium_recebe_pedidos",
-                                    "premium_cargo"
-                                ]);
-                            }}
-                        }} catch (e) {{
-                            console.warn("Premium Wines: não foi possível atualizar tags de push.", e);
-                        }}
-                    }};
-
-                    await aplicarTags();
-
-                    if (w.__premiumOneSignalListenerUser !== {external_id_js}) {{
-                        w.__premiumOneSignalListenerUser = {external_id_js};
-                        OneSignal.Notifications.addEventListener(
-                            "permissionChange",
-                            async function(permission) {{
-                                if (permission && permitido) {{
-                                    OneSignal.User.addTags({{
-                                        premium_recebe_pedidos: "sim",
-                                        premium_cargo: {cargo_tag_js}
-                                    }});
-                                }}
-                            }}
-                        );
-                    }}
-
-                    if ({solicitar_js}) {{
-                        if (OneSignal.Notifications.permission) {{
-                            try {{
-                                await OneSignal.User.PushSubscription.optIn();
-                            }} catch (e) {{}}
-                            await aplicarTags();
-                        }} else {{
-                            OneSignal.Slidedown.promptPush({{ force: true }});
-                        }}
-                    }}
-                }} catch (e) {{
-                    console.error("Premium Wines - erro ao iniciar notificações:", e);
-                }}
-            }});
-        }})();
-        </script>
-        """,
-        height=0,
-        width=0,
-    )
-
-
-def enviar_notificacao_novo_pedido(pedido_id=""):
-    """
-    Envia push apenas para aparelhos que autorizaram e receberam a tag
-    premium_recebe_pedidos=sim.
-    A falha da notificação nunca impede o pedido de ser salvo.
-    """
-    import urllib.request
-    import urllib.error
-
-    cfg = obter_config_onesignal()
-    if not cfg or not cfg.get("app_id") or not cfg.get("api_key"):
-        return False, "OneSignal ainda não está configurado para envio."
-
-    payload = {
-        "app_id": cfg["app_id"],
-        "target_channel": "push",
-        "name": f"Premium Wines - novo pedido {str(pedido_id).strip()}",
-        "headings": {
-            "en": "📦 Novo pedido disponível",
-            "pt": "📦 Novo pedido disponível",
-        },
-        "contents": {
-            "en": "Uma nova lista de pedido foi adicionada. Abra o Premium Wines para visualizar.",
-            "pt": "Uma nova lista de pedido foi adicionada. Abra o Premium Wines para visualizar.",
-        },
-        "filters": [
-            {
-                "field": "tag",
-                "key": "premium_recebe_pedidos",
-                "relation": "=",
-                "value": "sim",
-            }
-        ],
-        "url": cfg.get("app_url") or "https://galpaopremium-gwiywrdxssrwmzv9tdpeff.streamlit.app/",
-    }
-
-    try:
-        corpo = json.dumps(payload).encode("utf-8")
-        req = urllib.request.Request(
-            "https://api.onesignal.com/notifications",
-            data=corpo,
-            headers={
-                "Authorization": "Key " + cfg["api_key"],
-                "Content-Type": "application/json; charset=utf-8",
-                "Accept": "application/json",
-            },
-            method="POST",
-        )
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            resposta = json.loads(resp.read().decode("utf-8") or "{}")
-            notification_id = str(resposta.get("id", "")).strip()
-            if 200 <= resp.status < 300:
-                return True, notification_id or "Notificação enviada."
-            return False, f"OneSignal respondeu HTTP {resp.status}."
-    except urllib.error.HTTPError as e:
-        return False, f"OneSignal respondeu HTTP {e.code}."
-    except urllib.error.URLError:
-        return False, "Não foi possível conectar ao OneSignal."
-    except Exception as e:
-        return False, f"Falha técnica no push: {type(e).__name__}."
 
 
 # ============================================================
@@ -2654,7 +2410,10 @@ def componente_leitor_codigo_barras(chave_sessao, tela_retorno=None):
         const url = new URL(window.parent.location.href);
         url.searchParams.set('scanned_{chave_sessao}', decodedText);
         if ("{tela_js}") url.searchParams.set('screen', "{tela_js}");
-        if ("{chave_sessao}" === "checkout_camera") url.searchParams.set('checkout', '1');
+        if ("{chave_sessao}" === "checkout_camera") {{
+            url.searchParams.set('checkout', '1');
+            url.searchParams.set('checkout_area', 'conferencia');
+        }}
         const finalizar = () => {{ window.parent.location.href = url.toString(); }};
         if (window.barcodeReader_{chave_sessao}) {{
             window.barcodeReader_{chave_sessao}.stop().then(finalizar).catch(finalizar);
@@ -2823,6 +2582,8 @@ if _screen_param:
 
 if str(qp.get("checkout", "") or "") == "1":
     st.session_state["checkout_forcar_aba"] = True
+    st.session_state["checkout_aba_persistente"] = "🔍 Conferência (Checkout de Expedição)"
+    st.query_params["checkout_area"] = "conferencia"
     try:
         del st.query_params["checkout"]
     except Exception:
@@ -3026,8 +2787,12 @@ for key, val in list(qp.items()):
             )
             st.session_state.menu_atual = "PedidosMatriz"
             st.session_state["checkout_forcar_aba"] = True
+            st.session_state["checkout_aba_persistente"] = "🔍 Conferência (Checkout de Expedição)"
+            st.query_params["checkout_area"] = "conferencia"
             st.session_state["checkout_codigo_pendente"] = valor_limpo
-            st.session_state["checkout_auto_conferir"] = True
+            st.session_state["checkout_codigo_lido"] = True
+            # O bip só identifica o vinho; nunca conclui sozinho.
+            st.session_state["checkout_auto_conferir"] = False
 
         elif sess_key == "pedido_scanner":
 
@@ -3423,13 +3188,6 @@ cargo_logado = st.session_state.usuario_logado.get("cargo", "Operador")
 acesso_gestao = cargo_logado in ["Administrador Principal", "Desenvolvedor"]
 usuario_nome = st.session_state.usuario_logado.get("nome", "Usuário")
 
-_solicitar_push = bool(st.session_state.pop("onesignal_solicitar_permissao", False))
-renderizar_integracao_onesignal(
-    usuario_nome,
-    cargo_logado,
-    solicitar_permissao=_solicitar_push,
-)
-
 instalar_atalhos_teclado()
 
 # Menu lateral inspirado no mockup Premium Wines
@@ -3566,46 +3324,6 @@ if st.session_state.menu_atual == "🏠 Home":
         unsafe_allow_html=True
     )
 
-    # Ativação de push aparece somente para Usuário Comum (Operador) e DEV.
-    if cargo_logado in ["Operador", "Desenvolvedor"]:
-        _cfg_push = obter_config_onesignal()
-
-        st.markdown('<div class="section-title">Notificações</div>', unsafe_allow_html=True)
-        n1, n2 = st.columns([4, 1.5])
-        with n1:
-            st.markdown(
-                """
-                <div class="action-card">
-                    <div class="action-icon">🔔</div>
-                    <div class="action-title">Aviso de novo pedido</div>
-                    <div class="action-desc">
-                        Autorize este aparelho para receber “Novo pedido disponível”
-                        mesmo quando você não estiver logado no Premium Wines.
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-        with n2:
-            if _cfg_push:
-                if st.button(
-                    "🔔 Ativar notificações",
-                    use_container_width=True,
-                    key="home_ativar_notificacoes",
-                ):
-                    st.session_state["onesignal_solicitar_permissao"] = True
-                    st.rerun()
-                st.caption("A autorização é feita pelo navegador deste aparelho.")
-            else:
-                st.button(
-                    "🔔 Ativar notificações",
-                    use_container_width=True,
-                    key="home_ativar_notificacoes_indisponivel",
-                    disabled=True,
-                )
-                if cargo_logado == "Desenvolvedor":
-                    st.caption("Configure [onesignal] em Settings > Secrets para liberar.")
-
     m1, m2, m3, m4 = st.columns(4)
     with m1: st.metric("🍷 Vinhos cadastrados", total_vinhos)
     with m2: st.metric("📦 Pallets ocupados", pallets_ocupados)
@@ -3634,7 +3352,7 @@ if st.session_state.menu_atual == "🏠 Home":
         if st.button("Ler QR", use_container_width=True, key="home_lerqr"):
             st.session_state.menu_atual = "LerQRPallet"; st.rerun()
     with c6:
-        st.markdown('<div class="action-card"><div class="action-icon">🏷️</div><div class="action-title">Gerar QR</div><div class="action-desc">Criar etiquetas QR atualizadas para os pallets.</div></div>', unsafe_allow_html=True)
+        st.markdown('<div class="action-card"><div class="action-icon">🏷️</div><div class="action-title">Gerar QR</div><div class="action-desc">Criar etiquetas QR fixas por posição. O código não muda quando o vinho troca de pallet.</div></div>', unsafe_allow_html=True)
         if st.button("Gerar QR", use_container_width=True, key="home_gerarqr"):
             st.session_state.menu_atual = "GerarQRPallets"; st.rerun()
 
@@ -4274,19 +3992,45 @@ elif st.session_state.menu_atual == "PedidosMatriz":
         "🔍 Conferência (Checkout de Expedição)",
     ]
 
-    # Mantém a tela escolhida mesmo após reruns de scanner, senha, quantidade etc.
-    if st.session_state.pop("checkout_forcar_aba", False):
-        st.session_state["checkout_aba_ativa"] = aba_checkout_opcoes[1]
+    # A tela escolhida fica persistente mesmo após reruns, bipagens e recarregamentos.
+    _checkout_param = str(st.query_params.get("checkout_area", "") or "").strip().lower()
+    _checkout_desejada = st.session_state.get("checkout_aba_persistente", aba_checkout_opcoes[0])
 
-    if st.session_state.get("checkout_aba_ativa") not in aba_checkout_opcoes:
-        st.session_state["checkout_aba_ativa"] = aba_checkout_opcoes[0]
+    if _checkout_param == "conferencia":
+        _checkout_desejada = aba_checkout_opcoes[1]
+    elif _checkout_param == "pedidos":
+        _checkout_desejada = aba_checkout_opcoes[0]
+
+    if st.session_state.pop("checkout_forcar_aba", False):
+        _checkout_desejada = aba_checkout_opcoes[1]
+
+    if _checkout_desejada not in aba_checkout_opcoes:
+        _checkout_desejada = aba_checkout_opcoes[0]
+
+    st.session_state["checkout_aba_persistente"] = _checkout_desejada
+    st.session_state["checkout_aba_widget"] = _checkout_desejada
+
+    def _persistir_area_checkout():
+        _valor = st.session_state.get("checkout_aba_widget", aba_checkout_opcoes[0])
+        st.session_state["checkout_aba_persistente"] = _valor
+        st.query_params["checkout_area"] = (
+            "conferencia" if _valor == aba_checkout_opcoes[1] else "pedidos"
+        )
+        if _valor == aba_checkout_opcoes[1]:
+            st.session_state["checkout_reset_campos"] = True
 
     checkout_aba_ativa = st.radio(
         "Área do Checkout",
         aba_checkout_opcoes,
         horizontal=True,
         label_visibility="collapsed",
-        key="checkout_aba_ativa",
+        key="checkout_aba_widget",
+        on_change=_persistir_area_checkout,
+    )
+
+    st.session_state["checkout_aba_persistente"] = checkout_aba_ativa
+    st.query_params["checkout_area"] = (
+        "conferencia" if checkout_aba_ativa == aba_checkout_opcoes[1] else "pedidos"
     )
 
     if checkout_aba_ativa == aba_checkout_opcoes[0]:
@@ -4561,25 +4305,6 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     st.session_state.pedidos.append(novo_registro_pedido)
                     salvar_pedidos(st.session_state.pedidos)
 
-                    # Push de novo pedido: somente aparelhos autorizados de
-                    # Usuário Comum (Operador) e DEV recebem esta mensagem.
-                    _push_ok, _push_info = enviar_notificacao_novo_pedido(
-                        id_pedido_limpo
-                    )
-                    if onesignal_pronto_para_envio():
-                        if _push_ok:
-                            registrar_log(
-                                "Sistema",
-                                "Notificação de Novo Pedido",
-                                f"Pedido {id_pedido_limpo} • enviada",
-                            )
-                        else:
-                            registrar_log(
-                                "Sistema",
-                                "Falha na Notificação de Novo Pedido",
-                                f"Pedido {id_pedido_limpo} • {_push_info}",
-                            )
-
                     sincronizar_estoque_com_pedidos(
                         st.session_state.pedidos,
                         st.session_state.estoque,
@@ -4670,6 +4395,18 @@ elif st.session_state.menu_atual == "PedidosMatriz":
             )
 
             if pedido_ativo:
+
+                # Cada nova conferência começa limpa.
+                if st.session_state.pop("checkout_reset_campos", False):
+                    for _campo_checkout in [
+                        "input_qtd_checkout",
+                        "select_vinho_checkout",
+                        "input_bipagem_checkout",
+                    ]:
+                        st.session_state.pop(_campo_checkout, None)
+                    st.session_state["checkout_codigo_pendente"] = ""
+                    st.session_state["checkout_codigo_lido"] = False
+                    st.session_state["checkout_auto_conferir"] = False
 
                 status_atual = (
                     pedido_ativo.get(
@@ -4841,17 +4578,13 @@ elif st.session_state.menu_atual == "PedidosMatriz":
 
                             opcao = st.selectbox(
                                 "*Selecione o Vinho",
-                                [
-                                    "-- Selecione ou Digite --"
-                                ]
-                                + itens_pendentes_lista,
-                                key="select_vinho_checkout"
+                                ["SELECIONE OU DIGITE"] + itens_pendentes_lista,
+                                index=0,
+                                key="select_vinho_checkout",
+                                help="Use as setas ↑ e ↓ do teclado para escolher e Enter para confirmar.",
                             )
 
-                            if (
-                                opcao
-                                != "-- Selecione ou Digite --"
-                            ):
+                            if opcao != "SELECIONE OU DIGITE":
 
                                 cod_barras_input = (
                                     opcao
@@ -4927,10 +4660,12 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 with col_b2:
 
                     qtd_input = st.number_input(
-                        "*Qtd",
+                        "*Qtd realmente conferida",
                         min_value=1,
                         value=1,
-                        key="input_qtd_checkout"
+                        step=1,
+                        key="input_qtd_checkout",
+                        help="Informe a quantidade realmente separada; o sistema compara com a quantidade pedida.",
                     )
 
                 with col_b3:
@@ -4972,6 +4707,9 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         st.session_state["checkout_codigo_pendente"] = ""
                         st.session_state["checkout_codigo_lido"] = False
                         st.session_state["checkout_auto_conferir"] = False
+                        st.session_state["checkout_reset_campos"] = True
+                        st.session_state["checkout_aba_persistente"] = aba_checkout_opcoes[1]
+                        st.query_params["checkout_area"] = "conferencia"
 
                         if "codigo_bipado_checkout" in st.session_state:
                             st.session_state.codigo_bipado_checkout = ""
@@ -5077,6 +4815,8 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                                     salvar_pedidos(
                                         st.session_state.pedidos
                                     )
+                                    st.session_state["checkout_aba_persistente"] = aba_checkout_opcoes[1]
+                                    st.query_params["checkout_area"] = "conferencia"
 
                                     registrar_log(
                                         st.session_state.usuario_logado[
@@ -5122,6 +4862,9 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                                 salvar_pedidos(
                                     st.session_state.pedidos
                                 )
+                                st.session_state["checkout_reset_campos"] = True
+                                st.session_state["checkout_aba_persistente"] = aba_checkout_opcoes[1]
+                                st.query_params["checkout_area"] = "conferencia"
 
                                 registrar_log(
                                     st.session_state.usuario_logado[
@@ -7257,208 +7000,48 @@ button[data-baseweb="tab"][aria-selected="true"] p {{
 """, unsafe_allow_html=True)
 
 # ============================================================
-# V8.9 — SIDEBAR ESTÁVEL
-# Desktop: fixa e sempre visível.
-# Celular: usa o comportamento nativo do Streamlit + gesto opcional.
+# V11 — SIDEBAR RESPONSIVA
+# Desktop: fixa. Celular: comportamento nativo deslizante do Streamlit.
 # ============================================================
 st.markdown("""
 <style>
-/* ---------- DESKTOP ---------- */
 @media (min-width: 901px) {
+    header[data-testid="stHeader"], [data-testid="stHeader"] {
+        display:none !important; visibility:hidden !important; height:0 !important; min-height:0 !important;
+    }
     [data-testid="stSidebar"] {
-        display:flex !important;
-        visibility:visible !important;
-        opacity:1 !important;
-        transform:none !important;
-        margin-left:0 !important;
-        left:0 !important;
-        width:270px !important;
-        min-width:270px !important;
+        display:flex !important; visibility:visible !important; opacity:1 !important;
+        transform:none !important; margin-left:0 !important; width:270px !important; min-width:270px !important;
         pointer-events:auto !important;
     }
-
     [data-testid="stSidebarCollapseButton"],
     [data-testid="stSidebarCollapsedControl"],
-    [data-testid="collapsedControl"] {
-        display:none !important;
-        visibility:hidden !important;
-    }
+    [data-testid="collapsedControl"] { display:none !important; }
 }
 
-/* ---------- CELULAR ---------- */
 @media (max-width: 900px) {
-    /* O header precisa existir porque o botão nativo de reabrir o menu mora nele. */
-    header[data-testid="stHeader"],
-    [data-testid="stHeader"] {
-        display:block !important;
-        visibility:visible !important;
-        opacity:1 !important;
-        height:0 !important;
-        min-height:0 !important;
-        background:transparent !important;
-        border:0 !important;
-        box-shadow:none !important;
-        overflow:visible !important;
-        z-index:99990 !important;
+    /* Restaura o cabeçalho nativo: é nele que o Streamlit coloca o botão do menu. */
+    header[data-testid="stHeader"], [data-testid="stHeader"] {
+        display:flex !important; visibility:visible !important; opacity:1 !important;
+        height:52px !important; min-height:52px !important;
+        background:rgba(250,248,245,.96) !important; border-bottom:1px solid #E3DAD4 !important;
+        box-shadow:none !important; z-index:99990 !important;
     }
+    [data-testid="stToolbar"], [data-testid="stDecoration"], [data-testid="stMainMenu"],
+    .stAppToolbar, .stDeployButton { display:none !important; visibility:hidden !important; }
 
-    /* Continua escondendo somente as ferramentas desnecessárias. */
-    [data-testid="stToolbar"],
-    [data-testid="stDecoration"],
-    [data-testid="stMainMenu"],
-    .stAppToolbar,
-    .stDeployButton {
-        display:none !important;
-        visibility:hidden !important;
-    }
-
-    /* Não força a sidebar aberta. Apenas define tamanho e aparência. */
+    /* Não definimos transform/aria-expanded: o próprio Streamlit controla o slide. */
     [data-testid="stSidebar"] {
-        width:min(84vw, 330px) !important;
-        min-width:0 !important;
-        max-width:330px !important;
-        z-index:99999 !important;
-        box-shadow:18px 0 38px rgba(31,7,16,.28) !important;
+        width:min(84vw,330px) !important; min-width:0 !important; max-width:330px !important;
+        box-shadow:18px 0 38px rgba(31,7,16,.28) !important; z-index:99999 !important;
     }
-
-    /* Estado nativo aberto/fechado. */
-    [data-testid="stSidebar"][aria-expanded="true"] {
-        transform:none !important;
-        visibility:visible !important;
-        opacity:1 !important;
-        pointer-events:auto !important;
-    }
-    [data-testid="stSidebar"][aria-expanded="false"] {
-        transform:translateX(-105%) !important;
-        visibility:hidden !important;
-        opacity:0 !important;
-        pointer-events:none !important;
-    }
-
-    /* Botão nativo para reabrir a sidebar. */
-    [data-testid="stSidebarCollapsedControl"],
-    [data-testid="collapsedControl"] {
-        display:flex !important;
-        visibility:visible !important;
-        opacity:1 !important;
-        pointer-events:auto !important;
-        position:fixed !important;
-        top:12px !important;
-        left:12px !important;
-        width:46px !important;
-        height:46px !important;
-        z-index:100001 !important;
-    }
-
-    [data-testid="stSidebarCollapsedControl"] button,
-    [data-testid="collapsedControl"] button {
-        display:flex !important;
-        visibility:visible !important;
-        opacity:1 !important;
-        pointer-events:auto !important;
-        width:46px !important;
-        height:46px !important;
-        align-items:center !important;
-        justify-content:center !important;
-        background:linear-gradient(135deg,#751A35,#541125) !important;
-        color:#fff !important;
-        border:1px solid rgba(214,174,99,.55) !important;
-        border-radius:13px !important;
-        box-shadow:0 8px 24px rgba(74,16,33,.25) !important;
-    }
-
-    [data-testid="stSidebarCollapsedControl"] svg,
-    [data-testid="collapsedControl"] svg {
-        color:#fff !important;
-        fill:#fff !important;
-        width:24px !important;
-        height:24px !important;
-    }
-
-    /* Botão nativo de fechar dentro da barra. */
-    [data-testid="stSidebarCollapseButton"] {
-        display:flex !important;
-        visibility:visible !important;
-        opacity:1 !important;
-        pointer-events:auto !important;
-        z-index:100002 !important;
-    }
-
-    /* Itens do menu continuam totalmente clicáveis. */
-    [data-testid="stSidebar"] .stButton,
     [data-testid="stSidebar"] .stButton > button {
-        pointer-events:auto !important;
-        touch-action:manipulation !important;
-        min-height:48px !important;
+        min-height:48px !important; touch-action:manipulation !important;
+    }
+    [data-testid="stSidebarCollapsedControl"], [data-testid="collapsedControl"],
+    [data-testid="stSidebarCollapseButton"] {
+        visibility:visible !important; opacity:1 !important; pointer-events:auto !important; z-index:100002 !important;
     }
 }
 </style>
 """, unsafe_allow_html=True)
-
-# Gesto adicional no celular: borda esquerda -> direita abre; esquerda fecha.
-# Se o navegador não aceitar o gesto, os botões nativos continuam funcionando.
-components.html(
-    """
-    <script>
-    (() => {
-      const w = window.parent;
-      const d = w.document;
-      if (w.__pwNativeSwipeV89Installed) return;
-      w.__pwNativeSwipeV89Installed = true;
-
-      let sx=0, sy=0, started=false;
-
-      const sidebar = () => d.querySelector('[data-testid="stSidebar"]');
-      const isOpen = () => {
-        const el = sidebar();
-        return !!el && el.getAttribute('aria-expanded') === 'true';
-      };
-
-      const clickAny = (selectors) => {
-        for (const sel of selectors) {
-          const el = d.querySelector(sel);
-          if (!el) continue;
-          const btn = el.matches('button') ? el : el.querySelector('button');
-          (btn || el).click();
-          return true;
-        }
-        return false;
-      };
-
-      const openSidebar = () => clickAny([
-        '[data-testid="stSidebarCollapsedControl"] button',
-        '[data-testid="collapsedControl"] button',
-        '[data-testid="stSidebarCollapsedControl"]',
-        '[data-testid="collapsedControl"]'
-      ]);
-
-      const closeSidebar = () => clickAny([
-        '[data-testid="stSidebarCollapseButton"] button',
-        '[data-testid="stSidebarCollapseButton"]'
-      ]);
-
-      const onStart = (ev) => {
-        if (w.innerWidth > 900 || !ev.touches || ev.touches.length !== 1) return;
-        const t=ev.touches[0];
-        sx=t.clientX; sy=t.clientY;
-        started = isOpen() ? true : sx <= 55;
-      };
-
-      const onEnd = (ev) => {
-        if (w.innerWidth > 900 || !started || !ev.changedTouches || ev.changedTouches.length !== 1) return;
-        const t=ev.changedTouches[0];
-        const dx=t.clientX-sx, dy=t.clientY-sy;
-        started=false;
-        if (Math.abs(dy) > 90) return;
-        if (!isOpen() && dx >= 70) openSidebar();
-        else if (isOpen() && dx <= -70) closeSidebar();
-      };
-
-      d.addEventListener('touchstart', onStart, {passive:true});
-      d.addEventListener('touchend', onEnd, {passive:true});
-    })();
-    </script>
-    """,
-    height=0,
-    width=0,
-)
