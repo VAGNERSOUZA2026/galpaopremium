@@ -3493,6 +3493,17 @@ if cargo_logado == "Desenvolvedor":
         f'<div class="db-chip-v8 {_db_class}"><span></span>{_db_label}</div>'
     )
 
+# Monta todo o lado direito sem deixar uma linha vazia no HTML.
+# Isso evita que o Streamlit interprete o cartão do usuário como bloco de código
+# quando o "Banco online" não é exibido (Administrador Principal / Operador).
+_user_chip_html = (
+    '<div class="user-chip-v8">'
+    f'<strong>{html.escape(usuario_nome)}</strong>'
+    f'<small>{html.escape(cargo_logado)}</small>'
+    '</div>'
+)
+_topbar_right_html = _db_chip_html + _user_chip_html
+
 col_top1, col_top2 = st.columns([5, 1.2])
 with col_top1:
     st.markdown(
@@ -3505,13 +3516,7 @@ with col_top1:
                     <div class="topbar-sub-v8">Galpão • Estoque • Expedição</div>
                 </div>
             </div>
-            <div class="topbar-right-v8">
-                {_db_chip_html}
-                <div class="user-chip-v8">
-                    <strong>{html.escape(usuario_nome)}</strong>
-                    <small>{html.escape(cargo_logado)}</small>
-                </div>
-            </div>
+            <div class="topbar-right-v8">{_topbar_right_html}</div>
         </div>
         """,
         unsafe_allow_html=True
