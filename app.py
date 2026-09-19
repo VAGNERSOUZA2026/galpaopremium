@@ -3,6 +3,7 @@ import re
 import json
 import shutil
 import html
+import hashlib
 import unicodedata
 from io import BytesIO
 from datetime import datetime, timezone, timedelta
@@ -799,6 +800,249 @@ def diagnostico_conexao_supabase():
 @st.cache_data(ttl=10, show_spinner=False)
 def status_supabase_cache():
     return testar_conexao_supabase()
+
+
+# ============================================================
+# NOTIFICAÇÕES PUSH — ONESIGNAL
+# ============================================================
+
+def obter_config_onesignal():
+    """Lê a configuração do OneSignal em Settings > Secrets sem expor chaves."""
+    try:
+        cfg = st.secrets["onesignal"]
+        app_id = str(cfg.get("app_id", "")).strip()
+        api_key = str(cfg.get("api_key", "")).strip()
+        app_url = str(
+            cfg.get(
+                "app_url",
+                "https://galpaopremium-gwiywrdxssrwmzv9tdpeff.streamlit.app/"
+            )
+        ).strip()
+        service_worker_path = str(
+            cfg.get("service_worker_path", "/OneSignalSDKWorker.js")
+        ).strip()
+        service_worker_scope = str(
+            cfg.get("service_worker_scope", "/")
+        ).strip()
+
+        if not app_id:
+            return None
+
+        return {
+            "app_id": app_id,
+            "api_key": api_key,
+            "app_url": app_url,
+            "service_worker_path": service_worker_path or "/OneSignalSDKWorker.js",
+            "service_worker_scope": service_worker_scope or "/",
+        }
+    except Exception:
+        return None
+
+
+def onesignal_pronto_para_envio():
+    cfg = obter_config_onesignal()
+    return bool(cfg and cfg.get("app_id") and cfg.get("api_key"))
+
+
+def id_externo_notificacao(nome_usuario, cargo_usuario):
+    """Gera um identificador estável sem enviar o nome puro do usuário ao OneSignal."""
+    base = f"premium-wines|{str(cargo_usuario).strip().lower()}|{str(nome_usuario).strip().lower()}"
+    return "pw_" + hashlib.sha256(base.encode("utf-8")).hexdigest()[:32]
+
+
+def renderizar_integracao_onesignal(nome_usuario, cargo_usuario, solicitar_permissao=False):
+    """
+    Inicializa o OneSignal no navegador.
+    O botão de ativação só é exibido para Operador e Desenvolvedor.
+    Administrador Principal não recebe a tag de novos pedidos.
+    """
+    cfg = obter_config_onesignal()
+    if not cfg:
+        return
+
+    permitido = cargo_usuario in ["Operador", "Desenvolvedor"]
+    external_id = id_externo_notificacao(nome_usuario, cargo_usuario)
+    cargo_tag = "operador" if cargo_usuario == "Operador" else (
+        "desenvolvedor" if cargo_usuario == "Desenvolvedor" else "administrador"
+    )
+
+    app_id_js = json.dumps(cfg["app_id"])
+    sw_path_js = json.dumps(cfg["service_worker_path"])
+    sw_scope_js = json.dumps(cfg["service_worker_scope"])
+    external_id_js = json.dumps(external_id)
+    cargo_tag_js = json.dumps(cargo_tag)
+    permitido_js = "true" if permitido else "false"
+    solicitar_js = "true" if bool(solicitar_permissao and permitido) else "false"
+
+    components.html(
+        f"""
+        <script>
+        (() => {{
+            const w = window.parent;
+            const d = w.document;
+
+            w.OneSignalDeferred = w.OneSignalDeferred || [];
+
+            if (!d.getElementById("premium-onesignal-sdk")) {{
+                const sdk = d.createElement("script");
+                sdk.id = "premium-onesignal-sdk";
+                sdk.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
+                sdk.defer = true;
+                d.head.appendChild(sdk);
+            }}
+
+            w.OneSignalDeferred.push(async function(OneSignal) {{
+                try {{
+                    if (!w.__premiumOneSignalInitialized) {{
+                        await OneSignal.init({{
+                            appId: {app_id_js},
+                            autoResubscribe: true,
+                            notifyButton: {{ enable: false }},
+                            serviceWorkerPath: {sw_path_js},
+                            serviceWorkerParam: {{ scope: {sw_scope_js} }},
+                            promptOptions: {{
+                                slidedown: {{
+                                    prompts: [{{
+                                        type: "push",
+                                        autoPrompt: false,
+                                        text: {{
+                                            actionMessage: "Receba um aviso quando uma nova lista de pedido for adicionada.",
+                                            acceptButton: "Ativar",
+                                            cancelButton: "Agora não"
+                                        }}
+                                    }}]
+                                }}
+                            }},
+                            welcomeNotification: {{ disable: true }}
+                        }});
+                        w.__premiumOneSignalInitialized = true;
+                    }}
+
+                    await OneSignal.login({external_id_js});
+
+                    const permitido = {permitido_js};
+
+                    const aplicarTags = async () => {{
+                        try {{
+                            if (permitido && OneSignal.Notifications.permission) {{
+                                try {{
+                                    await OneSignal.User.PushSubscription.optIn();
+                                }} catch (e) {{}}
+
+                                OneSignal.User.addTags({{
+                                    premium_recebe_pedidos: "sim",
+                                    premium_cargo: {cargo_tag_js}
+                                }});
+                            }} else if (!permitido) {{
+                                OneSignal.User.removeTags([
+                                    "premium_recebe_pedidos",
+                                    "premium_cargo"
+                                ]);
+                            }}
+                        }} catch (e) {{
+                            console.warn("Premium Wines: não foi possível atualizar tags de push.", e);
+                        }}
+                    }};
+
+                    await aplicarTags();
+
+                    if (w.__premiumOneSignalListenerUser !== {external_id_js}) {{
+                        w.__premiumOneSignalListenerUser = {external_id_js};
+                        OneSignal.Notifications.addEventListener(
+                            "permissionChange",
+                            async function(permission) {{
+                                if (permission && permitido) {{
+                                    OneSignal.User.addTags({{
+                                        premium_recebe_pedidos: "sim",
+                                        premium_cargo: {cargo_tag_js}
+                                    }});
+                                }}
+                            }}
+                        );
+                    }}
+
+                    if ({solicitar_js}) {{
+                        if (OneSignal.Notifications.permission) {{
+                            try {{
+                                await OneSignal.User.PushSubscription.optIn();
+                            }} catch (e) {{}}
+                            await aplicarTags();
+                        }} else {{
+                            OneSignal.Slidedown.promptPush({{ force: true }});
+                        }}
+                    }}
+                }} catch (e) {{
+                    console.error("Premium Wines - erro ao iniciar notificações:", e);
+                }}
+            }});
+        }})();
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
+
+
+def enviar_notificacao_novo_pedido(pedido_id=""):
+    """
+    Envia push apenas para aparelhos que autorizaram e receberam a tag
+    premium_recebe_pedidos=sim.
+    A falha da notificação nunca impede o pedido de ser salvo.
+    """
+    import urllib.request
+    import urllib.error
+
+    cfg = obter_config_onesignal()
+    if not cfg or not cfg.get("app_id") or not cfg.get("api_key"):
+        return False, "OneSignal ainda não está configurado para envio."
+
+    payload = {
+        "app_id": cfg["app_id"],
+        "target_channel": "push",
+        "name": f"Premium Wines - novo pedido {str(pedido_id).strip()}",
+        "headings": {
+            "en": "📦 Novo pedido disponível",
+            "pt": "📦 Novo pedido disponível",
+        },
+        "contents": {
+            "en": "Uma nova lista de pedido foi adicionada. Abra o Premium Wines para visualizar.",
+            "pt": "Uma nova lista de pedido foi adicionada. Abra o Premium Wines para visualizar.",
+        },
+        "filters": [
+            {
+                "field": "tag",
+                "key": "premium_recebe_pedidos",
+                "relation": "=",
+                "value": "sim",
+            }
+        ],
+        "url": cfg.get("app_url") or "https://galpaopremium-gwiywrdxssrwmzv9tdpeff.streamlit.app/",
+    }
+
+    try:
+        corpo = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            "https://api.onesignal.com/notifications",
+            data=corpo,
+            headers={
+                "Authorization": "Key " + cfg["api_key"],
+                "Content-Type": "application/json; charset=utf-8",
+                "Accept": "application/json",
+            },
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            resposta = json.loads(resp.read().decode("utf-8") or "{}")
+            notification_id = str(resposta.get("id", "")).strip()
+            if 200 <= resp.status < 300:
+                return True, notification_id or "Notificação enviada."
+            return False, f"OneSignal respondeu HTTP {resp.status}."
+    except urllib.error.HTTPError as e:
+        return False, f"OneSignal respondeu HTTP {e.code}."
+    except urllib.error.URLError:
+        return False, "Não foi possível conectar ao OneSignal."
+    except Exception as e:
+        return False, f"Falha técnica no push: {type(e).__name__}."
 
 
 # ============================================================
@@ -2018,6 +2262,138 @@ def localizar_vinho_cadastrado(nome, safra=""):
     return candidatos[0]
 
 
+def localizar_item_checkout(pedido_ativo, entrada):
+    """Localiza exatamente o item do pedido pelo nome ou pelo código de barras.
+
+    Evita o casamento amplo por substring que podia associar um código ao item errado.
+    Retorna (item_do_pedido, vinho_do_estoque_ou_none).
+    """
+    entrada = str(entrada or "").strip()
+    if not entrada:
+        return None, None
+
+    estoque = st.session_state.get("estoque", [])
+
+    # 1) Código de barras: só aceita igualdade exata.
+    vinho_codigo = next(
+        (
+            v for v in estoque
+            if str(v.get("codigo_barras", "")).strip() == entrada
+        ),
+        None,
+    )
+
+    if vinho_codigo is not None:
+        nome_norm = normalizar_nome_vinho(vinho_codigo.get("nome", ""))
+        safra_codigo = str(vinho_codigo.get("safra", "")).strip()
+
+        # Primeiro tenta nome + safra, para não misturar safras do mesmo vinho.
+        item = next(
+            (
+                i for i in pedido_ativo.get("itens", [])
+                if normalizar_nome_vinho(i.get("nome", "")) == nome_norm
+                and (
+                    not safra_codigo
+                    or not str(i.get("safra", "")).strip()
+                    or str(i.get("safra", "")).strip() == safra_codigo
+                )
+            ),
+            None,
+        )
+        return item, vinho_codigo
+
+    # 2) Nome escolhido/digitado: igualdade normalizada, não substring.
+    entrada_norm = normalizar_nome_vinho(entrada)
+    item = next(
+        (
+            i for i in pedido_ativo.get("itens", [])
+            if normalizar_nome_vinho(i.get("nome", "")) == entrada_norm
+        ),
+        None,
+    )
+    return item, None
+
+
+def gerar_html_pedidos_selecionados(pedidos):
+    """Gera um documento HTML limpo para salvar ou imprimir pedidos selecionados."""
+    partes = [
+        "<!doctype html><html><head><meta charset='utf-8'>",
+        "<title>Premium Wines - Pedidos</title>",
+        "<style>",
+        "body{font-family:Arial,sans-serif;color:#2b2225;margin:28px;background:#fff}",
+        "h1{color:#71172f;margin:0 0 6px} .sub{color:#756a6d;margin-bottom:24px}",
+        ".pedido{page-break-inside:avoid;margin:0 0 26px;border:1px solid #ddd3cd;border-radius:12px;overflow:hidden}",
+        ".cab{background:#71172f;color:#fff;padding:14px 16px}.cab strong{font-size:18px}",
+        ".meta{font-size:12px;margin-top:5px;color:#f4e8eb}",
+        "table{width:100%;border-collapse:collapse}th,td{padding:9px 10px;border-bottom:1px solid #eee5df;text-align:left;font-size:12px}",
+        "th{background:#f8f4f1;color:#4a1021}tr:last-child td{border-bottom:0}",
+        "@media print{body{margin:10mm}.pedido{break-inside:avoid}.no-print{display:none}}",
+        "</style></head><body>",
+        "<h1>PREMIUM WINES</h1><div class='sub'>Pedidos selecionados • Galpão / Expedição</div>",
+    ]
+
+    for pedido in pedidos:
+        pid = html.escape(str(pedido.get("id", "")))
+        pdata = html.escape(str(pedido.get("data", "")))
+        pstatus = html.escape(str(pedido.get("status", "Pendente")))
+        partes.append(
+            f"<section class='pedido'><div class='cab'><strong>Pedido {pid}</strong>"
+            f"<div class='meta'>Data: {pdata} &nbsp;•&nbsp; Status: {pstatus}</div></div>"
+            "<table><thead><tr><th>Produto</th><th>Safra</th><th>Origem</th>"
+            "<th>Qtd. Pedida</th><th>Qtd. Separada</th><th>Divergência</th></tr></thead><tbody>"
+        )
+
+        for item in pedido.get("itens", []):
+            qtd_pedida = int(item.get("quantidade", 0) or 0)
+            qtd_sep = int(item.get("qtd_separada", 0) or 0)
+            dif = int(item.get("divergencia", qtd_sep - qtd_pedida) or 0)
+            origem = "Fora da lista / Extra" if item.get("fora_lista", False) else "Pedido original"
+            partes.append(
+                "<tr>"
+                f"<td>{html.escape(str(item.get('nome','')))}</td>"
+                f"<td>{html.escape(str(item.get('safra','N/A')))}</td>"
+                f"<td>{html.escape(origem)}</td>"
+                f"<td>{qtd_pedida}</td><td>{qtd_sep}</td><td>{dif:+d}</td>"
+                "</tr>"
+            )
+
+        partes.append("</tbody></table></section>")
+
+    partes.append("</body></html>")
+    return "".join(partes)
+
+
+def botao_imprimir_pedidos(html_documento):
+    """Mostra um botão de impressão sem exigir biblioteca PDF adicional."""
+    documento_js = json.dumps(str(html_documento))
+    components.html(
+        f"""
+        <button id="pw-print" style="width:100%;height:42px;border:0;border-radius:10px;"
+          onclick="pwPrint()">🖨️ Imprimir / Salvar em PDF</button>
+        <script>
+        function pwPrint() {{
+            const conteudo = {documento_js};
+            const janela = window.open('', '_blank');
+            if (!janela) {{
+                alert('Permita pop-ups para imprimir os pedidos.');
+                return;
+            }}
+            janela.document.open();
+            janela.document.write(conteudo);
+            janela.document.close();
+            setTimeout(() => {{ janela.focus(); janela.print(); }}, 350);
+        }}
+        const btn = document.getElementById('pw-print');
+        btn.style.background='linear-gradient(135deg,#811B39,#64142D)';
+        btn.style.color='#fff';
+        btn.style.fontWeight='800';
+        btn.style.cursor='pointer';
+        </script>
+        """,
+        height=50,
+    )
+
+
 def validar_itens_pedido_no_estoque(itens):
     """Valida a lista antes de salvar. Pedido nunca cadastra vinho automaticamente."""
     validos = []
@@ -3047,6 +3423,13 @@ cargo_logado = st.session_state.usuario_logado.get("cargo", "Operador")
 acesso_gestao = cargo_logado in ["Administrador Principal", "Desenvolvedor"]
 usuario_nome = st.session_state.usuario_logado.get("nome", "Usuário")
 
+_solicitar_push = bool(st.session_state.pop("onesignal_solicitar_permissao", False))
+renderizar_integracao_onesignal(
+    usuario_nome,
+    cargo_logado,
+    solicitar_permissao=_solicitar_push,
+)
+
 instalar_atalhos_teclado()
 
 # Menu lateral inspirado no mockup Premium Wines
@@ -3177,6 +3560,46 @@ if st.session_state.menu_atual == "🏠 Home":
         """,
         unsafe_allow_html=True
     )
+
+    # Ativação de push aparece somente para Usuário Comum (Operador) e DEV.
+    if cargo_logado in ["Operador", "Desenvolvedor"]:
+        _cfg_push = obter_config_onesignal()
+
+        st.markdown('<div class="section-title">Notificações</div>', unsafe_allow_html=True)
+        n1, n2 = st.columns([4, 1.5])
+        with n1:
+            st.markdown(
+                """
+                <div class="action-card">
+                    <div class="action-icon">🔔</div>
+                    <div class="action-title">Aviso de novo pedido</div>
+                    <div class="action-desc">
+                        Autorize este aparelho para receber “Novo pedido disponível”
+                        mesmo quando você não estiver logado no Premium Wines.
+                    </div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        with n2:
+            if _cfg_push:
+                if st.button(
+                    "🔔 Ativar notificações",
+                    use_container_width=True,
+                    key="home_ativar_notificacoes",
+                ):
+                    st.session_state["onesignal_solicitar_permissao"] = True
+                    st.rerun()
+                st.caption("A autorização é feita pelo navegador deste aparelho.")
+            else:
+                st.button(
+                    "🔔 Ativar notificações",
+                    use_container_width=True,
+                    key="home_ativar_notificacoes_indisponivel",
+                    disabled=True,
+                )
+                if cargo_logado == "Desenvolvedor":
+                    st.caption("Configure [onesignal] em Settings > Secrets para liberar.")
 
     m1, m2, m3, m4 = st.columns(4)
     with m1: st.metric("🍷 Vinhos cadastrados", total_vinhos)
@@ -3714,6 +4137,42 @@ elif st.session_state.menu_atual == "PainelMatriz":
             else:
                 st.success(f"{len(pedidos_filtrados)} pedido(s) encontrado(s).")
 
+                ids_filtrados = [str(p.get("id", "")) for p in pedidos_filtrados]
+                ids_selecionados = st.multiselect(
+                    "Selecionar pedidos para salvar ou imprimir",
+                    ids_filtrados,
+                    key="pedidos_selecionados_painel_matriz",
+                    placeholder="Escolha um ou mais pedidos",
+                )
+
+                pedidos_selecionados = [
+                    p for p in pedidos_filtrados
+                    if str(p.get("id", "")) in ids_selecionados
+                ]
+
+                if pedidos_selecionados:
+                    documento_pedidos = gerar_html_pedidos_selecionados(pedidos_selecionados)
+                    col_salvar_pedidos, col_imprimir_pedidos = st.columns(2)
+
+                    with col_salvar_pedidos:
+                        st.download_button(
+                            "💾 Salvar pedidos selecionados",
+                            data=documento_pedidos.encode("utf-8"),
+                            file_name=(
+                                "premium_wines_pedidos_"
+                                + obter_horario_brasilia().strftime("%Y%m%d_%H%M")
+                                + ".html"
+                            ),
+                            mime="text/html",
+                            use_container_width=True,
+                            key="baixar_pedidos_selecionados",
+                        )
+
+                    with col_imprimir_pedidos:
+                        botao_imprimir_pedidos(documento_pedidos)
+                else:
+                    st.caption("Selecione pelo menos um pedido para habilitar Salvar e Imprimir.")
+
                 # Lista compacta: cada pedido aparece fechado e só abre quando o usuário clicar.
                 # Isso evita uma tela enorme quando há muitos resultados.
                 for p in pedidos_filtrados:
@@ -3801,34 +4260,31 @@ elif st.session_state.menu_atual == "PedidosMatriz":
             "id_novo_pedido", "modo_novo_pedido",
             "texto_manual_novo_pedido", "codigo_manual_lista_pedido",
             "qtd_lista_pedido", "mensagem_adicao_pedido", "itens_pedido_retomados",
+            "checkout_codigo_pendente", "checkout_codigo_lido", "checkout_auto_conferir",
         ]:
             st.session_state.pop(_chave_limpar, None)
 
-    aba_ped1, aba_ped2 = st.tabs(
-        [
-            "📋 Enviar / Cadastrar / Excluir Pedidos",
-            "🔍 Conferência (Checkout de Expedição)"
-        ]
+    aba_checkout_opcoes = [
+        "📋 Enviar / Cadastrar / Excluir Pedidos",
+        "🔍 Conferência (Checkout de Expedição)",
+    ]
+
+    # Mantém a tela escolhida mesmo após reruns de scanner, senha, quantidade etc.
+    if st.session_state.pop("checkout_forcar_aba", False):
+        st.session_state["checkout_aba_ativa"] = aba_checkout_opcoes[1]
+
+    if st.session_state.get("checkout_aba_ativa") not in aba_checkout_opcoes:
+        st.session_state["checkout_aba_ativa"] = aba_checkout_opcoes[0]
+
+    checkout_aba_ativa = st.radio(
+        "Área do Checkout",
+        aba_checkout_opcoes,
+        horizontal=True,
+        label_visibility="collapsed",
+        key="checkout_aba_ativa",
     )
 
-    if st.session_state.get("checkout_forcar_aba"):
-        components.html(
-            """
-            <script>
-            setTimeout(() => {
-                try {
-                    const tabs = Array.from(window.parent.document.querySelectorAll('[data-baseweb="tab"]'));
-                    const alvo = tabs.find(t => (t.innerText || '').toLowerCase().includes('conferência'));
-                    if (alvo) alvo.click();
-                } catch (e) {}
-            }, 250);
-            </script>
-            """,
-            height=0,
-        )
-        st.session_state["checkout_forcar_aba"] = False
-
-    with aba_ped1:
+    if checkout_aba_ativa == aba_checkout_opcoes[0]:
 
         st.markdown("### 📝 Montar novo pedido")
         st.caption(
@@ -4099,6 +4555,26 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     }
                     st.session_state.pedidos.append(novo_registro_pedido)
                     salvar_pedidos(st.session_state.pedidos)
+
+                    # Push de novo pedido: somente aparelhos autorizados de
+                    # Usuário Comum (Operador) e DEV recebem esta mensagem.
+                    _push_ok, _push_info = enviar_notificacao_novo_pedido(
+                        id_pedido_limpo
+                    )
+                    if onesignal_pronto_para_envio():
+                        if _push_ok:
+                            registrar_log(
+                                "Sistema",
+                                "Notificação de Novo Pedido",
+                                f"Pedido {id_pedido_limpo} • enviada",
+                            )
+                        else:
+                            registrar_log(
+                                "Sistema",
+                                "Falha na Notificação de Novo Pedido",
+                                f"Pedido {id_pedido_limpo} • {_push_info}",
+                            )
+
                     sincronizar_estoque_com_pedidos(
                         st.session_state.pedidos,
                         st.session_state.estoque,
@@ -4145,7 +4621,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
         else:
             st.info("Nenhum pedido cadastrado.")
 
-    with aba_ped2:
+    else:
 
         if not st.session_state.pedidos:
 
@@ -4388,7 +4864,8 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                                         # on_change é disparado tanto ao pressionar ENTER
                                         # quanto ao sair do campo com TAB/leitor USB.
                                         st.session_state["checkout_codigo_pendente"] = valor
-                                        st.session_state["checkout_auto_conferir"] = True
+                                        st.session_state["checkout_codigo_lido"] = True
+                                        st.session_state["checkout_auto_conferir"] = False
                                         st.session_state["input_bipagem_checkout"] = ""
 
                                 cod_barras_input = st.text_input(
@@ -4398,7 +4875,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                                     help="Digite ou bipe o código e pressione Enter ou Tab para conferir."
                                 )
 
-                                if st.session_state.get("checkout_auto_conferir"):
+                                if st.session_state.get("checkout_codigo_pendente"):
                                     cod_barras_input = str(
                                         st.session_state.get(
                                             "checkout_codigo_pendente", ""
@@ -4415,7 +4892,8 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                                 ).strip()
                                 if valor:
                                     st.session_state["checkout_codigo_pendente"] = valor
-                                    st.session_state["checkout_auto_conferir"] = True
+                                    st.session_state["checkout_codigo_lido"] = True
+                                    st.session_state["checkout_auto_conferir"] = False
                                     st.session_state["input_bipagem_checkout"] = ""
 
                             cod_barras_input = st.text_input(
@@ -4425,12 +4903,18 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                                 help="Digite ou bipe o código e pressione Enter ou Tab para conferir."
                             )
 
-                            if st.session_state.get("checkout_auto_conferir"):
+                            if st.session_state.get("checkout_codigo_pendente"):
                                 cod_barras_input = str(
                                     st.session_state.get(
                                         "checkout_codigo_pendente", ""
                                     )
                                 ).strip()
+
+                if st.session_state.get("checkout_codigo_lido") and st.session_state.get("checkout_codigo_pendente"):
+                    st.info(
+                        "✅ Código lido. Confira a quantidade real e clique em **Conferir**. "
+                        "O bip sozinho não finaliza mais o item."
+                    )
 
                 if modo_leitura == "⌨️ Seleção / Pistola USB":
                     autofoco_campo_checkout()
@@ -4453,149 +4937,55 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         use_container_width=True
                     )
 
-                auto_conferir = bool(
-                    st.session_state.get("checkout_auto_conferir", False)
-                )
-
-                if (
-                    (btn_conferir or auto_conferir)
-                    and cod_barras_input
-                ):
-                    # Consome o disparo automático antes de processar para não repetir
-                    # a conferência em um rerun posterior.
-                    st.session_state["checkout_auto_conferir"] = False
-                    st.session_state["checkout_codigo_pendente"] = ""
-
-                    encontrou = False
-
-                    qtd_real_informada = int(
-                        qtd_input
+                if btn_conferir and cod_barras_input:
+                    qtd_real_informada = int(qtd_input)
+                    item_encontrado, _vinho_lido = localizar_item_checkout(
+                        pedido_ativo,
+                        cod_barras_input,
                     )
 
-                    for item in (
-                        pedido_ativo["itens"]
-                    ):
+                    if item_encontrado is None:
+                        st.session_state["checkout_codigo_pendente"] = ""
+                        st.session_state["checkout_codigo_lido"] = False
+                        st.error("Produto não encontrado neste mapa.")
+                    else:
+                        qtd_pedida = int(item_encontrado.get("quantidade", 0) or 0)
 
-                        if (
-                            item.get(
-                                "separado",
-                                False
-                            )
-                            and
-                            item.get(
-                                "divergencia",
-                                0
-                            ) == 0
-                        ):
+                        # A quantidade digitada é sempre a quantidade REAL conferida.
+                        item_encontrado["qtd_separada"] = qtd_real_informada
+                        item_encontrado["divergencia"] = qtd_real_informada - qtd_pedida
 
-                            continue
+                        if item_encontrado["divergencia"] == 0:
+                            item_encontrado["autorizado_divergencia"] = True
+                            item_encontrado["separado"] = True
+                        else:
+                            # Divergência nunca pode ser concluída automaticamente.
+                            # O formulário de senha logo abaixo fará a liberação.
+                            item_encontrado["autorizado_divergencia"] = False
+                            item_encontrado["separado"] = False
 
-                        vinho_no_estoque = next(
-                            (
-                                v
-                                for v
-                                in st.session_state.estoque
-                                if
-                                v["nome"].lower()
-                                in item["nome"].lower()
-                                or
-                                v.get(
-                                    "codigo_barras"
-                                )
-                                == cod_barras_input
-                            ),
-                            None
-                        )
+                        st.session_state["checkout_codigo_pendente"] = ""
+                        st.session_state["checkout_codigo_lido"] = False
+                        st.session_state["checkout_auto_conferir"] = False
 
-                        match_nome = (
-                            cod_barras_input.lower()
-                            in item["nome"].lower()
-                        )
-
-                        match_bc = (
-                            vinho_no_estoque
-                            and
-                            vinho_no_estoque.get(
-                                "codigo_barras"
-                            )
-                            == cod_barras_input
-                        )
-
-                        if (
-                            match_nome
-                            or match_bc
-                        ):
-
-                            encontrou = True
-
-                            item[
-                                "qtd_separada"
-                            ] = qtd_real_informada
-
-                            item[
-                                "divergencia"
-                            ] = (
-                                item[
-                                    "qtd_separada"
-                                ]
-                                -
-                                item[
-                                    "quantidade"
-                                ]
-                            )
-
-                            if (
-                                item[
-                                    "divergencia"
-                                ] == 0
-                            ):
-
-                                item[
-                                    "autorizado_divergencia"
-                                ] = True
-
-                                item[
-                                    "separado"
-                                ] = True
-
-                            else:
-
-                                item[
-                                    "autorizado_divergencia"
-                                ] = False
-
-                                item[
-                                    "separado"
-                                ] = False
-
-                                st.warning(
-                                    "⚠️ Quantidade divergente. "
-                                    "O item foi bloqueado."
-                                )
-
-                            break
-
-                    if encontrou:
-
-                        if (
-                            "codigo_bipado_checkout"
-                            in st.session_state
-                        ):
-
+                        if "codigo_bipado_checkout" in st.session_state:
                             st.session_state.codigo_bipado_checkout = ""
 
-                        salvar_pedidos(
-                            st.session_state.pedidos
-                        )
+                        salvar_pedidos(st.session_state.pedidos)
+
+                        if item_encontrado["divergencia"] != 0:
+                            st.session_state["checkout_forcar_aba"] = True
+                            st.session_state["checkout_mensagem_divergencia"] = (
+                                f"Quantidade divergente em {item_encontrado.get('nome','')}: "
+                                f"pedido {qtd_pedida}, conferido {qtd_real_informada}. "
+                                "Informe a senha para liberar a divergência ou corrija a quantidade."
+                            )
 
                         st.rerun()
 
-                    else:
-
-                        st.error(
-                            "Produto não encontrado "
-                            "neste mapa."
-                        )
+                _msg_div_checkout = st.session_state.pop("checkout_mensagem_divergencia", None)
+                if _msg_div_checkout:
+                    st.error(f"🔒 {_msg_div_checkout}")
 
                 itens_com_divergencia = [
                     i
