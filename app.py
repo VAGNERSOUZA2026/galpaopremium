@@ -1342,7 +1342,7 @@ def carregar_pedidos():
     try:
         registros = _supabase_request(
             "GET",
-            "pedidos",
+            "pedidos_galpao",
             "select=pedido_id,dados,criado_em,atualizado_em"
             "&ativo=eq.true&order=criado_em.asc",
         ) or []
@@ -1389,7 +1389,7 @@ def carregar_pedidos():
 
         st.error(
             "Não foi possível carregar os pedidos do Supabase. "
-            "Verifique se a tabela 'pedidos' foi criada. "
+            "Verifique se a tabela 'pedidos_galpao' foi criada. "
             f"Detalhe: {e}"
         )
         return []
@@ -1416,7 +1416,7 @@ def salvar_pedidos(pedidos):
     try:
         existentes = _supabase_request(
             "GET",
-            "pedidos",
+            "pedidos_galpao",
             "select=pedido_id&ativo=eq.true",
         ) or []
 
@@ -1430,7 +1430,7 @@ def salvar_pedidos(pedidos):
         for pedido_id in ids_banco - ids_app:
             _supabase_request(
                 "PATCH",
-                "pedidos",
+                "pedidos_galpao",
                 "pedido_id=eq." + quote(pedido_id, safe=""),
                 {
                     "ativo": False,
@@ -1454,7 +1454,7 @@ def salvar_pedidos(pedidos):
 
             _supabase_request(
                 "POST",
-                "pedidos",
+                "pedidos_galpao",
                 "on_conflict=pedido_id",
                 payload,
                 prefer="resolution=merge-duplicates,return=minimal",
