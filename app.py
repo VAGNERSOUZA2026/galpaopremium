@@ -3873,28 +3873,47 @@ elif st.session_state.menu_atual == "PainelMatriz":
                     if str(p.get("id", "")) in ids_selecionados
                 ]
 
-                if pedidos_selecionados:
-                    documento_pedidos = gerar_html_pedidos_selecionados(pedidos_selecionados)
-                    col_salvar_pedidos, col_imprimir_pedidos = st.columns(2)
+                # Ações ficam sempre visíveis. No celular elas são empilhadas em largura total.
+                with st.container(key="painel_acoes_pedidos_mobile"):
+                    st.markdown("**Ações dos pedidos selecionados**")
 
-                    with col_salvar_pedidos:
-                        st.download_button(
-                            "💾 Salvar pedidos selecionados",
-                            data=documento_pedidos.encode("utf-8"),
-                            file_name=(
-                                "premium_wines_pedidos_"
-                                + obter_horario_brasilia().strftime("%Y%m%d_%H%M")
-                                + ".html"
-                            ),
-                            mime="text/html",
-                            use_container_width=True,
-                            key="baixar_pedidos_selecionados",
-                        )
+                    if pedidos_selecionados:
+                        documento_pedidos = gerar_html_pedidos_selecionados(pedidos_selecionados)
+                        col_salvar_pedidos, col_imprimir_pedidos = st.columns(2)
 
-                    with col_imprimir_pedidos:
-                        botao_imprimir_pedidos(documento_pedidos)
-                else:
-                    st.caption("Selecione pelo menos um pedido para habilitar Salvar e Imprimir.")
+                        with col_salvar_pedidos:
+                            st.download_button(
+                                "💾 Salvar pedidos selecionados",
+                                data=documento_pedidos.encode("utf-8"),
+                                file_name=(
+                                    "premium_wines_pedidos_"
+                                    + obter_horario_brasilia().strftime("%Y%m%d_%H%M")
+                                    + ".html"
+                                ),
+                                mime="text/html",
+                                use_container_width=True,
+                                key="baixar_pedidos_selecionados",
+                            )
+
+                        with col_imprimir_pedidos:
+                            botao_imprimir_pedidos(documento_pedidos)
+                    else:
+                        col_salvar_pedidos, col_imprimir_pedidos = st.columns(2)
+                        with col_salvar_pedidos:
+                            st.button(
+                                "💾 Salvar pedidos selecionados",
+                                disabled=True,
+                                use_container_width=True,
+                                key="salvar_pedidos_desabilitado",
+                            )
+                        with col_imprimir_pedidos:
+                            st.button(
+                                "🖨️ Imprimir / Salvar em PDF",
+                                disabled=True,
+                                use_container_width=True,
+                                key="imprimir_pedidos_desabilitado",
+                            )
+                        st.caption("Selecione pelo menos um pedido para habilitar Salvar e Imprimir.")
 
                 # Lista compacta: cada pedido aparece fechado e só abre quando o usuário clicar.
                 # Isso evita uma tela enorme quando há muitos resultados.
@@ -7158,3 +7177,248 @@ div[data-testid="stExpander"] [data-testid="stExpanderDetails"] div:not([data-ba
 }
 </style>
 """, unsafe_allow_html=True)
+
+
+# ============================================================
+# V11.3 — SIDEBAR MOBILE CONFIÁVEL + AÇÕES DO PAINEL NO CELULAR
+# ============================================================
+st.markdown(r"""
+<style>
+/* Desktop: sidebar fixa e sem controles de recolher. */
+@media (min-width: 901px) {
+    html [data-testid="stSidebar"] {
+        display:flex !important;
+        visibility:visible !important;
+        opacity:1 !important;
+        transform:none !important;
+        margin-left:0 !important;
+        width:270px !important;
+        min-width:270px !important;
+        pointer-events:auto !important;
+    }
+    #pw-mobile-sidebar-open,
+    #pw-mobile-sidebar-overlay,
+    #pw-mobile-sidebar-close {
+        display:none !important;
+    }
+}
+
+/* Celular: usamos a própria sidebar, mas o abrir/recolher é controlado por um
+   botão simples e pelo gesto. Assim não dependemos do botão interno do Streamlit. */
+@media (max-width: 900px) {
+    header[data-testid="stHeader"],
+    [data-testid="stHeader"] {
+        display:none !important;
+        visibility:hidden !important;
+        height:0 !important;
+        min-height:0 !important;
+    }
+
+    html [data-testid="stSidebar"] {
+        display:flex !important;
+        visibility:visible !important;
+        opacity:1 !important;
+        position:fixed !important;
+        top:0 !important;
+        left:0 !important;
+        bottom:0 !important;
+        width:min(86vw, 330px) !important;
+        min-width:0 !important;
+        max-width:330px !important;
+        height:100dvh !important;
+        transform:translateX(-105%) !important;
+        transition:transform .24s ease !important;
+        pointer-events:none !important;
+        z-index:100001 !important;
+        box-shadow:18px 0 42px rgba(31,7,16,.34) !important;
+    }
+    html.pw-mobile-sidebar-open [data-testid="stSidebar"] {
+        transform:translateX(0) !important;
+        pointer-events:auto !important;
+    }
+    html [data-testid="stSidebar"] > div:first-child {
+        padding-top:56px !important;
+    }
+
+    /* O menu lateral continua inteiro e clicável. */
+    html [data-testid="stSidebar"] .stButton > button {
+        min-height:48px !important;
+        touch-action:manipulation !important;
+    }
+
+    /* Botão pequeno para abrir a sidebar. Não é um segundo menu. */
+    #pw-mobile-sidebar-open {
+        display:flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+        position:fixed !important;
+        top:12px !important;
+        left:12px !important;
+        width:46px !important;
+        height:46px !important;
+        border:1px solid rgba(255,255,255,.20) !important;
+        border-radius:12px !important;
+        background:#65152D !important;
+        color:#FFFFFF !important;
+        font-size:22px !important;
+        font-weight:800 !important;
+        box-shadow:0 8px 24px rgba(55,12,26,.24) !important;
+        z-index:100003 !important;
+        cursor:pointer !important;
+    }
+    html.pw-mobile-sidebar-open #pw-mobile-sidebar-open {
+        display:none !important;
+    }
+
+    #pw-mobile-sidebar-close {
+        display:flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+        position:absolute !important;
+        top:10px !important;
+        right:12px !important;
+        width:40px !important;
+        height:40px !important;
+        border:1px solid rgba(255,255,255,.24) !important;
+        border-radius:11px !important;
+        background:rgba(255,255,255,.10) !important;
+        color:#FFFFFF !important;
+        font-size:25px !important;
+        line-height:1 !important;
+        z-index:100004 !important;
+        cursor:pointer !important;
+    }
+
+    #pw-mobile-sidebar-overlay {
+        display:none !important;
+        position:fixed !important;
+        inset:0 !important;
+        background:rgba(23,12,17,.40) !important;
+        z-index:100000 !important;
+    }
+    html.pw-mobile-sidebar-open #pw-mobile-sidebar-overlay {
+        display:block !important;
+    }
+
+    /* Painel da Matriz: salvar e imprimir sempre cabem na tela do celular. */
+    [class*="st-key-painel_acoes_pedidos_mobile"] [data-testid="stHorizontalBlock"] {
+        flex-direction:column !important;
+        gap:.55rem !important;
+    }
+    [class*="st-key-painel_acoes_pedidos_mobile"] [data-testid="column"] {
+        width:100% !important;
+        flex:1 1 100% !important;
+        min-width:100% !important;
+    }
+    [class*="st-key-painel_acoes_pedidos_mobile"] .stButton > button,
+    [class*="st-key-painel_acoes_pedidos_mobile"] .stDownloadButton > button,
+    [class*="st-key-painel_acoes_pedidos_mobile"] iframe {
+        width:100% !important;
+        min-width:100% !important;
+    }
+}
+</style>
+""", unsafe_allow_html=True)
+
+try:
+    components.html(
+        r"""
+        <script>
+        (() => {
+            const w = window.parent;
+            const d = w.document;
+            const root = d.documentElement;
+
+            if (w.__premiumSidebarV113Installed) return;
+            w.__premiumSidebarV113Installed = true;
+
+            function mobile() {
+                return w.matchMedia && w.matchMedia('(max-width: 900px)').matches;
+            }
+            function openSidebar() {
+                if (!mobile()) return;
+                root.classList.add('pw-mobile-sidebar-open');
+            }
+            function closeSidebar() {
+                root.classList.remove('pw-mobile-sidebar-open');
+            }
+            function ensureControls() {
+                let openBtn = d.getElementById('pw-mobile-sidebar-open');
+                if (!openBtn) {
+                    openBtn = d.createElement('button');
+                    openBtn.id = 'pw-mobile-sidebar-open';
+                    openBtn.type = 'button';
+                    openBtn.setAttribute('aria-label', 'Abrir menu lateral');
+                    openBtn.innerHTML = '&#9776;';
+                    openBtn.addEventListener('click', openSidebar);
+                    d.body.appendChild(openBtn);
+                }
+
+                let overlay = d.getElementById('pw-mobile-sidebar-overlay');
+                if (!overlay) {
+                    overlay = d.createElement('div');
+                    overlay.id = 'pw-mobile-sidebar-overlay';
+                    overlay.addEventListener('click', closeSidebar);
+                    d.body.appendChild(overlay);
+                }
+
+                const sidebar = d.querySelector('[data-testid="stSidebar"]');
+                if (sidebar && !sidebar.querySelector('#pw-mobile-sidebar-close')) {
+                    const closeBtn = d.createElement('button');
+                    closeBtn.id = 'pw-mobile-sidebar-close';
+                    closeBtn.type = 'button';
+                    closeBtn.setAttribute('aria-label', 'Recolher menu lateral');
+                    closeBtn.innerHTML = '&lsaquo;';
+                    closeBtn.addEventListener('click', closeSidebar);
+                    sidebar.appendChild(closeBtn);
+                }
+            }
+
+            ensureControls();
+            const observer = new MutationObserver(ensureControls);
+            observer.observe(d.body, { childList: true, subtree: true });
+
+            /* Depois de escolher uma opção do menu no celular, recolhe a sidebar. */
+            d.addEventListener('click', (ev) => {
+                if (!mobile()) return;
+                const sidebar = ev.target.closest && ev.target.closest('[data-testid="stSidebar"]');
+                const button = ev.target.closest && ev.target.closest('button');
+                if (sidebar && button && button.id !== 'pw-mobile-sidebar-close') {
+                    setTimeout(closeSidebar, 120);
+                }
+            }, true);
+
+            /* Gesto: puxar da borda esquerda abre; deslizar para a esquerda recolhe. */
+            let sx = 0, sy = 0, started = false;
+            d.addEventListener('touchstart', (ev) => {
+                if (!mobile() || !ev.touches || ev.touches.length !== 1) return;
+                const t = ev.touches[0];
+                sx = t.clientX;
+                sy = t.clientY;
+                started = true;
+            }, { passive: true });
+
+            d.addEventListener('touchend', (ev) => {
+                if (!started || !mobile() || !ev.changedTouches || ev.changedTouches.length !== 1) return;
+                started = false;
+                const t = ev.changedTouches[0];
+                const dx = t.clientX - sx;
+                const dy = t.clientY - sy;
+                if (Math.abs(dy) > 90) return;
+                const isOpen = root.classList.contains('pw-mobile-sidebar-open');
+                if (!isOpen && sx <= 45 && dx >= 65) openSidebar();
+                if (isOpen && dx <= -65) closeSidebar();
+            }, { passive: true });
+
+            w.addEventListener('resize', () => {
+                if (!mobile()) closeSidebar();
+                ensureControls();
+            });
+        })();
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
+except Exception:
+    pass
