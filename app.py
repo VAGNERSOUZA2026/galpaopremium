@@ -3435,6 +3435,66 @@ with col_top2:
 
 
 # ============================================================
+# V11.6 — AJUSTES FINAIS: LOGO E CONFERÊNCIA DIVERGENTE
+# ============================================================
+st.markdown(r"""
+<style>
+/* Logo do topo e da lateral travada em tamanho fixo para não estourar. */
+html body .premium-topbar-v8 .topbar-logo-v8,
+html body .topbar.premium-topbar-v8 img.topbar-logo-v8 {
+    width:48px !important;
+    height:48px !important;
+    min-width:48px !important;
+    min-height:48px !important;
+    max-width:48px !important;
+    max-height:48px !important;
+    flex:0 0 48px !important;
+    object-fit:cover !important;
+    display:block !important;
+    aspect-ratio:1 / 1 !important;
+}
+html body [data-testid="stSidebar"] .sidebar-brand img,
+html body [data-testid="stSidebar"] .pw-logo-box img {
+    width:78px !important;
+    height:78px !important;
+    min-width:78px !important;
+    min-height:78px !important;
+    max-width:78px !important;
+    max-height:78px !important;
+    object-fit:cover !important;
+    display:block !important;
+    margin:0 auto !important;
+    aspect-ratio:1 / 1 !important;
+}
+.page-hero::after {
+    width:58px !important;
+    height:58px !important;
+    top:14px !important;
+    right:18px !important;
+    background-size:cover !important;
+}
+@media (max-width:640px) {
+    html body .premium-topbar-v8 .topbar-logo-v8,
+    html body .topbar.premium-topbar-v8 img.topbar-logo-v8 {
+        width:42px !important;
+        height:42px !important;
+        min-width:42px !important;
+        min-height:42px !important;
+        max-width:42px !important;
+        max-height:42px !important;
+        flex:0 0 42px !important;
+    }
+    .page-hero::after {
+        width:48px !important;
+        height:48px !important;
+        top:16px !important;
+        right:14px !important;
+    }
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ============================================================
 # HOME
 # ============================================================
 
@@ -4838,6 +4898,8 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         use_container_width=True
                     )
 
+                st.caption("Se a quantidade conferida for diferente da pedida, o item ficará bloqueado até a senha de liberação ou correção para a quantidade do pedido.")
+
                 if btn_conferir and cod_barras_input:
                     qtd_real_informada = int(qtd_input)
                     item_encontrado, _vinho_lido = localizar_item_checkout(
@@ -4851,19 +4913,27 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         st.error("Produto não encontrado neste mapa.")
                     else:
                         qtd_pedida = int(item_encontrado.get("quantidade", 0) or 0)
+                        divergencia_calculada = int(qtd_real_informada) - int(qtd_pedida)
 
                         # A quantidade digitada é sempre a quantidade REAL conferida.
                         item_encontrado["qtd_separada"] = qtd_real_informada
-                        item_encontrado["divergencia"] = qtd_real_informada - qtd_pedida
+                        item_encontrado["divergencia"] = divergencia_calculada
 
-                        if item_encontrado["divergencia"] == 0:
+                        if divergencia_calculada == 0:
+                            # Somente quantidade exata pode ser aceita automaticamente.
                             item_encontrado["autorizado_divergencia"] = True
                             item_encontrado["separado"] = True
+                            st.session_state.pop("checkout_mensagem_divergencia", None)
                         else:
-                            # Divergência nunca pode ser concluída automaticamente.
-                            # O formulário de senha logo abaixo fará a liberação.
+                            # Qualquer quantidade fora do pedido fica BLOQUEADA até senha ou correção.
                             item_encontrado["autorizado_divergencia"] = False
                             item_encontrado["separado"] = False
+                            st.session_state["checkout_forcar_aba"] = True
+                            st.session_state["checkout_mensagem_divergencia"] = (
+                                f"Quantidade divergente em {item_encontrado.get('nome','')}: "
+                                f"pedido {qtd_pedida}, conferido {qtd_real_informada}. "
+                                "Este item não foi aceito automaticamente. Informe a senha para liberar a divergência ou clique em corrigir para a quantidade pedida."
+                            )
 
                         st.session_state["checkout_codigo_pendente"] = ""
                         st.session_state["checkout_codigo_lido"] = False
@@ -4876,15 +4946,6 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                             st.session_state.codigo_bipado_checkout = ""
 
                         salvar_pedidos(st.session_state.pedidos)
-
-                        if item_encontrado["divergencia"] != 0:
-                            st.session_state["checkout_forcar_aba"] = True
-                            st.session_state["checkout_mensagem_divergencia"] = (
-                                f"Quantidade divergente em {item_encontrado.get('nome','')}: "
-                                f"pedido {qtd_pedida}, conferido {qtd_real_informada}. "
-                                "Informe a senha para liberar a divergência ou corrija a quantidade."
-                            )
-
                         st.rerun()
 
                 _msg_div_checkout = st.session_state.pop("checkout_mensagem_divergencia", None)
@@ -4912,8 +4973,8 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     st.markdown("---")
 
                     st.error(
-                        "🔒 Existem itens divergentes "
-                        "aguardando correção ou liberação."
+                        "🔒 Existem itens divergentes aguardando correção ou liberação. "
+                        "Enquanto isso, eles não entram como conferidos."
                     )
 
                     for it_div in (
@@ -7570,3 +7631,79 @@ try:
     )
 except Exception:
     pass
+
+
+# ============================================================
+# V11.7 — ALERTAS/CARDS SEMPRE LEGÍVEIS
+# Corrige textos que só apareciam ao selecionar com o mouse.
+# ============================================================
+st.markdown(r"""
+<style>
+/* Alertas nativos do Streamlit: texto sempre escuro e 100% visível. */
+html body [data-testid="stAlert"],
+html body div[data-testid="stAlert"] {
+    color:#2A2224 !important;
+    -webkit-text-fill-color:#2A2224 !important;
+    opacity:1 !important;
+}
+html body [data-testid="stAlert"] *,
+html body [data-testid="stAlert"] p,
+html body [data-testid="stAlert"] span,
+html body [data-testid="stAlert"] div,
+html body [data-testid="stAlert"] strong,
+html body [data-testid="stAlert"] em {
+    color:#2A2224 !important;
+    -webkit-text-fill-color:#2A2224 !important;
+    opacity:1 !important;
+    visibility:visible !important;
+    text-shadow:none !important;
+}
+
+/* Mantém os fundos suaves, mas com contraste suficiente. */
+html body [data-testid="stAlert"]:has([data-testid*="success"]),
+html body .stAlert-success {
+    background:#EAF7EE !important;
+    border-color:#B8DEC3 !important;
+}
+html body [data-testid="stAlert"]:has([data-testid*="info"]),
+html body .stAlert-info {
+    background:#EAF3FF !important;
+    border-color:#B9D4F4 !important;
+}
+html body [data-testid="stAlert"]:has([data-testid*="warning"]),
+html body .stAlert-warning {
+    background:#FFF5DB !important;
+    border-color:#E9D08D !important;
+}
+html body [data-testid="stAlert"]:has([data-testid*="error"]),
+html body .stAlert-error {
+    background:#FCEBEC !important;
+    border-color:#E7B9BE !important;
+}
+
+/* Alguns releases do Streamlit usam classes BaseWeb internas. */
+html body [role="alert"],
+html body [role="alert"] * {
+    color:#2A2224 !important;
+    -webkit-text-fill-color:#2A2224 !important;
+    opacity:1 !important;
+    visibility:visible !important;
+    text-shadow:none !important;
+}
+
+/* Evita que estilos antigos deixem textos de caption/markdown transparentes. */
+html body [data-testid="stMain"] [data-testid="stAlert"] .stMarkdown,
+html body [data-testid="stMain"] [data-testid="stAlert"] .stMarkdown * {
+    color:#2A2224 !important;
+    -webkit-text-fill-color:#2A2224 !important;
+    opacity:1 !important;
+}
+
+/* Selecionar o texto continua possível, mas não é mais necessário para ler. */
+html body [data-testid="stAlert"] ::selection {
+    background:#C89A4A !important;
+    color:#171217 !important;
+    -webkit-text-fill-color:#171217 !important;
+}
+</style>
+""", unsafe_allow_html=True)
