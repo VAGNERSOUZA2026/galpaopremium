@@ -1266,63 +1266,211 @@ def registrar_log(
 
 
 # ============================================================
-# PEDIDOS
+# PEDIDOS — SUPABASE + BACKUP LOCAL
 # ============================================================
 
+def _normalizar_pedidos(pedidos):
+    """Mantém compatibilidade com pedidos antigos e garante campos da conferência."""
+    pedidos_normalizados = []
+
+    for pedido in pedidos if isinstance(pedidos, list) else []:
+        if not isinstance(pedido, dict):
+            continue
+
+        p = dict(pedido)
+        p["id"] = str(p.get("id", "") or "").strip()
+        p.setdefault("data", "")
+        p.setdefault("status", "Pendente")
+        p.setdefault("itens", [])
+
+        itens_normalizados = []
+        for item in p.get("itens", []):
+            if not isinstance(item, dict):
+                continue
+
+            i = dict(item)
+            i.setdefault("qtd_separada", 0)
+            i.setdefault("divergencia", 0)
+            i.setdefault("autorizado_divergencia", False)
+            i.setdefault("separado", False)
+            itens_normalizados.append(i)
+
+        p["itens"] = itens_normalizados
+
+        if p["id"]:
+            pedidos_normalizados.append(p)
+
+    return pedidos_normalizados
+
+
+def _carregar_pedidos_backup_local():
+    """Lê o último backup local. Ele é somente contingência, não o banco principal."""
+    if not os.path.exists(ARQUIVO_PEDIDOS):
+        return []
+
+    try:
+        with open(ARQUIVO_PEDIDOS, "r", encoding="utf-8") as f:
+            dados = json.load(f)
+        return _normalizar_pedidos(dados)
+    except Exception:
+        return []
+
+
+def _salvar_pedidos_backup_local(pedidos):
+    """Mantém uma cópia local secundária para contingência."""
+    try:
+        with open(ARQUIVO_PEDIDOS, "w", encoding="utf-8") as f:
+            json.dump(
+                pedidos,
+                f,
+                ensure_ascii=False,
+                indent=4
+            )
+        realizar_backup(ARQUIVO_PEDIDOS)
+    except Exception:
+        pass
+
+
 def carregar_pedidos():
+    """
+    Carrega pedidos do Supabase.
 
-    pedidos = []
+    Se a tabela estiver vazia e existir um JSON local de uma versão antiga,
+    migra automaticamente esses pedidos para o Supabase.
+    Em indisponibilidade temporária do Supabase, usa o último backup local.
+    """
+    try:
+        registros = _supabase_request(
+            "GET",
+            "pedidos",
+            "select=pedido_id,dados,criado_em,atualizado_em"
+            "&ativo=eq.true&order=criado_em.asc",
+        ) or []
 
-    if os.path.exists(ARQUIVO_PEDIDOS):
+        pedidos = []
+        for registro in registros:
+            dados = registro.get("dados", {})
+            if isinstance(dados, str):
+                try:
+                    dados = json.loads(dados)
+                except Exception:
+                    dados = {}
 
-        try:
+            if isinstance(dados, dict):
+                pedido = dict(dados)
+                pedido["id"] = str(
+                    pedido.get("id")
+                    or registro.get("pedido_id")
+                    or ""
+                ).strip()
+                pedidos.append(pedido)
 
-            with open(
-                ARQUIVO_PEDIDOS,
-                "r",
-                encoding="utf-8"
-            ) as f:
+        pedidos = _normalizar_pedidos(pedidos)
 
-                pedidos = json.load(f)
+        # Migração automática do JSON antigo para a tabela nova.
+        if not pedidos:
+            backup_antigo = _carregar_pedidos_backup_local()
+            if backup_antigo:
+                salvar_pedidos(backup_antigo)
+                pedidos = backup_antigo
 
-        except Exception:
-            pass
+        _salvar_pedidos_backup_local(pedidos)
+        return pedidos
 
-    for p in pedidos:
+    except Exception as e:
+        backup = _carregar_pedidos_backup_local()
 
-        if "itens" in p:
+        if backup:
+            st.warning(
+                "Supabase temporariamente indisponível para pedidos. "
+                "Exibindo o último backup local."
+            )
+            return backup
 
-            for item in p["itens"]:
-
-                if "qtd_separada" not in item:
-                    item["qtd_separada"] = 0
-
-                if "divergencia" not in item:
-                    item["divergencia"] = 0
-
-                if "autorizado_divergencia" not in item:
-                    item["autorizado_divergencia"] = False
-
-                if "separado" not in item:
-                    item["separado"] = False
-
-    return pedidos
+        st.error(
+            "Não foi possível carregar os pedidos do Supabase. "
+            "Verifique se a tabela 'pedidos' foi criada. "
+            f"Detalhe: {e}"
+        )
+        return []
 
 
 def salvar_pedidos(pedidos):
+    """
+    Persiste os pedidos no Supabase.
 
-    with open(
-        ARQUIVO_PEDIDOS,
-        "w",
-        encoding="utf-8"
-    ) as f:
+    - pedido_id é a chave estável do pedido;
+    - dados guarda toda a estrutura atual do pedido em JSONB;
+    - registros removidos pelo aplicativo recebem ativo=false;
+    - o JSON local permanece apenas como backup secundário.
+    """
+    from urllib.parse import quote
 
-        json.dump(
-            pedidos,
-            f,
-            ensure_ascii=False,
-            indent=4
+    pedidos_normalizados = _normalizar_pedidos(pedidos)
+    ids_app = {
+        str(p.get("id", "")).strip()
+        for p in pedidos_normalizados
+        if str(p.get("id", "")).strip()
+    }
+
+    try:
+        existentes = _supabase_request(
+            "GET",
+            "pedidos",
+            "select=pedido_id&ativo=eq.true",
+        ) or []
+
+        ids_banco = {
+            str(r.get("pedido_id", "") or "").strip()
+            for r in existentes
+            if str(r.get("pedido_id", "") or "").strip()
+        }
+
+        # Exclusão lógica: não destrói histórico fisicamente no banco.
+        for pedido_id in ids_banco - ids_app:
+            _supabase_request(
+                "PATCH",
+                "pedidos",
+                "pedido_id=eq." + quote(pedido_id, safe=""),
+                {
+                    "ativo": False,
+                    "atualizado_em": obter_horario_brasilia().isoformat(),
+                },
+                prefer="return=minimal",
+            )
+
+        # UPSERT de todos os pedidos atuais.
+        if pedidos_normalizados:
+            agora = obter_horario_brasilia().isoformat()
+            payload = [
+                {
+                    "pedido_id": str(p["id"]).strip(),
+                    "dados": p,
+                    "ativo": True,
+                    "atualizado_em": agora,
+                }
+                for p in pedidos_normalizados
+            ]
+
+            _supabase_request(
+                "POST",
+                "pedidos",
+                "on_conflict=pedido_id",
+                payload,
+                prefer="resolution=merge-duplicates,return=minimal",
+            )
+
+        _salvar_pedidos_backup_local(pedidos_normalizados)
+
+    except Exception as e:
+        # Nunca grava silenciosamente só no arquivo local achando que persistiu.
+        # Mantém o backup para contingência, mas avisa que o banco não confirmou.
+        _salvar_pedidos_backup_local(pedidos_normalizados)
+        st.error(
+            "O pedido foi mantido no backup local, mas o Supabase não confirmou "
+            f"a gravação. Detalhe: {e}"
         )
+        st.stop()
 
 
 # ============================================================
