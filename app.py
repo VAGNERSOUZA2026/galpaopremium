@@ -3916,17 +3916,11 @@ elif st.session_state.menu_atual == "PainelMatriz":
 
                         st.markdown(
                             f"""
-                            <div style="
-                                background:linear-gradient(180deg,#19191D,#141417);
-                                padding:14px 16px;
-                                border-radius:14px;
-                                border:1px solid #2E2E34;
-                                margin:2px 0 12px 0;
-                            ">
-                                <div style="font-size:1rem;font-weight:800;color:#F7F3EE;">
+                            <div class="pedido-resumo-card">
+                                <div class="pedido-resumo-titulo">
                                     Mapa / Pedido Nº {html.escape(pedido_id)}
                                 </div>
-                                <div style="margin-top:7px;color:#BDB4AE;font-size:.88rem;">
+                                <div class="pedido-resumo-meta">
                                     Data: {html.escape(pedido_data)}
                                     &nbsp;&nbsp;•&nbsp;&nbsp;
                                     Status: <b style="color:{status_col};">{html.escape(status_p)}</b>
@@ -7041,6 +7035,125 @@ st.markdown("""
     [data-testid="stSidebarCollapsedControl"], [data-testid="collapsedControl"],
     [data-testid="stSidebarCollapseButton"] {
         visibility:visible !important; opacity:1 !important; pointer-events:auto !important; z-index:100002 !important;
+    }
+}
+</style>
+""", unsafe_allow_html=True)
+
+
+# ============================================================
+# V11.2 — CORREÇÕES VISUAIS PONTUAIS
+# Somente aparência/legibilidade. Não altera regras do sistema.
+# ============================================================
+st.markdown(r"""
+<style>
+/* 1) Logo do cabeçalho: nunca pode crescer além do tamanho padrão. */
+.premium-topbar-v8 .topbar-logo-v8,
+.topbar.premium-topbar-v8 img.topbar-logo-v8 {
+    width:48px !important;
+    height:48px !important;
+    min-width:48px !important;
+    min-height:48px !important;
+    max-width:48px !important;
+    max-height:48px !important;
+    object-fit:cover !important;
+    display:block !important;
+    flex:0 0 48px !important;
+    padding:2px !important;
+    margin:0 !important;
+    border-radius:13px !important;
+}
+.premium-topbar-v8 .topbar-left-v8 {
+    display:flex !important;
+    align-items:center !important;
+    min-width:0 !important;
+}
+.premium-topbar-v8 {
+    overflow:hidden !important;
+}
+
+/* 2) Texto dos botões bordô sempre branco, inclusive em reruns e divergências. */
+.stButton > button,
+.stDownloadButton > button,
+.stFormSubmitButton > button {
+    color:#FFFFFF !important;
+    -webkit-text-fill-color:#FFFFFF !important;
+}
+.stButton > button *,
+.stDownloadButton > button *,
+.stFormSubmitButton > button * {
+    color:#FFFFFF !important;
+    -webkit-text-fill-color:#FFFFFF !important;
+    opacity:1 !important;
+}
+.stButton > button:disabled *,
+.stDownloadButton > button:disabled *,
+.stFormSubmitButton > button:disabled * {
+    color:#FFFFFF !important;
+    -webkit-text-fill-color:#FFFFFF !important;
+    opacity:.88 !important;
+}
+
+/* 3) Card de resumo do pedido no Painel da Matriz. */
+.pedido-resumo-card {
+    background:linear-gradient(180deg,#FFFFFF,#FBF8F5) !important;
+    border:1px solid #E3DAD4 !important;
+    border-left:4px solid #71172F !important;
+    border-radius:13px !important;
+    padding:14px 16px !important;
+    margin:2px 0 12px 0 !important;
+    box-shadow:0 7px 20px rgba(67,42,49,.06) !important;
+}
+.pedido-resumo-titulo {
+    color:#4A1021 !important;
+    -webkit-text-fill-color:#4A1021 !important;
+    font-size:1rem !important;
+    font-weight:850 !important;
+}
+.pedido-resumo-meta {
+    margin-top:7px !important;
+    color:#756A6D !important;
+    -webkit-text-fill-color:#756A6D !important;
+    font-size:.88rem !important;
+}
+.pedido-resumo-meta b {
+    -webkit-text-fill-color:currentColor !important;
+}
+
+/* 4) Cards e métricas claros: garante contraste sem afetar o hero bordô. */
+.action-card .action-title,
+.action-card .action-desc,
+[data-testid="stMetric"] [data-testid="stMetricLabel"],
+[data-testid="stMetric"] [data-testid="stMetricValue"] {
+    opacity:1 !important;
+}
+.action-card .action-title {
+    color:#4A1021 !important;
+    -webkit-text-fill-color:#4A1021 !important;
+}
+.action-card .action-desc {
+    color:#756A6D !important;
+    -webkit-text-fill-color:#756A6D !important;
+}
+
+/* 5) Expanders do Painel: conteúdo sempre legível. */
+div[data-testid="stExpander"] [data-testid="stExpanderDetails"] p,
+div[data-testid="stExpander"] [data-testid="stExpanderDetails"] span,
+div[data-testid="stExpander"] [data-testid="stExpanderDetails"] div:not([data-baseweb]) {
+    opacity:1 !important;
+}
+
+/* 6) No celular mantém a logo proporcional ao restante do cabeçalho. */
+@media (max-width:640px) {
+    .premium-topbar-v8 .topbar-logo-v8,
+    .topbar.premium-topbar-v8 img.topbar-logo-v8 {
+        width:42px !important;
+        height:42px !important;
+        min-width:42px !important;
+        min-height:42px !important;
+        max-width:42px !important;
+        max-height:42px !important;
+        flex-basis:42px !important;
     }
 }
 </style>
