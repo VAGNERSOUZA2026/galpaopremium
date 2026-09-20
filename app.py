@@ -3495,6 +3495,60 @@ html body [data-testid="stSidebar"] .pw-logo-box img {
 """, unsafe_allow_html=True)
 
 # ============================================================
+# V11.8 — CONTRASTE DOS ALERTAS CARREGADO ANTES DAS TELAS
+# Precisa ficar antes dos st.stop() usados em Checkout/Conferência.
+# ============================================================
+st.markdown(r"""
+<style>
+/* Texto de success/info/warning/error SEMPRE visível, inclusive quando a tela usa st.stop(). */
+html body div[data-testid="stAlert"],
+html body [data-testid="stAlert"],
+html body div[role="alert"],
+html body [role="alert"] {
+    opacity:1 !important;
+    visibility:visible !important;
+}
+
+html body div[data-testid="stAlert"] [data-testid="stMarkdownContainer"],
+html body div[data-testid="stAlert"] [data-testid="stMarkdownContainer"] p,
+html body div[data-testid="stAlert"] p,
+html body div[data-testid="stAlert"] span,
+html body div[data-testid="stAlert"] strong,
+html body div[data-testid="stAlert"] em,
+html body div[role="alert"] p,
+html body div[role="alert"] span,
+html body div[role="alert"] strong,
+html body div[role="alert"] em {
+    color:#24181B !important;
+    -webkit-text-fill-color:#24181B !important;
+    opacity:1 !important;
+    visibility:visible !important;
+    filter:none !important;
+    text-shadow:none !important;
+}
+
+/* Fundos e bordas com contraste estável. */
+html body div[data-testid="stAlert"] {
+    border:1px solid #CFC2BB !important;
+    box-shadow:0 4px 14px rgba(35,15,20,.06) !important;
+}
+
+/* O ícone pode manter a cor do tipo de alerta, sem afetar o texto. */
+html body div[data-testid="stAlert"] svg {
+    opacity:1 !important;
+    visibility:visible !important;
+}
+
+/* Garante leitura mesmo se algum CSS antigo tentar herdar cor clara. */
+html body [data-testid="stMain"] div[data-testid="stAlert"] *:not(svg):not(path) {
+    color:#24181B !important;
+    -webkit-text-fill-color:#24181B !important;
+    opacity:1 !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ============================================================
 # HOME
 # ============================================================
 
