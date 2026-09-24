@@ -1613,10 +1613,82 @@ def rotulo_vinho_cadastro_pedido(vinho):
     return f"{nome} • Safra {safra} • {litragem} • {embalagem}"
 
 
-def localizar_vinhos_por_consulta_pedido(consulta):
+def analisar_consulta_pedido_manual(consulta):
+    """Separa nome, litragem e safra digitados na busca do pedido.
+
+    Aceita formas rápidas como:
+    - Quereu Carmenere
+    - Quereu Carmenere 375
+    - Quereu Carmenere/750
+    - Quereu Carmenere 750 ml
+    - Quereu Carmenere 2024 375
+
+    A litragem digitada serve como preferência inicial, mas a busca retorna
+    TODAS as litragem cadastradas do mesmo vinho para permitir a escolha.
     """
-    Procura no cadastro por nome/safra/litragem/código.
-    Ex.: 'Quereu carmenere 375' encontra o cadastro 375 ml.
+    bruto = str(consulta or "").strip()
+    q = normalizar_nome_vinho(bruto)
+    tokens = [t for t in q.split() if t]
+
+    safra_solicitada = ""
+    for token in tokens:
+        if re.fullmatch(r"(?:19|20)\d{2}", token):
+            safra_solicitada = token
+            break
+
+    # Mapeia formas curtas para as litragem oficiais cadastráveis.
+    aliases_litragem = {
+        "375": "375 ml", "375ml": "375 ml",
+        "500": "500 ml", "500ml": "500 ml",
+        "750": "750 ml", "750ml": "750 ml",
+        "1000": "1 L", "1000ml": "1 L", "1l": "1 L",
+        "1500": "1,5 L", "1500ml": "1,5 L", "15l": "1,5 L",
+        "3000": "3 L", "3000ml": "3 L", "3l": "3 L",
+    }
+
+    litragem_solicitada = ""
+    remover_indices = set()
+    for idx, token in enumerate(tokens):
+        combinado = token
+        if idx + 1 < len(tokens) and tokens[idx + 1] in {"ml", "l", "litro", "litros"}:
+            combinado = token + tokens[idx + 1]
+        if combinado in aliases_litragem:
+            litragem_solicitada = aliases_litragem[combinado]
+            remover_indices.add(idx)
+            if idx + 1 < len(tokens) and tokens[idx + 1] in {"ml", "l", "litro", "litros"}:
+                remover_indices.add(idx + 1)
+            break
+        if token in aliases_litragem:
+            litragem_solicitada = aliases_litragem[token]
+            remover_indices.add(idx)
+            break
+
+    # Tenta também a função geral para formatos como 1,5 L.
+    if not litragem_solicitada:
+        _sem_lit, _lit = extrair_litragem_texto(bruto)
+        if _lit:
+            litragem_solicitada = _lit
+
+    nome_tokens = [
+        token for idx, token in enumerate(tokens)
+        if idx not in remover_indices
+        and token not in {"ml", "l", "litro", "litros"}
+        and token != safra_solicitada
+    ]
+
+    return {
+        "nome_tokens": nome_tokens,
+        "litragem": litragem_solicitada,
+        "safra": safra_solicitada,
+    }
+
+
+def localizar_vinhos_por_consulta_pedido(consulta):
+    """Procura o VINHO pelo nome, sem esconder as outras litragem dele.
+
+    Se o usuário digitar ``Quereu Carmenere/750``, por exemplo, o sistema
+    encontra Quereu Carmenere e devolve todas as variantes cadastradas desse
+    título. A litragem 750 ml é usada apenas como escolha inicial do formulário.
     """
     consulta = str(consulta or "").strip()
     if not consulta:
@@ -1627,31 +1699,32 @@ def localizar_vinhos_por_consulta_pedido(consulta):
         if str(v.get("codigo_barras", "") or "").strip() == consulta
     ]
     if por_codigo:
-        return por_codigo
+        # Código de barras identifica uma variante específica.
+        # Ainda assim devolvemos as variantes do mesmo título para o formulário
+        # saber que existem outras litragem disponíveis.
+        nome_codigo = normalizar_nome_vinho(por_codigo[0].get("nome", ""))
+        variantes = [
+            v for v in st.session_state.get("estoque", [])
+            if normalizar_nome_vinho(v.get("nome", "")) == nome_codigo
+        ]
+        return variantes or por_codigo
 
-    q = normalizar_nome_vinho(consulta)
-    tokens = [t for t in q.split() if t]
-    if not tokens:
+    analise = analisar_consulta_pedido_manual(consulta)
+    nome_tokens = analise.get("nome_tokens", [])
+    if not nome_tokens:
         return []
 
     encontrados = []
     for vinho in st.session_state.get("estoque", []):
-        litragem = normalizar_litragem_pedido(vinho.get("litragem", ""))
-        texto_busca = " ".join([
-            str(vinho.get("nome", "") or ""),
-            str(vinho.get("safra", "") or ""),
-            litragem,
-            str(vinho.get("codigo_barras", "") or ""),
-        ])
-        alvo = normalizar_nome_vinho(texto_busca)
-        if all(token in alvo for token in tokens):
+        nome_alvo = normalizar_nome_vinho(vinho.get("nome", ""))
+        if all(token in nome_alvo for token in nome_tokens):
             encontrados.append(vinho)
 
     encontrados.sort(
         key=lambda v: (
             normalizar_nome_vinho(v.get("nome", "")),
-            str(v.get("safra", "")),
             normalizar_litragem_pedido(v.get("litragem", "")),
+            str(v.get("safra", "")),
         )
     )
     return encontrados
@@ -4760,8 +4833,9 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     st.session_state.pop(_k, None)
 
             st.caption(
-                "Digite o nome e, se quiser, a litragem. Ex.: **Quereu Carmenere 375**. "
-                "O sistema procura o cadastro e traz safra, litragem e garrafas por caixa."
+                "Digite o nome. Ex.: **Quereu Carmenere**. Se quiser, pode escrever também "
+                "**Quereu Carmenere/750**. Se houver mais de uma litragem cadastrada, "
+                "o sistema mostrará a lista para você escolher."
             )
 
             consulta_manual = st.text_input(
@@ -4808,8 +4882,11 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         key=f"pedido_manual_nome_encontrado_{nome_norm_escolhido}",
                     )
 
+                # IMPORTANTe: depois de identificar o TÍTULO do vinho, consulta o
+                # estoque completo novamente. Assim, digitar "Quereu Carmenere 375"
+                # não esconde a variante 750 ml e vice-versa.
                 candidatos_nome = [
-                    _v for _v in candidatos_manual
+                    _v for _v in st.session_state.get("estoque", [])
                     if normalizar_nome_vinho(_v.get("nome", "")) == nome_norm_escolhido
                 ]
 
@@ -4821,17 +4898,38 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     litros_map.setdefault(_lit, _lit)
 
                 litros_opcoes = list(litros_map.keys())
+                analise_consulta_manual = analisar_consulta_pedido_manual(consulta_manual)
+                litragem_sugerida = analise_consulta_manual.get("litragem", "")
+                safra_sugerida = analise_consulta_manual.get("safra", "")
+
+                # Quando o texto da busca muda, usa a litragem digitada como seleção
+                # inicial (ex.: /750 -> 750 ml), mas mantém todas disponíveis.
+                consulta_estado = normalizar_nome_vinho(consulta_manual)
+                if st.session_state.get("pedido_manual_consulta_litragem_estado") != consulta_estado:
+                    st.session_state["pedido_manual_consulta_litragem_estado"] = consulta_estado
+                    if litragem_sugerida in litros_opcoes:
+                        st.session_state["pedido_manual_litragem_escolha"] = litragem_sugerida
+                    else:
+                        st.session_state.pop("pedido_manual_litragem_escolha", None)
+
                 if len(litros_opcoes) > 1:
                     if st.session_state.get("pedido_manual_litragem_escolha") not in litros_opcoes:
-                        st.session_state.pop("pedido_manual_litragem_escolha", None)
+                        st.session_state["pedido_manual_litragem_escolha"] = litros_opcoes[0]
                     litragem_escolhida = st.selectbox(
-                        "Litragem",
+                        "Litragem do pedido",
                         options=litros_opcoes,
                         key="pedido_manual_litragem_escolha",
-                        help="Este vinho existe em mais de uma litragem. Escolha a embalagem correta do pedido.",
+                        help="Este vinho tem mais de uma litragem cadastrada. Escolha a que será enviada neste pedido.",
                     )
                 else:
                     litragem_escolhida = litros_opcoes[0] if litros_opcoes else "N/A"
+                    st.text_input(
+                        "Litragem do pedido",
+                        value=litragem_escolhida,
+                        disabled=True,
+                        key=f"pedido_manual_litragem_unica_{nome_norm_escolhido}",
+                        help="Este vinho possui somente uma litragem cadastrada; por isso o campo fica bloqueado.",
+                    )
 
                 candidatos_litragem = [
                     _v for _v in candidatos_nome
@@ -4847,8 +4945,10 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         safras_opcoes.append(_safra)
 
                 if len(safras_opcoes) > 1:
-                    if st.session_state.get("pedido_manual_safra_escolha") not in safras_opcoes:
-                        st.session_state.pop("pedido_manual_safra_escolha", None)
+                    if safra_sugerida in safras_opcoes:
+                        st.session_state["pedido_manual_safra_escolha"] = safra_sugerida
+                    elif st.session_state.get("pedido_manual_safra_escolha") not in safras_opcoes:
+                        st.session_state["pedido_manual_safra_escolha"] = safras_opcoes[0]
                     safra_escolhida = st.selectbox(
                         "Safra",
                         options=safras_opcoes,
@@ -4907,20 +5007,12 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                             key=f"pedido_manual_safra_info_{_vinho_manual_key}",
                         )
                 with c_lit:
-                    if len(litros_opcoes) > 1:
-                        st.text_input(
-                            "Litragem selecionada",
-                            value=litragem_manual,
-                            disabled=True,
-                            key=f"pedido_manual_litragem_info_{_vinho_manual_key}",
-                        )
-                    else:
-                        st.text_input(
-                            "Litragem",
-                            value=litragem_manual,
-                            disabled=True,
-                            key=f"pedido_manual_litragem_info_{_vinho_manual_key}",
-                        )
+                    st.text_input(
+                        "Litragem confirmada",
+                        value=litragem_manual,
+                        disabled=True,
+                        key=f"pedido_manual_litragem_info_{_vinho_manual_key}",
+                    )
                 with c_emb:
                     st.text_input(
                         "Garrafas por caixa",
