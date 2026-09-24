@@ -844,6 +844,7 @@ OPCOES_CAIXA = [
     "Caixa com 24 garrafas",
     "Caixa com 12 garrafas",
     "Caixa com 6 garrafas",
+    "Caixa com 4 garrafas",
     "Caixa com 3 garrafas",
     "Caixa com 2 garrafas",
     "Garrafa Avulsa (1 un)",
@@ -1289,6 +1290,11 @@ def _normalizar_pedidos(pedidos):
                 continue
 
             i = dict(item)
+            i.setdefault("litragem", "")
+            i.setdefault("qtd_caixas", i.get("quantidade", 0))
+            i.setdefault("unidades_caixa", 0)
+            i.setdefault("total_garrafas", 0)
+            i.setdefault("unidade_operacional", "caixa")
             i.setdefault("qtd_separada", 0)
             i.setdefault("divergencia", 0)
             i.setdefault("autorizado_divergencia", False)
@@ -1491,6 +1497,255 @@ def sincronizar_estoque_com_pedidos(pedidos, estoque):
 # INTERPRETAR PEDIDO
 # ============================================================
 
+def normalizar_litragem_pedido(valor):
+    """Converte formas como 375ml, 750 ml, 1.5L e 1,5 L para o padrão do cadastro."""
+    bruto = str(valor or "").strip()
+    if not bruto or bruto.lower() == "nan":
+        return ""
+
+    s = bruto.lower().replace(",", ".")
+    s = re.sub(r"\s+", " ", s).strip()
+
+    # Se vier apenas um número numa coluna de volume, números grandes são ml.
+    if re.fullmatch(r"\d+(?:\.\d+)?", s):
+        numero = float(s)
+        if numero >= 50:
+            s = f"{numero:g} ml"
+        else:
+            s = f"{numero:g} l"
+
+    m = re.search(r"(\d+(?:\.\d+)?)\s*(ml|l|litro|litros)\b", s, re.IGNORECASE)
+    if not m:
+        return bruto
+
+    numero = float(m.group(1))
+    unidade = m.group(2).lower()
+
+    if unidade == "ml":
+        if numero.is_integer():
+            candidato = f"{int(numero)} ml"
+        else:
+            candidato = f"{numero:g} ml"
+    else:
+        # Frações de litro são normalizadas para ml quando coincidem com tamanhos usuais.
+        if numero < 1:
+            ml = numero * 1000
+            candidato = f"{int(round(ml))} ml"
+        else:
+            if numero.is_integer():
+                candidato = f"{int(numero)} L"
+            else:
+                candidato = f"{str(numero).replace('.', ',')} L"
+
+    # Retorna exatamente a grafia oficial quando ela existir no cadastro.
+    alvo = normalizar_nome_vinho(candidato) if 'normalizar_nome_vinho' in globals() else candidato.lower()
+    for opcao in LISTA_LITRAGENS:
+        comp = normalizar_nome_vinho(opcao) if 'normalizar_nome_vinho' in globals() else opcao.lower()
+        if comp == alvo:
+            return opcao
+    return candidato
+
+
+def extrair_litragem_texto(texto):
+    """Retira a litragem do nome e devolve (texto_sem_litragem, litragem)."""
+    original = str(texto or "")
+    padrao = re.compile(r"\b(\d+(?:[.,]\d+)?)\s*(ml|l|litro|litros)\b", re.IGNORECASE)
+    m = padrao.search(original)
+    if not m:
+        return original.strip(), ""
+
+    litragem = normalizar_litragem_pedido(m.group(0))
+    limpo = padrao.sub(" ", original, count=1)
+    limpo = re.sub(r"\s+", " ", limpo).strip(" -/|–")
+    return limpo.strip(), litragem
+
+
+def rotulo_item_pedido(item):
+    """Rótulo de tela que diferencia o mesmo vinho por litragem e safra."""
+    partes = [str(item.get("nome", "") or "").strip()]
+    litragem = normalizar_litragem_pedido(item.get("litragem", ""))
+    safra = str(item.get("safra", "") or "").strip()
+    if litragem:
+        partes.append(litragem)
+    if safra:
+        partes.append(safra)
+    return " • ".join([p for p in partes if p])
+
+
+
+def unidades_por_caixa(valor):
+    """Converte a embalagem cadastrada em quantidade de garrafas por caixa."""
+    if isinstance(valor, dict):
+        direto = valor.get("unidades_caixa", "")
+        try:
+            if str(direto).strip():
+                return max(0, int(float(direto)))
+        except Exception:
+            pass
+        valor = valor.get("caixa", valor.get("embalagem", ""))
+
+    texto = str(valor or "").strip().lower()
+
+    if "avulsa" in texto or "1 un" in texto:
+        return 1
+
+    m = re.search(r"\b(\d+)\b", texto)
+    if m:
+        try:
+            return max(0, int(m.group(1)))
+        except Exception:
+            return 0
+
+    return 0
+
+
+def rotulo_vinho_cadastro_pedido(vinho):
+    """Rótulo do vinho para o formulário do pedido."""
+    nome = str(vinho.get("nome", "") or "").strip()
+    safra = str(vinho.get("safra", "") or "").strip() or "N/A"
+    litragem = normalizar_litragem_pedido(vinho.get("litragem", "")) or "N/A"
+    un_caixa = unidades_por_caixa(vinho)
+    embalagem = (
+        f"{un_caixa} garrafa(s) por caixa"
+        if un_caixa > 0
+        else str(vinho.get("caixa", "") or "Embalagem não informada")
+    )
+    return f"{nome} • Safra {safra} • {litragem} • {embalagem}"
+
+
+def localizar_vinhos_por_consulta_pedido(consulta):
+    """
+    Procura no cadastro por nome/safra/litragem/código.
+    Ex.: 'Quereu carmenere 375' encontra o cadastro 375 ml.
+    """
+    consulta = str(consulta or "").strip()
+    if not consulta:
+        return []
+
+    por_codigo = [
+        v for v in st.session_state.get("estoque", [])
+        if str(v.get("codigo_barras", "") or "").strip() == consulta
+    ]
+    if por_codigo:
+        return por_codigo
+
+    q = normalizar_nome_vinho(consulta)
+    tokens = [t for t in q.split() if t]
+    if not tokens:
+        return []
+
+    encontrados = []
+    for vinho in st.session_state.get("estoque", []):
+        litragem = normalizar_litragem_pedido(vinho.get("litragem", ""))
+        texto_busca = " ".join([
+            str(vinho.get("nome", "") or ""),
+            str(vinho.get("safra", "") or ""),
+            litragem,
+            str(vinho.get("codigo_barras", "") or ""),
+        ])
+        alvo = normalizar_nome_vinho(texto_busca)
+        if all(token in alvo for token in tokens):
+            encontrados.append(vinho)
+
+    encontrados.sort(
+        key=lambda v: (
+            normalizar_nome_vinho(v.get("nome", "")),
+            str(v.get("safra", "")),
+            normalizar_litragem_pedido(v.get("litragem", "")),
+        )
+    )
+    return encontrados
+
+
+def item_pedido_com_caixas(vinho, quantidade_caixas=1):
+    """Cria item de pedido usando CAIXA como unidade operacional."""
+    qtd_caixas = max(0, int(quantidade_caixas))
+    un_caixa = unidades_por_caixa(vinho)
+    return {
+        "nome": vinho.get("nome", ""),
+        "safra": vinho.get("safra", ""),
+        "litragem": normalizar_litragem_pedido(vinho.get("litragem", "")),
+        "caixa": str(vinho.get("caixa", "") or ""),
+        "unidades_caixa": un_caixa,
+        # Mantém "quantidade" para compatibilidade. Em pedidos novos = caixas.
+        "quantidade": qtd_caixas,
+        "qtd_caixas": qtd_caixas,
+        "total_garrafas": qtd_caixas * un_caixa if un_caixa > 0 else 0,
+        "unidade_operacional": "caixa",
+        "separado": False,
+        # Em pedidos novos qtd_separada = caixas conferidas.
+        "qtd_separada": 0,
+        "divergencia": 0,
+        "autorizado_divergencia": False,
+    }
+
+
+def sincronizar_campos_caixas_item(item, vinho=None):
+    """Completa campos de caixa puxando a embalagem do cadastro do vinho."""
+    item = dict(item or {})
+    qtd = int(item.get("qtd_caixas", item.get("quantidade", 0)) or 0)
+    item["quantidade"] = qtd
+    item["qtd_caixas"] = qtd
+
+    if vinho is None and "localizar_vinho_cadastrado" in globals():
+        vinho = localizar_vinho_cadastrado(
+            item.get("nome", ""),
+            item.get("safra", ""),
+            item.get("litragem", ""),
+        )
+
+    if vinho:
+        item["nome"] = vinho.get("nome", item.get("nome", ""))
+        if not str(item.get("safra", "")).strip():
+            item["safra"] = vinho.get("safra", "")
+        item["litragem"] = normalizar_litragem_pedido(
+            vinho.get("litragem", item.get("litragem", ""))
+        )
+        item["caixa"] = str(vinho.get("caixa", item.get("caixa", "")) or "")
+
+    un_caixa = unidades_por_caixa(item)
+    if un_caixa <= 0 and vinho:
+        un_caixa = unidades_por_caixa(vinho)
+
+    item["unidades_caixa"] = un_caixa
+    item["total_garrafas"] = qtd * un_caixa if un_caixa > 0 else 0
+    item.setdefault("unidade_operacional", "caixa")
+    return item
+
+
+def interpretar_linha_pedido_com_cadastro(texto_linha):
+    """
+    Aceita TXT como:
+      Quereu Carmenere 375 / 5
+      Quereu Carmenere 375 5 caixas
+    O cadastro fornece safra, litragem e unidades por caixa.
+    """
+    linha = str(texto_linha or "").strip()
+    if not linha:
+        return None
+
+    qtd_caixas = 1
+    consulta = linha
+
+    m_qtd = re.search(
+        r"(?:/|\bcaixas?\s*[:=-]?|\bqtd(?:\.|\s+)?caixas?\s*[:=-]?)\s*(\d+)\s*$",
+        consulta,
+        flags=re.IGNORECASE,
+    )
+    if m_qtd:
+        qtd_caixas = int(m_qtd.group(1))
+        consulta = (consulta[:m_qtd.start()] + " " + consulta[m_qtd.end():]).strip()
+
+    candidatos = localizar_vinhos_por_consulta_pedido(consulta)
+    if len(candidatos) == 1:
+        return item_pedido_com_caixas(candidatos[0], qtd_caixas)
+
+    legado = interpretar_linha_pedido(linha)
+    legado["qtd_caixas"] = int(legado.get("quantidade", 1) or 1)
+    legado["unidade_operacional"] = "caixa"
+    return legado
+
+
 def interpretar_linha_pedido(
     texto_linha
 ):
@@ -1515,6 +1770,10 @@ def interpretar_linha_pedido(
 
     else:
         texto_limpo = texto
+
+    # Remove a litragem antes de procurar números de quantidade.
+    # Ex.: "Quereu Carmenere 375 ml / 5" => litragem 375 ml, quantidade 5.
+    texto_limpo, litragem = extrair_litragem_texto(texto_limpo)
 
     match_qtd = re.search(
         r"(?:/|\bcaixas?|\bqt[d]?\.?)\s*(\d+)",
@@ -1567,6 +1826,7 @@ def interpretar_linha_pedido(
     return {
         "nome": nome,
         "safra": safra,
+        "litragem": litragem,
         "quantidade": quantidade,
         "separado": False,
         "qtd_separada": 0,
@@ -1582,95 +1842,124 @@ def interpretar_linha_pedido(
 def extrair_pedidos_de_arquivo(arq):
 
     itens = []
+    if arq is None:
+        return itens
 
     ext = arq.name.split(".")[-1].lower()
 
-    try:
+    def _limpo(valor):
+        try:
+            if pd.isna(valor):
+                return ""
+        except Exception:
+            pass
+        return str(valor or "").strip()
 
+    def _valor_row(row, nomes, fallback_idx=None, default=""):
+        mapa = {normalizar_nome_vinho(c): c for c in row.index}
+        for nome in nomes:
+            chave = mapa.get(normalizar_nome_vinho(nome))
+            if chave is not None:
+                return row.get(chave, default)
+        if fallback_idx is not None and len(row) > fallback_idx:
+            return row.iloc[fallback_idx]
+        return default
+
+    try:
         if ext in ["xlsx", "xls"]:
 
             df = pd.read_excel(arq)
 
             for _, row in df.iterrows():
 
-                nome_bruto = str(
-                    row.get(
-                        "Nome",
-                        row.iloc[0]
-                        if len(row) > 0
-                        else ""
+                nome_bruto = _limpo(
+                    _valor_row(row, ["Nome", "Produto", "Vinho"], 0, "")
+                )
+                if not nome_bruto or nome_bruto.lower() == "nan":
+                    continue
+
+                safra_col = _limpo(
+                    _valor_row(row, ["Safra", "Ano"], 1, "")
+                )
+
+                litragem_col = normalizar_litragem_pedido(
+                    _limpo(
+                        _valor_row(
+                            row,
+                            ["Litragem", "Volume", "ML", "Tamanho"],
+                            None,
+                            "",
+                        )
                     )
+                )
+
+                qtd_col = _valor_row(
+                    row,
+                    [
+                        "Quantidade de Caixas",
+                        "Qtd Caixas",
+                        "Qtd. Caixas",
+                        "Caixas",
+                        "Quantidade",
+                        "Qtd",
+                    ],
+                    2,
+                    1,
+                )
+                try:
+                    qtd_caixas = max(0, int(float(str(qtd_col).replace(",", "."))))
+                except Exception:
+                    qtd_caixas = 1
+
+                consulta = " ".join(
+                    p for p in [nome_bruto, safra_col, litragem_col] if p
                 ).strip()
 
-                if nome_bruto and nome_bruto != "Nan":
+                candidatos = localizar_vinhos_por_consulta_pedido(consulta)
+                vinho = candidatos[0] if len(candidatos) == 1 else None
 
-                    safra_col = str(
-                        row.get(
-                            "Safra",
-                            row.iloc[1]
-                            if len(row) > 1
-                            else ""
-                        )
-                    ).strip()
-
-                    qtd_col = row.get(
-                        "Quantidade",
-                        row.iloc[2]
-                        if len(row) > 2
-                        else 1
+                if vinho is None:
+                    nome_sem_litragem, litragem_nome = extrair_litragem_texto(nome_bruto)
+                    vinho = localizar_vinho_cadastrado(
+                        nome_sem_litragem,
+                        safra_col,
+                        litragem_col or litragem_nome,
                     )
 
-                    try:
-                        qtd = int(qtd_col)
-                    except Exception:
-                        qtd = 1
-
-                    itens.append(
-                        {
-                            "nome":
-                                nome_bruto.title(),
-
-                            "safra":
-                                safra_col
-                                if safra_col != "Nan"
-                                else "",
-
-                            "quantidade":
-                                qtd,
-
-                            "separado":
-                                False,
-
-                            "qtd_separada":
-                                0,
-
-                            "divergencia":
-                                0,
-
-                            "autorizado_divergencia":
-                                False
-                        }
-                    )
+                if vinho is not None:
+                    itens.append(item_pedido_com_caixas(vinho, qtd_caixas))
+                else:
+                    nome_sem_litragem, litragem_nome = extrair_litragem_texto(nome_bruto)
+                    itens.append({
+                        "nome": nome_sem_litragem.title(),
+                        "safra": safra_col,
+                        "litragem": litragem_col or litragem_nome,
+                        "quantidade": qtd_caixas,
+                        "qtd_caixas": qtd_caixas,
+                        "unidades_caixa": 0,
+                        "total_garrafas": 0,
+                        "unidade_operacional": "caixa",
+                        "separado": False,
+                        "qtd_separada": 0,
+                        "divergencia": 0,
+                        "autorizado_divergencia": False,
+                    })
 
         elif ext == "txt":
 
             linhas = [
                 l.strip()
-                for l in
-                arq.getvalue()
-                .decode("utf-8")
-                .split("\n")
+                for l in arq.getvalue().decode("utf-8").split("\n")
                 if l.strip()
             ]
 
-            for l in linhas:
+            for linha in linhas:
+                item = interpretar_linha_pedido_com_cadastro(linha)
+                if item:
+                    itens.append(item)
 
-                itens.append(
-                    interpretar_linha_pedido(l)
-                )
-
-    except Exception:
-        pass
+    except Exception as e:
+        st.error(f"Não foi possível interpretar o arquivo do pedido: {e}")
 
     return itens
 
@@ -2023,15 +2312,8 @@ def salvar_foto_vinho(arquivo, nome_vinho, foto_atual=""):
 
 
 def item_pedido_por_vinho(vinho, quantidade=1):
-    return {
-        "nome": vinho.get("nome", ""),
-        "safra": vinho.get("safra", ""),
-        "quantidade": int(quantidade),
-        "separado": False,
-        "qtd_separada": 0,
-        "divergencia": 0,
-        "autorizado_divergencia": False,
-    }
+    # Compatibilidade: "quantidade" passa a representar quantidade de caixas.
+    return item_pedido_com_caixas(vinho, quantidade)
 
 
 def adicionar_codigo_lista_pedido(codigo, quantidade=1):
@@ -2056,12 +2338,19 @@ def adicionar_codigo_lista_pedido(codigo, quantidade=1):
             item for item in lista
             if item.get("nome") == vinho.get("nome")
             and str(item.get("safra", "")) == str(vinho.get("safra", ""))
+            and normalizar_litragem_pedido(item.get("litragem", ""))
+                == normalizar_litragem_pedido(vinho.get("litragem", ""))
         ),
         None,
     )
 
     if existente:
         existente["quantidade"] = int(existente.get("quantidade", 0)) + int(quantidade)
+        existente["qtd_caixas"] = existente["quantidade"]
+        _un = unidades_por_caixa(existente) or unidades_por_caixa(vinho)
+        existente["unidades_caixa"] = _un
+        existente["total_garrafas"] = existente["quantidade"] * _un if _un > 0 else 0
+        existente["unidade_operacional"] = "caixa"
     else:
         lista.append(item_pedido_por_vinho(vinho, quantidade))
 
@@ -2086,7 +2375,11 @@ def adicionar_manual_lista_pedido(texto):
             continue
 
         # Se já estiver cadastrado, usa nome/safra oficiais do estoque.
-        vinho = localizar_vinho_cadastrado(item.get("nome", ""), item.get("safra", ""))
+        vinho = localizar_vinho_cadastrado(
+            item.get("nome", ""),
+            item.get("safra", ""),
+            item.get("litragem", ""),
+        )
         novo_item = (
             item_pedido_por_vinho(vinho, item.get("quantidade", 1))
             if vinho
@@ -2098,14 +2391,21 @@ def adicionar_manual_lista_pedido(texto):
                 x for x in lista
                 if normalizar_nome_vinho(x.get("nome", "")) == normalizar_nome_vinho(novo_item.get("nome", ""))
                 and str(x.get("safra", "")).strip() == str(novo_item.get("safra", "")).strip()
+                and normalizar_litragem_pedido(x.get("litragem", ""))
+                    == normalizar_litragem_pedido(novo_item.get("litragem", ""))
             ),
             None,
         )
 
         if existente:
             existente["quantidade"] = int(existente.get("quantidade", 0)) + int(novo_item.get("quantidade", 1))
+            existente["qtd_caixas"] = existente["quantidade"]
+            _un = unidades_por_caixa(existente) or unidades_por_caixa(novo_item)
+            existente["unidades_caixa"] = _un
+            existente["total_garrafas"] = existente["quantidade"] * _un if _un > 0 else 0
+            existente["unidade_operacional"] = "caixa"
         else:
-            lista.append(novo_item)
+            lista.append(sincronizar_campos_caixas_item(novo_item, vinho))
         adicionados += 1
 
     if not adicionados:
@@ -2143,9 +2443,10 @@ def normalizar_nome_vinho(texto):
     return re.sub(r"\s+", " ", texto).strip()
 
 
-def localizar_vinho_cadastrado(nome, safra=""):
+def localizar_vinho_cadastrado(nome, safra="", litragem=""):
     nome_norm = normalizar_nome_vinho(nome)
     safra = str(safra or "").strip()
+    litragem_norm = normalizar_litragem_pedido(litragem)
 
     candidatos = [
         v for v in st.session_state.estoque
@@ -2156,12 +2457,22 @@ def localizar_vinho_cadastrado(nome, safra=""):
         return None
 
     if safra:
-        mesmo_ano = next(
-            (v for v in candidatos if str(v.get("safra", "")).strip() == safra),
-            None,
-        )
-        if mesmo_ano:
-            return mesmo_ano
+        candidatos_safra = [
+            v for v in candidatos
+            if str(v.get("safra", "")).strip() == safra
+        ]
+        if candidatos_safra:
+            candidatos = candidatos_safra
+
+    if litragem_norm:
+        candidatos_litragem = [
+            v for v in candidatos
+            if normalizar_litragem_pedido(v.get("litragem", "")) == litragem_norm
+        ]
+        if candidatos_litragem:
+            return candidatos_litragem[0]
+        # Se a litragem foi informada, nunca substitui silenciosamente por outra.
+        return None
 
     return candidatos[0]
 
@@ -2190,8 +2501,9 @@ def localizar_item_checkout(pedido_ativo, entrada):
     if vinho_codigo is not None:
         nome_norm = normalizar_nome_vinho(vinho_codigo.get("nome", ""))
         safra_codigo = str(vinho_codigo.get("safra", "")).strip()
+        litragem_codigo = normalizar_litragem_pedido(vinho_codigo.get("litragem", ""))
 
-        # Primeiro tenta nome + safra, para não misturar safras do mesmo vinho.
+        # Nome + safra + litragem impedem misturar 375 ml com 750 ml.
         item = next(
             (
                 i for i in pedido_ativo.get("itens", [])
@@ -2201,21 +2513,37 @@ def localizar_item_checkout(pedido_ativo, entrada):
                     or not str(i.get("safra", "")).strip()
                     or str(i.get("safra", "")).strip() == safra_codigo
                 )
+                and (
+                    not litragem_codigo
+                    or not normalizar_litragem_pedido(i.get("litragem", ""))
+                    or normalizar_litragem_pedido(i.get("litragem", "")) == litragem_codigo
+                )
             ),
             None,
         )
         return item, vinho_codigo
 
-    # 2) Nome escolhido/digitado: igualdade normalizada, não substring.
-    entrada_norm = normalizar_nome_vinho(entrada)
-    item = next(
-        (
-            i for i in pedido_ativo.get("itens", [])
-            if normalizar_nome_vinho(i.get("nome", "")) == entrada_norm
-        ),
+    # 2) Rótulo da seleção (Nome • Litragem • Safra).
+    item_rotulo = next(
+        (i for i in pedido_ativo.get("itens", []) if rotulo_item_pedido(i) == entrada),
         None,
     )
-    return item, None
+    if item_rotulo is not None:
+        return item_rotulo, None
+
+    # 3) Nome digitado: igualdade normalizada, não substring.
+    entrada_nome, entrada_litragem = extrair_litragem_texto(entrada)
+    entrada_norm = normalizar_nome_vinho(entrada_nome)
+    candidatos = [
+        i for i in pedido_ativo.get("itens", [])
+        if normalizar_nome_vinho(i.get("nome", "")) == entrada_norm
+    ]
+    if entrada_litragem:
+        candidatos = [
+            i for i in candidatos
+            if normalizar_litragem_pedido(i.get("litragem", "")) == entrada_litragem
+        ]
+    return (candidatos[0] if candidatos else None), None
 
 
 def gerar_html_pedidos_selecionados(pedidos):
@@ -2243,8 +2571,9 @@ def gerar_html_pedidos_selecionados(pedidos):
         partes.append(
             f"<section class='pedido'><div class='cab'><strong>Pedido {pid}</strong>"
             f"<div class='meta'>Data: {pdata} &nbsp;•&nbsp; Status: {pstatus}</div></div>"
-            "<table><thead><tr><th>Produto</th><th>Safra</th><th>Origem</th>"
-            "<th>Qtd. Pedida</th><th>Qtd. Separada</th><th>Divergência</th></tr></thead><tbody>"
+            "<table><thead><tr><th>Produto</th><th>Safra</th><th>Litragem</th>"
+            "<th>Unid./Caixa</th><th>Caixas Pedidas</th><th>Total Garrafas</th>"
+            "<th>Caixas Conferidas</th><th>Divergência (Caixas)</th><th>Origem</th></tr></thead><tbody>"
         )
 
         for item in pedido.get("itens", []):
@@ -2252,12 +2581,18 @@ def gerar_html_pedidos_selecionados(pedidos):
             qtd_sep = int(item.get("qtd_separada", 0) or 0)
             dif = int(item.get("divergencia", qtd_sep - qtd_pedida) or 0)
             origem = "Fora da lista / Extra" if item.get("fora_lista", False) else "Pedido original"
+            un_caixa = unidades_por_caixa(item)
             partes.append(
                 "<tr>"
                 f"<td>{html.escape(str(item.get('nome','')))}</td>"
                 f"<td>{html.escape(str(item.get('safra','N/A')))}</td>"
+                f"<td>{html.escape(str(item.get('litragem','N/A') or 'N/A'))}</td>"
+                f"<td>{un_caixa}</td>"
+                f"<td>{qtd_pedida}</td>"
+                f"<td>{qtd_pedida * un_caixa}</td>"
+                f"<td>{qtd_sep}</td>"
+                f"<td>{dif:+d}</td>"
                 f"<td>{html.escape(origem)}</td>"
-                f"<td>{qtd_pedida}</td><td>{qtd_sep}</td><td>{dif:+d}</td>"
                 "</tr>"
             )
 
@@ -2307,12 +2642,14 @@ def validar_itens_pedido_no_estoque(itens):
         vinho = localizar_vinho_cadastrado(
             item.get("nome", ""),
             item.get("safra", ""),
+            item.get("litragem", ""),
         )
 
         if not vinho:
             nao_cadastrados.append({
                 "nome": item.get("nome", ""),
                 "safra": item.get("safra", ""),
+                "litragem": normalizar_litragem_pedido(item.get("litragem", "")),
             })
             continue
 
@@ -2321,6 +2658,20 @@ def validar_itens_pedido_no_estoque(itens):
         item_validado["nome"] = vinho.get("nome", item.get("nome", ""))
         if not str(item_validado.get("safra", "")).strip():
             item_validado["safra"] = vinho.get("safra", "")
+        item_validado["litragem"] = normalizar_litragem_pedido(
+            vinho.get("litragem", item_validado.get("litragem", ""))
+        )
+        item_validado = sincronizar_campos_caixas_item(item_validado, vinho)
+
+        if int(item_validado.get("unidades_caixa", 0) or 0) <= 0:
+            nao_cadastrados.append({
+                "nome": item_validado.get("nome", ""),
+                "safra": item_validado.get("safra", ""),
+                "litragem": item_validado.get("litragem", ""),
+                "motivo": "Embalagem / caixa não definida no cadastro",
+            })
+            continue
+
         validos.append(item_validado)
 
     return validos, nao_cadastrados
@@ -2650,11 +3001,12 @@ def instalar_atalhos_teclado():
 # NAVEGAÇÃO PARA CADASTRO A PARTIR DO PEDIDO
 # ============================================================
 
-def abrir_cadastro_vinho_faltante(nome, safra=""):
+def abrir_cadastro_vinho_faltante(nome, safra="", litragem=""):
     """Abre o cadastro já preenchido sem perder o pedido em andamento."""
     st.session_state.cadastro_vinho_prefill = {
         "nome": str(nome or "").strip(),
         "safra": str(safra or "").strip(),
+        "litragem": normalizar_litragem_pedido(litragem),
     }
     st.session_state.retornar_apos_cadastro = "PedidosMatriz"
     st.session_state.menu_atual = "Cadastrar"
@@ -3963,7 +4315,8 @@ elif st.session_state.menu_atual == "GerenciarPallets":
             [None] + opcoes,
             format_func=lambda i: "-- Selecionar --" if i is None else (
                 f"{st.session_state.estoque[i].get('nome','')} — "
-                f"Safra {st.session_state.estoque[i].get('safra','N/A')}"
+                f"Safra {st.session_state.estoque[i].get('safra','N/A')} — "
+                f"{st.session_state.estoque[i].get('litragem','N/A') or 'N/A'}"
             ),
             key="gp_vinho_indice",
         )
@@ -4221,13 +4574,18 @@ elif st.session_state.menu_atual == "PainelMatriz":
                             else:
                                 dif_str = "(0) Correto"
 
+                            _un_caixa = unidades_por_caixa(item)
+                            _q_caixas = int(item.get("quantidade", 0) or 0)
                             df_itens.append({
                                 "Produto": item.get("nome", ""),
                                 "Safra": item.get("safra", "N/A"),
+                                "Litragem": item.get("litragem", "N/A") or "N/A",
+                                "Unid./Caixa": _un_caixa,
+                                "Caixas Pedidas": _q_caixas,
+                                "Total Garrafas": _q_caixas * _un_caixa,
+                                "Caixas Conferidas": item.get("qtd_separada", 0),
+                                "Divergência (Caixas)": dif_str,
                                 "Origem": "Fora da lista / Extra" if item.get("fora_lista", False) else "Pedido original",
-                                "Qtd Pedida": item.get("quantidade", 0),
-                                "Qtd Separada": item.get("qtd_separada", 0),
-                                "Divergência": dif_str,
                             })
 
                         if df_itens:
@@ -4258,6 +4616,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
             "id_novo_pedido", "modo_novo_pedido",
             "texto_manual_novo_pedido", "codigo_manual_lista_pedido",
             "qtd_lista_pedido", "mensagem_adicao_pedido", "itens_pedido_retomados",
+            "pedido_manual_consulta", "pedido_manual_escolha", "pedido_manual_qtd_caixas",
             "checkout_codigo_pendente", "checkout_codigo_lido", "checkout_auto_conferir",
         ]:
             st.session_state.pop(_chave_limpar, None)
@@ -4312,8 +4671,8 @@ elif st.session_state.menu_atual == "PedidosMatriz":
 
         st.markdown("### 📝 Montar novo pedido")
         st.caption(
-            "Você pode enviar um arquivo, digitar os itens ou montar a lista andando "
-            "pelos corredores e lendo o código de barras dos vinhos."
+            "A unidade do pedido é CAIXA. Nome, safra, litragem e garrafas por caixa "
+            "são puxados do cadastro do vinho. Você informa somente quantas caixas."
         )
 
         rascunho_pendente = st.session_state.get("rascunho_pedido_pendente")
@@ -4377,6 +4736,10 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 type=["xlsx", "xls", "txt"],
                 key=f"arquivo_novo_pedido_{st.session_state.arquivo_pedido_versao}",
             )
+            st.caption(
+                "No Excel use: Nome, Safra, Litragem e Quantidade de Caixas. "
+                "As garrafas por caixa são puxadas automaticamente do cadastro."
+            )
             if st.button("💾 Salvar Pedido do Arquivo", use_container_width=True):
                 itens_novos = (
                     extrair_pedidos_de_arquivo(arq_pedido)
@@ -4384,19 +4747,156 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 )
 
         elif modo_novo_pedido == "⌨️ Digitar manualmente":
-            st.caption("Digite o vinho e clique em Adicionar. Depois de incluir na lista, o campo será limpo automaticamente.")
-            st.text_area(
-                "Digite o vinho",
-                placeholder="Ex.: Faleria Pinot Noir Reserva 2023 / 1 Caixa",
-                key="texto_manual_novo_pedido",
-                height=90,
+
+            if st.session_state.pop("pedido_manual_limpar_campos", False):
+                for _k in [
+                    "pedido_manual_consulta",
+                    "pedido_manual_escolha",
+                    "pedido_manual_qtd_caixas",
+                ]:
+                    st.session_state.pop(_k, None)
+
+            st.caption(
+                "Digite o nome e, se quiser, a litragem. Ex.: **Quereu Carmenere 375**. "
+                "O sistema procura o cadastro e traz safra, litragem e garrafas por caixa."
             )
-            st.button(
-                "➕ Adicionar à lista",
-                use_container_width=True,
-                key="btn_adicionar_manual_pedido",
-                on_click=callback_adicionar_manual_pedido,
-            )
+
+            consulta_manual = st.text_input(
+                "Nome / safra / litragem",
+                placeholder="Ex.: Quereu Carmenere 375",
+                key="pedido_manual_consulta",
+            ).strip()
+
+            candidatos_manual = localizar_vinhos_por_consulta_pedido(consulta_manual)
+
+            vinho_manual = None
+            if consulta_manual and not candidatos_manual:
+                st.warning(
+                    "Nenhum vinho do cadastro corresponde ao que foi digitado. "
+                    "Confira nome/litragem ou cadastre o vinho primeiro."
+                )
+            elif candidatos_manual:
+                _indices_manual = list(range(len(candidatos_manual)))
+                if st.session_state.get("pedido_manual_escolha") not in _indices_manual:
+                    st.session_state.pop("pedido_manual_escolha", None)
+
+                indice_manual = st.selectbox(
+                    "Vinho encontrado",
+                    options=_indices_manual,
+                    format_func=lambda i: rotulo_vinho_cadastro_pedido(candidatos_manual[i]),
+                    key="pedido_manual_escolha",
+                    help="Se houver mais de uma safra/litragem, use as setas ↑ ↓ e Enter.",
+                )
+                vinho_manual = candidatos_manual[indice_manual]
+
+                unidades_manual = unidades_por_caixa(vinho_manual)
+                litragem_manual = normalizar_litragem_pedido(
+                    vinho_manual.get("litragem", "")
+                )
+                _vinho_manual_key = str(
+                    vinho_manual.get("_db_id")
+                    or (
+                        normalizar_nome_vinho(vinho_manual.get("nome", ""))
+                        + "_"
+                        + str(vinho_manual.get("safra", ""))
+                        + "_"
+                        + normalizar_nome_vinho(litragem_manual)
+                    )
+                ).replace(" ", "_")
+
+                c_nome, c_safra, c_lit, c_emb = st.columns([2.2, 1, 1, 1.5])
+                with c_nome:
+                    st.text_input(
+                        "Nome",
+                        value=str(vinho_manual.get("nome", "")),
+                        disabled=True,
+                        key=f"pedido_manual_nome_info_{_vinho_manual_key}",
+                    )
+                with c_safra:
+                    st.text_input(
+                        "Safra",
+                        value=str(vinho_manual.get("safra", "") or "N/A"),
+                        disabled=True,
+                        key=f"pedido_manual_safra_info_{_vinho_manual_key}",
+                    )
+                with c_lit:
+                    st.text_input(
+                        "Litragem",
+                        value=litragem_manual or "N/A",
+                        disabled=True,
+                        key=f"pedido_manual_litragem_info_{_vinho_manual_key}",
+                    )
+                with c_emb:
+                    st.text_input(
+                        "Garrafas por caixa",
+                        value=str(unidades_manual) if unidades_manual > 0 else "Não definido",
+                        disabled=True,
+                        key=f"pedido_manual_unidades_info_{_vinho_manual_key}",
+                    )
+
+                qtd_caixas_manual = st.number_input(
+                    "Quantidade de caixas",
+                    min_value=1,
+                    value=1,
+                    step=1,
+                    key="pedido_manual_qtd_caixas",
+                )
+
+                total_manual = int(qtd_caixas_manual) * int(unidades_manual or 0)
+                if unidades_manual > 0:
+                    st.info(
+                        f"📦 {int(qtd_caixas_manual)} caixa(s) × {unidades_manual} garrafa(s) "
+                        f"= **{total_manual} garrafas** no total."
+                    )
+                else:
+                    st.error(
+                        "Este vinho não tem uma embalagem válida no cadastro. "
+                        "Edite o vinho e informe quantas garrafas vêm na caixa."
+                    )
+
+                if st.button(
+                    "➕ Adicionar à lista",
+                    use_container_width=True,
+                    key="btn_adicionar_manual_pedido_v12",
+                    disabled=unidades_manual <= 0,
+                ):
+                    novo_item = item_pedido_com_caixas(vinho_manual, qtd_caixas_manual)
+                    lista_manual = st.session_state.setdefault("itens_pedido_scanner", [])
+
+                    existente = next(
+                        (
+                            x for x in lista_manual
+                            if normalizar_nome_vinho(x.get("nome", ""))
+                                == normalizar_nome_vinho(novo_item.get("nome", ""))
+                            and str(x.get("safra", "")).strip()
+                                == str(novo_item.get("safra", "")).strip()
+                            and normalizar_litragem_pedido(x.get("litragem", ""))
+                                == normalizar_litragem_pedido(novo_item.get("litragem", ""))
+                        ),
+                        None,
+                    )
+
+                    if existente:
+                        existente["quantidade"] = (
+                            int(existente.get("quantidade", 0))
+                            + int(qtd_caixas_manual)
+                        )
+                        existente["qtd_caixas"] = existente["quantidade"]
+                        existente["unidades_caixa"] = unidades_manual
+                        existente["total_garrafas"] = (
+                            existente["quantidade"] * unidades_manual
+                        )
+                        existente["unidade_operacional"] = "caixa"
+                    else:
+                        lista_manual.append(novo_item)
+
+                    st.session_state["mensagem_adicao_pedido"] = (
+                        True,
+                        f"{vinho_manual.get('nome','')} adicionado: "
+                        f"{int(qtd_caixas_manual)} caixa(s) de {unidades_manual} garrafa(s).",
+                    )
+                    st.session_state["pedido_manual_limpar_campos"] = True
+                    st.rerun()
 
             mensagem_pedido = st.session_state.pop("mensagem_adicao_pedido", None)
             if mensagem_pedido:
@@ -4412,12 +4912,19 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 st.info("A lista ainda está vazia. Adicione o primeiro vinho.")
             else:
                 for idx, item in enumerate(list(lista_manual)):
+                    item = sincronizar_campos_caixas_item(item)
+                    lista_manual[idx] = item
                     c_info, c_del = st.columns([6, 1])
                     with c_info:
+                        _un = int(item.get("unidades_caixa", 0) or 0)
+                        _qcx = int(item.get("quantidade", 0) or 0)
+                        _tot = _qcx * _un if _un > 0 else 0
                         st.markdown(
                             f"**{idx + 1}. {item.get('nome','')}** — "
                             f"Safra {item.get('safra','N/A')} — "
-                            f"Qtd: **{item.get('quantidade',1)}**"
+                            f"{item.get('litragem','N/A') or 'N/A'} — "
+                            f"**{_qcx} caixa(s)** × {_un} un. — "
+                            f"Total: **{_tot} garrafas**"
                         )
                     with c_del:
                         if st.button("🗑️", key=f"del_item_manual_{idx}"):
@@ -4464,7 +4971,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 )
             with col_qtd:
                 qtd_scanner = st.number_input(
-                    "Quantidade",
+                    "Quantidade de caixas",
                     min_value=1,
                     value=1,
                     step=1,
@@ -4500,7 +5007,10 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         st.markdown(
                             f"**{idx + 1}. {item.get('nome','')}** — "
                             f"Safra {item.get('safra','N/A')} — "
-                            f"Qtd: **{item.get('quantidade',1)}**"
+                            f"Litragem {item.get('litragem','N/A') or 'N/A'} — "
+                            f"Caixas: **{item.get('quantidade',1)}** — "
+                            f"{unidades_por_caixa(item)} un./caixa — "
+                            f"Total: **{int(item.get('quantidade',1)) * unidades_por_caixa(item)} garrafas**"
                         )
                     with c_del:
                         if st.button("🗑️", key=f"del_item_scanner_{idx}"):
@@ -4559,16 +5069,19 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                             faltante.get("nome", "Vinho sem nome")
                         ).strip()
                         safra_faltante = str(faltante.get("safra", "")).strip()
+                        litragem_faltante = normalizar_litragem_pedido(faltante.get("litragem", ""))
                         texto_botao = f"➕ Cadastrar {nome_faltante}"
+                        if litragem_faltante:
+                            texto_botao += f" — {litragem_faltante}"
                         if safra_faltante:
                             texto_botao += f" — Safra {safra_faltante}"
 
                         st.button(
                             texto_botao,
-                            key=f"cadastrar_faltante_{indice_faltante}_{nome_faltante}",
+                            key=f"cadastrar_faltante_{indice_faltante}_{nome_faltante}_{litragem_faltante}",
                             use_container_width=True,
                             on_click=abrir_cadastro_vinho_faltante,
-                            args=(nome_faltante, safra_faltante),
+                            args=(nome_faltante, safra_faltante, litragem_faltante),
                         )
                 else:
                     novo_registro_pedido = {
@@ -4729,7 +5242,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         ).strip()
                     with col_extra2:
                         extra_qtd = st.number_input(
-                            "Quantidade extra", min_value=1, value=1, step=1,
+                            "Quantidade de caixas extra", min_value=1, value=1, step=1,
                             key=f"extra_qtd_{pedido_ativo['id']}"
                         )
                     with col_extra3:
@@ -4768,22 +5281,17 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                                         "faça a conferência com a quantidade real; o sistema registrará a divergência excedente."
                                     )
                                 else:
-                                    pedido_ativo.setdefault("itens", []).append({
-                                        "nome": vinho_extra.get("nome", ""),
-                                        "safra": vinho_extra.get("safra", ""),
-                                        "quantidade": int(extra_qtd),
-                                        "separado": False,
-                                        "qtd_separada": 0,
-                                        "divergencia": 0,
-                                        "autorizado_divergencia": False,
+                                    _item_extra = item_pedido_com_caixas(vinho_extra, int(extra_qtd))
+                                    _item_extra.update({
                                         "fora_lista": True,
                                         "origem": "Extra solicitado durante checkout",
                                     })
+                                    pedido_ativo.setdefault("itens", []).append(_item_extra)
                                     salvar_pedidos(st.session_state.pedidos)
                                     registrar_log(
                                         st.session_state.usuario_logado["nome"],
                                         "Adicionou item extra ao pedido",
-                                        f"Pedido {pedido_ativo['id']} | {vinho_extra.get('nome','')} | Qtd {int(extra_qtd)}",
+                                        f"Pedido {pedido_ativo['id']} | {vinho_extra.get('nome','')} | {int(extra_qtd)} caixa(s)",
                                     )
                                     st.success("Vinho extra acrescentado ao mesmo pedido.")
                                     st.rerun()
@@ -4817,7 +5325,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     )
 
                 itens_pendentes_lista = [
-                    i["nome"]
+                    rotulo_item_pedido(i)
                     for i
                     in pedido_ativo["itens"]
                     if not i.get(
@@ -4935,12 +5443,12 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                 with col_b2:
 
                     qtd_input = st.number_input(
-                        "*Qtd realmente conferida",
-                        min_value=1,
+                        "*Qtd de caixas realmente conferida",
+                        min_value=0,
                         value=1,
                         step=1,
                         key="input_qtd_checkout",
-                        help="Informe a quantidade realmente separada; o sistema compara com a quantidade pedida.",
+                        help="Use 0 quando nenhuma caixa desse vinho for carregada. O sistema registrará falta total e exigirá senha de divergência.",
                     )
 
                 with col_b3:
@@ -4952,7 +5460,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         use_container_width=True
                     )
 
-                st.caption("Se a quantidade conferida for diferente da pedida, o item ficará bloqueado até a senha de liberação ou correção para a quantidade do pedido.")
+                st.caption("Quantidade 0 é permitida: significa que nenhuma caixa foi carregada. A divergência é sempre em caixas e exige senha para liberação.")
 
                 if btn_conferir and cod_barras_input:
                     qtd_real_informada = int(qtd_input)
@@ -4985,7 +5493,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                             st.session_state["checkout_forcar_aba"] = True
                             st.session_state["checkout_mensagem_divergencia"] = (
                                 f"Quantidade divergente em {item_encontrado.get('nome','')}: "
-                                f"pedido {qtd_pedida}, conferido {qtd_real_informada}. "
+                                f"pedido {qtd_pedida} caixa(s), conferido {qtd_real_informada} caixa(s). "
                                 "Este item não foi aceito automaticamente. Informe a senha para liberar a divergência ou clique em corrigir para a quantidade pedida."
                             )
 
@@ -5031,27 +5539,31 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         "Enquanto isso, eles não entram como conferidos."
                     )
 
-                    for it_div in (
+                    for _idx_div, it_div in enumerate(
                         itens_com_divergencia
                     ):
 
+                        _lit_div = normalizar_litragem_pedido(it_div.get("litragem", ""))
+                        _chave_div = re.sub(r"[^a-zA-Z0-9_-]+", "_", f"{it_div.get('nome','')}_{_lit_div}_{_idx_div}")
+
                         with st.form(
-                            f"form_senha_item_{it_div['nome']}"
+                            f"form_senha_item_{_chave_div}"
                         ):
 
                             st.markdown(
                                 f"""
                                 **Item:**
                                 {it_div["nome"]}
+                                {f" • {_lit_div}" if _lit_div else ""}
                                 |
                                 Pedido:
-                                {it_div["quantidade"]}
+                                {it_div["quantidade"]} caixa(s)
                                 |
                                 Conferido:
-                                {it_div["qtd_separada"]}
+                                {it_div["qtd_separada"]} caixa(s)
                                 |
                                 Divergência:
-                                {it_div["divergencia"]:+d}
+                                {it_div["divergencia"]:+d} caixa(s)
                                 """
                             )
 
@@ -5059,7 +5571,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                                 st.text_input(
                                     "Senha de liberação",
                                     type="password",
-                                    key=f"pass_{it_div['nome']}"
+                                    key=f"pass_{_chave_div}"
                                 )
                             )
 
@@ -5072,7 +5584,7 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                             )
 
                             corrigir = st.form_submit_button(
-                                "🔄 Corrigir para Qtd Pedida",
+                                "🔄 Corrigir para Caixas Pedidas",
                                 use_container_width=True
                             )
 
@@ -5203,10 +5715,23 @@ elif st.session_state.menu_atual == "PedidosMatriz":
 
                             <br>
 
-                            Qtd Pedida:
-                            <b>
-                            {item["quantidade"]}
-                            </b>
+                            Litragem:
+                            {html.escape(str(item.get("litragem", "N/A") or "N/A"))}
+
+                            <br>
+
+                            Caixas Pedidas:
+                            <b>{item["quantidade"]}</b>
+
+                            <br>
+
+                            Embalagem:
+                            <b>{unidades_por_caixa(item)} garrafa(s) / caixa</b>
+
+                            <br>
+
+                            Total:
+                            <b>{int(item.get("quantidade", 0) or 0) * unidades_por_caixa(item)} garrafa(s)</b>
 
                             </div>
                             """,
@@ -5260,13 +5785,18 @@ elif st.session_state.menu_atual == "PedidosMatriz":
 
                             <br>
 
-                            Separada:
-                            <b>
-                            {item.get(
-                                "qtd_separada",
-                                0
-                            )}
-                            </b>
+                            Litragem:
+                            {html.escape(str(item.get("litragem", "N/A") or "N/A"))}
+
+                            <br>
+
+                            Caixas Conferidas:
+                            <b>{item.get("qtd_separada", 0)}</b>
+
+                            <br>
+
+                            Embalagem:
+                            <b>{unidades_por_caixa(item)} garrafa(s) / caixa</b>
 
                             </div>
                             """,
@@ -5446,9 +5976,11 @@ elif st.session_state.menu_atual == "Cadastrar":
 
         col_cx1, col_cx2 = st.columns(2)
         with col_cx1:
-            caixa = st.selectbox("Embalagem / Caixa", OPCOES_CAIXA)
+            caixa = st.selectbox("Embalagem / Caixa", OPCOES_CAIXA, help="Este valor é usado automaticamente nos pedidos para saber quantas garrafas há em cada caixa.")
         with col_cx2:
-            litragem = st.selectbox("Litragem da Garrafa", LISTA_LITRAGENS)
+            _lit_prefill = normalizar_litragem_pedido(cadastro_prefill.get("litragem", ""))
+            _lit_index = LISTA_LITRAGENS.index(_lit_prefill) if _lit_prefill in LISTA_LITRAGENS else 2
+            litragem = st.selectbox("Litragem da Garrafa", LISTA_LITRAGENS, index=_lit_index)
         codigo_barras = st.text_input(
             "Código de Barras (Opcional)",
             help="Pode digitar ou bipar com a pistola USB.",
@@ -5468,6 +6000,8 @@ elif st.session_state.menu_atual == "Cadastrar":
                         v for v in st.session_state.estoque
                         if normalizar_nome_vinho(v.get("nome", "")) == normalizar_nome_vinho(nome)
                         and str(v.get("safra", "")).strip() == str(safra).strip()
+                        and normalizar_litragem_pedido(v.get("litragem", ""))
+                            == normalizar_litragem_pedido(litragem)
                     ),
                     None,
                 )
@@ -5482,7 +6016,7 @@ elif st.session_state.menu_atual == "Cadastrar":
                     if codigo_barras else None
                 )
                 if duplicado_nome:
-                    st.error("Este vinho com a mesma safra já está cadastrado.")
+                    st.error("Este vinho com a mesma safra e litragem já está cadastrado.")
                     st.stop()
                 if duplicado_codigo:
                     st.error("Este código de barras já pertence a outro vinho cadastrado.")
@@ -5560,7 +6094,8 @@ elif st.session_state.menu_atual == "Editar":
             indices,
             format_func=lambda i: (
                 f"{st.session_state.estoque[i].get('nome','')} — "
-                f"Safra {st.session_state.estoque[i].get('safra','N/A')}"
+                f"Safra {st.session_state.estoque[i].get('safra','N/A')} — "
+                f"{st.session_state.estoque[i].get('litragem','N/A') or 'N/A'}"
             ),
         )
         vinho_obj = st.session_state.estoque[indice_escolhido]
