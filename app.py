@@ -2965,56 +2965,104 @@ def componente_leitor_qr(chave_sessao, tela_retorno=None):
 # ============================================================
 
 def componente_leitor_codigo_barras(chave_sessao, tela_retorno=None):
-    """Lê EAN/UPC/CODE/ITF e volta para a mesma tela do checkout/pedido."""
+    """Lê EAN/UPC/CODE/ITF no celular com início da câmera por toque.
+
+    O botão explícito é importante no Android/iOS porque muitos navegadores
+    bloqueiam a abertura automática da câmera dentro de componentes/iframes.
+    """
     tela_js = str(tela_retorno or "").replace('"', "")
     html_code = f"""
     <div style="text-align:center;background:#211B1E;padding:15px;border-radius:12px;border:1px solid #4A3A40;">
-        <div id="barcode_{chave_sessao}" style="width:100%;max-width:440px;margin:auto;border-radius:8px;overflow:hidden;"></div>
-        <p id="barcode_result_{chave_sessao}" style="font-weight:bold;color:#E3BD72;margin-top:10px;font-size:1rem;"></p>
+        <button id="btn_start_{chave_sessao}" type="button"
+            style="width:100%;max-width:440px;padding:12px 16px;border:0;border-radius:10px;background:#811B39;color:white;font-weight:800;font-size:15px;cursor:pointer;">
+            📷 Abrir câmera e ler código
+        </button>
+        <div id="barcode_{chave_sessao}" style="width:100%;max-width:440px;margin:12px auto 0;border-radius:8px;overflow:hidden;"></div>
+        <p id="barcode_result_{chave_sessao}" style="font-weight:bold;color:#E3BD72;margin-top:10px;font-size:1rem;">
+            Toque no botão acima para liberar a câmera.
+        </p>
     </div>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <script>
-    let leituraConcluida_{chave_sessao} = false;
-    function onBarcodeSuccess(decodedText, decodedResult) {{
-        if (leituraConcluida_{chave_sessao}) return;
-        leituraConcluida_{chave_sessao} = true;
-        document.getElementById("barcode_result_{chave_sessao}").innerText = "✅ Código lido: " + decodedText;
-        const url = new URL(window.parent.location.href);
-        url.searchParams.set('scanned_{chave_sessao}', decodedText);
-        if ("{tela_js}") url.searchParams.set('screen', "{tela_js}");
-        if ("{chave_sessao}" === "checkout_camera") {{
-            url.searchParams.set('checkout', '1');
-            url.searchParams.set('checkout_area', 'conferencia');
+    (() => {{
+        let leituraConcluida = false;
+        let reader = null;
+        const btn = document.getElementById("btn_start_{chave_sessao}");
+        const status = document.getElementById("barcode_result_{chave_sessao}");
+
+        function publicar(decodedText) {{
+            const codigo = String(decodedText || '').trim();
+            if (!codigo) return;
+            const url = new URL(window.parent.location.href);
+            url.searchParams.set('scanned_{chave_sessao}', codigo);
+            if ("{tela_js}") url.searchParams.set('screen', "{tela_js}");
+            if ("{chave_sessao}" === "checkout_camera") {{
+                url.searchParams.set('checkout', '1');
+                url.searchParams.set('checkout_area', 'conferencia');
+            }} else if ("{chave_sessao}" === "pedido_scanner") {{
+                url.searchParams.set('checkout_area', 'pedidos');
+            }}
+            window.parent.location.href = url.toString();
         }}
-        const finalizar = () => {{ window.parent.location.href = url.toString(); }};
-        if (window.barcodeReader_{chave_sessao}) {{
-            window.barcodeReader_{chave_sessao}.stop().then(finalizar).catch(finalizar);
-        }} else finalizar();
-    }}
-    try {{
-        const formatos = [
-            Html5QrcodeSupportedFormats.EAN_13,
-            Html5QrcodeSupportedFormats.EAN_8,
-            Html5QrcodeSupportedFormats.CODE_128,
-            Html5QrcodeSupportedFormats.CODE_39,
-            Html5QrcodeSupportedFormats.UPC_A,
-            Html5QrcodeSupportedFormats.UPC_E,
-            Html5QrcodeSupportedFormats.ITF,
-            Html5QrcodeSupportedFormats.QR_CODE
-        ];
-        const reader = new Html5Qrcode("barcode_{chave_sessao}", {{ formatsToSupport: formatos, verbose: false }});
-        window.barcodeReader_{chave_sessao} = reader;
-        reader.start(
-            {{ facingMode: "environment" }},
-            {{ fps: 12, qrbox: {{ width: 320, height: 170 }} }},
-            onBarcodeSuccess
-        ).catch(err => {{
-            document.getElementById("barcode_result_{chave_sessao}").innerText = "Não foi possível iniciar a câmera.";
-        }});
-    }} catch (e) {{}}
+
+        function sucesso(decodedText) {{
+            if (leituraConcluida) return;
+            leituraConcluida = true;
+            status.innerText = "✅ Código lido: " + decodedText;
+            btn.disabled = true;
+            btn.style.opacity = '.65';
+            const finalizar = () => publicar(decodedText);
+            if (reader) reader.stop().then(finalizar).catch(finalizar);
+            else finalizar();
+        }}
+
+        async function iniciar() {{
+            btn.disabled = true;
+            status.innerText = "Solicitando acesso à câmera...";
+            try {{
+                const formatos = [
+                    Html5QrcodeSupportedFormats.EAN_13,
+                    Html5QrcodeSupportedFormats.EAN_8,
+                    Html5QrcodeSupportedFormats.CODE_128,
+                    Html5QrcodeSupportedFormats.CODE_39,
+                    Html5QrcodeSupportedFormats.UPC_A,
+                    Html5QrcodeSupportedFormats.UPC_E,
+                    Html5QrcodeSupportedFormats.ITF,
+                    Html5QrcodeSupportedFormats.QR_CODE
+                ];
+                reader = new Html5Qrcode("barcode_{chave_sessao}", {{
+                    formatsToSupport: formatos,
+                    verbose: false
+                }});
+
+                const config = {{
+                    fps: 15,
+                    qrbox: {{ width: 320, height: 150 }},
+                    aspectRatio: 1.777778
+                }};
+
+                // Primeira tentativa: câmera traseira pelo facingMode.
+                try {{
+                    await reader.start({{ facingMode: {{ ideal: "environment" }} }}, config, sucesso);
+                }} catch (primeiroErro) {{
+                    // Fallback: enumera as câmeras e usa a última, que normalmente é a traseira.
+                    const cameras = await Html5Qrcode.getCameras();
+                    if (!cameras || !cameras.length) throw primeiroErro;
+                    const camera = cameras[cameras.length - 1];
+                    await reader.start(camera.id, config, sucesso);
+                }}
+                status.innerText = "Aponte a câmera para o código de barras.";
+            }} catch (err) {{
+                btn.disabled = false;
+                status.innerText = "Não foi possível abrir a câmera. Confira a permissão da câmera no navegador e tente novamente.";
+            }}
+        }}
+
+        btn.addEventListener('click', iniciar);
+    }})();
     </script>
     """
-    components.html(html_code, height=360)
+    components.html(html_code, height=410)
 
 
 def autofoco_campo_checkout():
@@ -3369,9 +3417,14 @@ for key, val in list(qp.items()):
 
         elif sess_key == "pedido_scanner":
 
-            st.session_state.codigo_bipado_pedido = (
-                valor_limpo
-            )
+            # No celular, a câmera primeiro identifica o vinho.
+            # A quantidade de caixas é informada somente depois da leitura.
+            st.session_state.codigo_bipado_pedido = valor_limpo
+            st.session_state["codigo_manual_lista_pedido"] = valor_limpo
+            st.session_state["pedido_scanner_codigo_lido"] = True
+            st.session_state.menu_atual = "PedidosMatriz"
+            st.session_state["checkout_aba_persistente"] = "📋 Enviar / Cadastrar / Excluir Pedidos"
+            st.query_params["checkout_area"] = "pedidos"
 
         del st.query_params[key]
 
@@ -5136,32 +5189,53 @@ elif st.session_state.menu_atual == "PedidosMatriz":
 
         else:
             st.success(
-                "📷 Modo corredor: aponte a câmera para o código de barras da garrafa. "
-                "O vinho será incluído na lista do pedido."
+                "📷 Modo corredor: primeiro leia/bipe o código. Depois informe a quantidade de caixas e adicione à lista."
             )
 
-            componente_leitor_codigo_barras(
-                "pedido_scanner",
-                tela_retorno="PedidosMatriz",
-            )
+            codigo_lido_pedido = str(
+                st.session_state.get("codigo_manual_lista_pedido", "") or ""
+            ).strip()
 
-            codigo_camera = st.session_state.get("codigo_bipado_pedido", "").strip()
-            if codigo_camera:
-                sucesso, mensagem = adicionar_codigo_lista_pedido(codigo_camera, 1)
-                st.session_state.codigo_bipado_pedido = ""
-                if sucesso:
-                    st.toast(mensagem, icon="✅")
-                    st.rerun()
+            # No celular, a câmera fica aberta somente enquanto ainda não há um código lido.
+            if not codigo_lido_pedido:
+                componente_leitor_codigo_barras(
+                    "pedido_scanner",
+                    tela_retorno="PedidosMatriz",
+                )
+            else:
+                vinho_lido_pedido = next(
+                    (
+                        v for v in st.session_state.get("estoque", [])
+                        if str(v.get("codigo_barras", "") or "").strip() == codigo_lido_pedido
+                    ),
+                    None,
+                )
+                if vinho_lido_pedido:
+                    st.success(
+                        "✅ Vinho identificado: "
+                        f"{vinho_lido_pedido.get('nome','')} • "
+                        f"{vinho_lido_pedido.get('safra','')} • "
+                        f"{normalizar_litragem_pedido(vinho_lido_pedido.get('litragem',''))}"
+                    )
                 else:
-                    st.error(mensagem)
+                    st.warning("Código lido, mas este código ainda não está vinculado a um vinho cadastrado.")
 
-            col_cod, col_qtd, col_add = st.columns([2, 1, 1])
+                if st.button(
+                    "📷 Ler outro código com a câmera",
+                    key="pedido_scanner_ler_outro",
+                    use_container_width=True,
+                ):
+                    st.session_state["codigo_manual_lista_pedido"] = ""
+                    st.session_state["codigo_bipado_pedido"] = ""
+                    st.session_state["pedido_scanner_codigo_lido"] = False
+                    st.rerun()
+
+            col_cod, col_qtd = st.columns([2, 1])
             with col_cod:
                 codigo_manual_scanner = st.text_input(
-                    "Ou bipe/digite o código",
+                    "Código lido / bipe o código",
                     key="codigo_manual_lista_pedido",
-                    on_change=callback_adicionar_codigo_pedido,
-                    help="Com leitor USB, basta bipar. O código será incluído automaticamente ao enviar Enter/Tab.",
+                    help="No computador use a pistola USB. No celular use a câmera acima. Primeiro identifique o vinho e depois informe as caixas.",
                 )
             with col_qtd:
                 qtd_scanner = st.number_input(
@@ -5171,15 +5245,14 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                     step=1,
                     key="qtd_lista_pedido",
                 )
-            with col_add:
-                st.write("")
-                st.write("")
-                st.button(
-                    "➕ Adicionar",
-                    use_container_width=True,
-                    key="btn_adicionar_codigo_pedido",
-                    on_click=callback_adicionar_codigo_pedido,
-                )
+
+            st.button(
+                "➕ Adicionar à lista",
+                use_container_width=True,
+                key="btn_adicionar_codigo_pedido",
+                on_click=callback_adicionar_codigo_pedido,
+                disabled=not bool(str(st.session_state.get("codigo_manual_lista_pedido", "") or "").strip()),
+            )
 
             mensagem_pedido = st.session_state.pop("mensagem_adicao_pedido", None)
             if mensagem_pedido:
@@ -5496,199 +5569,167 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         "⌨️ Seleção / Pistola USB",
                         "📷 Câmera do Celular"
                     ],
-                    horizontal=True
+                    horizontal=True,
+                    key="checkout_modo_leitura",
                 )
 
-                codigo_capturado = ""
+                # ========================================================
+                # ETAPA 1 — IDENTIFICAR O VINHO
+                # ========================================================
+                st.markdown("#### 1️⃣ Identifique o vinho")
 
-                if (
-                    modo_leitura
-                    == "📷 Câmera do Celular"
-                ):
+                def _checkout_selecao_alterada():
+                    valor = str(st.session_state.get("select_vinho_checkout", "") or "").strip()
+                    if valor and valor != "SELECIONE OU DIGITE":
+                        st.session_state["checkout_codigo_pendente"] = valor
+                        st.session_state["checkout_codigo_lido"] = True
+                        st.session_state.pop("input_qtd_checkout", None)
+                    else:
+                        st.session_state["checkout_codigo_pendente"] = ""
+                        st.session_state["checkout_codigo_lido"] = False
 
-                    componente_leitor_codigo_barras(
-                        "checkout_camera",
-                        tela_retorno="PedidosMatriz",
-                    )
-
-                    codigo_capturado = (
-                        st.session_state.get(
-                            "codigo_bipado_checkout",
-                            ""
-                        )
-                    )
+                def _checkout_codigo_digitado():
+                    valor = str(st.session_state.get("input_bipagem_checkout", "") or "").strip()
+                    if valor:
+                        st.session_state["checkout_codigo_pendente"] = valor
+                        st.session_state["checkout_codigo_lido"] = True
+                        st.session_state["checkout_auto_conferir"] = False
+                        st.session_state["input_bipagem_checkout"] = ""
+                        st.session_state.pop("input_qtd_checkout", None)
 
                 itens_pendentes_lista = [
                     rotulo_item_pedido(i)
-                    for i
-                    in pedido_ativo["itens"]
-                    if not i.get(
-                        "separado",
-                        False
-                    )
+                    for i in pedido_ativo["itens"]
+                    if not i.get("separado", False)
                 ]
 
-                col_b1, col_b2, col_b3 = (
-                    st.columns(
-                        [2, 1, 1]
-                    )
-                )
+                codigo_pendente_checkout = str(
+                    st.session_state.get("checkout_codigo_pendente", "") or ""
+                ).strip()
 
-                with col_b1:
+                if modo_leitura == "📷 Câmera do Celular":
+                    # Não reinicia a câmera depois que já leu um código; primeiro o usuário informa a quantidade.
+                    if not codigo_pendente_checkout:
+                        componente_leitor_codigo_barras(
+                            "checkout_camera",
+                            tela_retorno="PedidosMatriz",
+                        )
+                    else:
+                        if st.button(
+                            "📷 Ler outro vinho",
+                            key="checkout_camera_ler_outro",
+                            use_container_width=True,
+                        ):
+                            st.session_state["checkout_codigo_pendente"] = ""
+                            st.session_state["checkout_codigo_lido"] = False
+                            st.session_state["codigo_bipado_checkout"] = ""
+                            st.session_state.pop("input_qtd_checkout", None)
+                            st.rerun()
 
-                    if (
-                        modo_leitura
-                        == "📷 Câmera do Celular"
-                    ):
-
-                        cod_barras_input = (
-                            st.text_input(
-                                "*Código de Barras ou Nome",
-                                value=codigo_capturado,
-                                key="input_bipagem_checkout"
-                            )
+                else:
+                    if itens_pendentes_lista:
+                        st.selectbox(
+                            "*Selecione o Vinho",
+                            ["SELECIONE OU DIGITE"] + itens_pendentes_lista,
+                            index=0,
+                            key="select_vinho_checkout",
+                            help="Use as setas ↑ e ↓ do teclado e Enter. A quantidade aparece somente depois de identificar o vinho.",
+                            on_change=_checkout_selecao_alterada,
                         )
 
-                    else:
-
-                        if itens_pendentes_lista:
-
-                            opcao = st.selectbox(
-                                "*Selecione o Vinho",
-                                ["SELECIONE OU DIGITE"] + itens_pendentes_lista,
-                                index=0,
-                                key="select_vinho_checkout",
-                                help="Use as setas ↑ e ↓ do teclado para escolher e Enter para confirmar.",
-                            )
-
-                            if opcao != "SELECIONE OU DIGITE":
-
-                                cod_barras_input = (
-                                    opcao
-                                )
-
-                            else:
-
-                                def _checkout_codigo_digitado():
-                                    valor = str(
-                                        st.session_state.get(
-                                            "input_bipagem_checkout", ""
-                                        )
-                                    ).strip()
-                                    if valor:
-                                        # on_change é disparado tanto ao pressionar ENTER
-                                        # quanto ao sair do campo com TAB/leitor USB.
-                                        st.session_state["checkout_codigo_pendente"] = valor
-                                        st.session_state["checkout_codigo_lido"] = True
-                                        st.session_state["checkout_auto_conferir"] = False
-                                        st.session_state["input_bipagem_checkout"] = ""
-
-                                cod_barras_input = st.text_input(
-                                    "*Ou digite/bipe o Código",
-                                    key="input_bipagem_checkout",
-                                    on_change=_checkout_codigo_digitado,
-                                    help="Digite ou bipe o código e pressione Enter ou Tab para conferir."
-                                )
-
-                                if st.session_state.get("checkout_codigo_pendente"):
-                                    cod_barras_input = str(
-                                        st.session_state.get(
-                                            "checkout_codigo_pendente", ""
-                                        )
-                                    ).strip()
-
-                        else:
-
-                            def _checkout_codigo_digitado_sem_lista():
-                                valor = str(
-                                    st.session_state.get(
-                                        "input_bipagem_checkout", ""
-                                    )
-                                ).strip()
-                                if valor:
-                                    st.session_state["checkout_codigo_pendente"] = valor
-                                    st.session_state["checkout_codigo_lido"] = True
-                                    st.session_state["checkout_auto_conferir"] = False
-                                    st.session_state["input_bipagem_checkout"] = ""
-
-                            cod_barras_input = st.text_input(
-                                "*Código de Barras ou Nome",
-                                key="input_bipagem_checkout",
-                                on_change=_checkout_codigo_digitado_sem_lista,
-                                help="Digite ou bipe o código e pressione Enter ou Tab para conferir."
-                            )
-
-                            if st.session_state.get("checkout_codigo_pendente"):
-                                cod_barras_input = str(
-                                    st.session_state.get(
-                                        "checkout_codigo_pendente", ""
-                                    )
-                                ).strip()
-
-                if st.session_state.get("checkout_codigo_lido") and st.session_state.get("checkout_codigo_pendente"):
-                    st.info(
-                        "✅ Código lido. Confira a quantidade real e clique em **Conferir**. "
-                        "O bip sozinho não finaliza mais o item."
+                    st.text_input(
+                        "*Ou digite/bipe o Código",
+                        key="input_bipagem_checkout",
+                        on_change=_checkout_codigo_digitado,
+                        help="Bipe o código e pressione Enter/Tab. Depois o sistema mostrará o campo de quantidade.",
                     )
-
-                if modo_leitura == "⌨️ Seleção / Pistola USB":
                     autofoco_campo_checkout()
 
-                with col_b2:
+                codigo_para_conferir = str(
+                    st.session_state.get("checkout_codigo_pendente", "") or ""
+                ).strip()
 
-                    qtd_input = st.number_input(
-                        "*Qtd de caixas realmente conferida",
-                        min_value=0,
-                        value=1,
-                        step=1,
-                        key="input_qtd_checkout",
-                        help="Use 0 quando nenhuma caixa desse vinho for carregada. O sistema registrará falta total e exigirá senha de divergência.",
-                    )
-
-                with col_b3:
-
-                    st.write("")
-
-                    btn_conferir = st.button(
-                        "Conferir",
-                        use_container_width=True
-                    )
-
-                st.caption("Quantidade 0 é permitida: significa que nenhuma caixa foi carregada. A divergência é sempre em caixas e exige senha para liberação.")
-
-                if btn_conferir and cod_barras_input:
-                    qtd_real_informada = int(qtd_input)
-                    item_encontrado, _vinho_lido = localizar_item_checkout(
+                item_identificado = None
+                vinho_identificado = None
+                if codigo_para_conferir:
+                    item_identificado, vinho_identificado = localizar_item_checkout(
                         pedido_ativo,
-                        cod_barras_input,
+                        codigo_para_conferir,
                     )
 
-                    if item_encontrado is None:
-                        st.session_state["checkout_codigo_pendente"] = ""
-                        st.session_state["checkout_codigo_lido"] = False
-                        st.error("Produto não encontrado neste mapa.")
+                    if item_identificado is None:
+                        st.error("Produto não encontrado neste mapa. Leia/bipe outro vinho.")
+                        if st.button(
+                            "🧹 Limpar leitura",
+                            key="checkout_limpar_leitura_invalida",
+                            use_container_width=True,
+                        ):
+                            st.session_state["checkout_codigo_pendente"] = ""
+                            st.session_state["checkout_codigo_lido"] = False
+                            st.session_state["codigo_bipado_checkout"] = ""
+                            st.session_state.pop("input_qtd_checkout", None)
+                            st.rerun()
                     else:
-                        qtd_pedida = int(item_encontrado.get("quantidade", 0) or 0)
-                        divergencia_calculada = int(qtd_real_informada) - int(qtd_pedida)
+                        qtd_pedida_preview = int(item_identificado.get("quantidade", 0) or 0)
+                        un_caixa_preview = int(item_identificado.get("unidades_caixa", 0) or 0)
+                        lit_preview = normalizar_litragem_pedido(item_identificado.get("litragem", ""))
+                        st.success(
+                            "✅ Vinho identificado: "
+                            f"{item_identificado.get('nome','')} • "
+                            f"{lit_preview or 'litragem não informada'} • "
+                            f"Pedido: {qtd_pedida_preview} caixa(s)"
+                            + (f" • {un_caixa_preview} garrafa(s)/caixa" if un_caixa_preview else "")
+                        )
 
-                        # A quantidade digitada é sempre a quantidade REAL conferida.
-                        item_encontrado["qtd_separada"] = qtd_real_informada
-                        item_encontrado["divergencia"] = divergencia_calculada
+                # ========================================================
+                # ETAPA 2 — QUANTIDADE, SOMENTE APÓS IDENTIFICAR O VINHO
+                # ========================================================
+                if item_identificado is not None:
+                    st.markdown("#### 2️⃣ Informe a quantidade carregada")
+                    col_qtd_checkout, col_btn_checkout = st.columns([2, 1])
+                    with col_qtd_checkout:
+                        qtd_input = st.number_input(
+                            "*Qtd de caixas realmente conferida",
+                            min_value=0,
+                            value=1,
+                            step=1,
+                            key="input_qtd_checkout",
+                            help="Use 0 quando nenhuma caixa desse vinho for carregada. Divergência exige senha.",
+                        )
+                    with col_btn_checkout:
+                        st.write("")
+                        st.write("")
+                        btn_conferir = st.button(
+                            "Conferir",
+                            use_container_width=True,
+                            key="checkout_btn_conferir",
+                        )
+
+                    st.caption(
+                        "Primeiro o vinho é identificado. Só depois você informa as caixas carregadas. "
+                        "Quantidade diferente do pedido fica bloqueada até senha de divergência ou correção."
+                    )
+
+                    if btn_conferir:
+                        qtd_real_informada = int(qtd_input)
+                        qtd_pedida = int(item_identificado.get("quantidade", 0) or 0)
+                        divergencia_calculada = qtd_real_informada - qtd_pedida
+
+                        item_identificado["qtd_separada"] = qtd_real_informada
+                        item_identificado["divergencia"] = divergencia_calculada
 
                         if divergencia_calculada == 0:
-                            # Somente quantidade exata pode ser aceita automaticamente.
-                            item_encontrado["autorizado_divergencia"] = True
-                            item_encontrado["separado"] = True
+                            item_identificado["autorizado_divergencia"] = True
+                            item_identificado["separado"] = True
                             st.session_state.pop("checkout_mensagem_divergencia", None)
                         else:
-                            # Qualquer quantidade fora do pedido fica BLOQUEADA até senha ou correção.
-                            item_encontrado["autorizado_divergencia"] = False
-                            item_encontrado["separado"] = False
+                            item_identificado["autorizado_divergencia"] = False
+                            item_identificado["separado"] = False
                             st.session_state["checkout_forcar_aba"] = True
                             st.session_state["checkout_mensagem_divergencia"] = (
-                                f"Quantidade divergente em {item_encontrado.get('nome','')}: "
-                                f"pedido {qtd_pedida} caixa(s), conferido {qtd_real_informada} caixa(s). "
-                                "Este item não foi aceito automaticamente. Informe a senha para liberar a divergência ou clique em corrigir para a quantidade pedida."
+                                f"Quantidade divergente em {item_identificado.get('nome','')}: "
+                                f"pedido {qtd_pedida} caixa(s), conferido {qtd_real_informada}. "
+                                "Este item não foi aceito automaticamente. Informe a senha para liberar a divergência ou corrija para a quantidade pedida."
                             )
 
                         st.session_state["checkout_codigo_pendente"] = ""
@@ -5697,12 +5738,12 @@ elif st.session_state.menu_atual == "PedidosMatriz":
                         st.session_state["checkout_reset_campos"] = True
                         st.session_state["checkout_aba_persistente"] = aba_checkout_opcoes[1]
                         st.query_params["checkout_area"] = "conferencia"
-
-                        if "codigo_bipado_checkout" in st.session_state:
-                            st.session_state.codigo_bipado_checkout = ""
-
+                        st.session_state["codigo_bipado_checkout"] = ""
                         salvar_pedidos(st.session_state.pedidos)
                         st.rerun()
+                else:
+                    if not codigo_para_conferir:
+                        st.info("👆 Primeiro selecione, bipe ou leia o código do vinho. A quantidade aparecerá depois.")
 
                 _msg_div_checkout = st.session_state.pop("checkout_mensagem_divergencia", None)
                 if _msg_div_checkout:
