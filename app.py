@@ -4349,6 +4349,70 @@ def render_page_header(icone, titulo, descricao, secao="Premium Wines • Galpã
         unsafe_allow_html=True,
     )
 
+
+# ============================================================
+# V12.6 — CORREÇÃO DE CONTRASTE GLOBAL
+# ============================================================
+st.markdown(r"""
+<style>
+html body [data-testid="stMain"] .stButton > button,
+html body [data-testid="stMain"] .stDownloadButton > button,
+html body [data-testid="stMain"] .stFormSubmitButton > button {
+    color:#FFFFFF !important;
+    -webkit-text-fill-color:#FFFFFF !important;
+    opacity:1 !important;
+}
+html body [data-testid="stMain"] .stButton > button *,
+html body [data-testid="stMain"] .stDownloadButton > button *,
+html body [data-testid="stMain"] .stFormSubmitButton > button * {
+    color:#FFFFFF !important;
+    -webkit-text-fill-color:#FFFFFF !important;
+    opacity:1 !important;
+}
+
+html body [class*="st-key-checkout_aba_widget"] [data-testid="stRadio"] {
+    background:#251A1E !important;
+    border:1px solid #5E3A45 !important;
+    border-radius:12px !important;
+    padding:6px 10px !important;
+}
+html body [class*="st-key-checkout_aba_widget"] [data-testid="stRadio"] label,
+html body [class*="st-key-checkout_aba_widget"] [data-testid="stRadio"] label *,
+html body [class*="st-key-checkout_aba_widget"] [data-testid="stRadio"] p,
+html body [class*="st-key-checkout_aba_widget"] [data-testid="stRadio"] span {
+    color:#FFF8F2 !important;
+    -webkit-text-fill-color:#FFF8F2 !important;
+    opacity:1 !important;
+}
+
+html body .topbar,
+html body .topbar *,
+html body .topbar-user,
+html body .topbar-user *,
+html body .user-chip-v8,
+html body .user-chip-v8 * {
+    opacity:1 !important;
+}
+html body .topbar-user,
+html body .topbar-user *,
+html body .user-chip-v8,
+html body .user-chip-v8 * {
+    color:#FFF8F2 !important;
+    -webkit-text-fill-color:#FFF8F2 !important;
+}
+
+html body .page-hero,
+html body .page-hero * {
+    opacity:1 !important;
+}
+html body .page-hero .page-title,
+html body .page-hero .page-desc {
+    color:#FFF8F2 !important;
+    -webkit-text-fill-color:#FFF8F2 !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 # ============================================================
 # CABEÇALHO + MENU LATERAL
 # ============================================================
