@@ -4,9 +4,6 @@ import json
 import shutil
 import html
 import unicodedata
-import urllib.parse
-import hashlib
-import secrets
 from io import BytesIO
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
@@ -94,3 +91,8395 @@ st.markdown(
         border-bottom: 1px solid #30272B;
         margin-bottom: 12px;
     }
+    .sidebar-brand .brand-title { color: #F8F2EA; font-weight: 850; font-size: 1.05rem; letter-spacing: .08em; }
+    .sidebar-brand .brand-sub { color: var(--wine-gold); font-size: .72rem; letter-spacing: .18em; margin-top: 3px; }
+    .sidebar-section { color:#847B76; font-size:.68rem; font-weight:800; letter-spacing:.13em; margin:18px 6px 7px; text-transform:uppercase; }
+    [data-testid="stSidebar"] .stButton > button {
+        background: transparent !important;
+        border: 1px solid transparent !important;
+        color: #C8C0BC !important;
+        text-align: left !important;
+        justify-content: flex-start !important;
+        padding: .62rem .75rem !important;
+        border-radius: 10px !important;
+        box-shadow: none !important;
+        min-height: 42px;
+    }
+    [data-testid="stSidebar"] .stButton > button:hover {
+        background: rgba(110,23,48,.22) !important;
+        border-color: rgba(214,174,99,.22) !important;
+        color: #FFF !important;
+    }
+
+    /* TÍTULOS E TEXTOS */
+    h1, h2, h3, h4 { color: var(--wine-text) !important; }
+    p, .stMarkdown, [data-testid="stCaptionContainer"] { color: #D9D2CD; }
+    label { color: #D7CFC9 !important; font-weight: 700 !important; font-size: .9rem !important; }
+    hr { border-color: #2B2B31 !important; }
+
+    /* INPUTS */
+    [data-baseweb="input"] > div, [data-baseweb="select"] > div,
+    [data-baseweb="textarea"] > div, .stTextInput input, .stNumberInput input,
+    .stTextArea textarea {
+        background: #17171B !important;
+        color: #F7F3EE !important;
+        border-color: #35353C !important;
+        border-radius: 10px !important;
+    }
+    input, textarea { color: #F7F3EE !important; }
+    [data-baseweb="select"] span { color: #F7F3EE !important; }
+
+    /* BOTÕES */
+    .stButton > button, .stDownloadButton > button, .stFormSubmitButton > button {
+        background: linear-gradient(135deg, #751A35, #541125) !important;
+        color: #FFF !important;
+        border-radius: 11px !important;
+        font-weight: 750 !important;
+        border: 1px solid #8C2944 !important;
+        padding: .68rem 1rem !important;
+        width: 100%;
+        box-shadow: 0 8px 22px rgba(59,10,26,.18);
+        transition: all .18s ease;
+    }
+    .stButton > button:hover, .stDownloadButton > button:hover, .stFormSubmitButton > button:hover {
+        transform: translateY(-1px);
+        border-color: var(--wine-gold) !important;
+        box-shadow: 0 10px 28px rgba(0,0,0,.25);
+    }
+
+    /* CARDS E COMPONENTES */
+    .wine-card, .qr-card, .wine-item {
+        background: linear-gradient(180deg, #19191D, #141417);
+        color: #F4EFEA;
+        border-radius: 14px;
+        border: 1px solid #2D2D33;
+        box-shadow: 0 10px 28px rgba(0,0,0,.18);
+    }
+    .wine-card { padding: 17px; margin-bottom: 12px; }
+    .qr-card { padding: 20px; margin-bottom: 15px; text-align:center; }
+    .wine-item { padding: 13px; margin-bottom:8px; border-left: 4px solid var(--wine-gold); }
+    .wine-title { color: var(--wine-gold); font-size:1.08rem; font-weight:800; }
+    .pallet-header {
+        background: linear-gradient(135deg, #6E1730, #340B17);
+        color: white;
+        border: 1px solid #8A2943;
+        border-radius: 15px;
+        padding: 18px;
+        margin-bottom: 15px;
+        box-shadow: 0 12px 30px rgba(49,8,20,.25);
+    }
+    [data-testid="stMetric"] {
+        background: linear-gradient(180deg, #18181C, #121215);
+        border: 1px solid #2B2B31;
+        border-radius: 14px;
+        padding: 14px 16px;
+    }
+    [data-testid="stMetricValue"] { color: var(--wine-gold) !important; font-weight: 850; }
+    [data-testid="stMetricLabel"] { color: #BEB5B0 !important; }
+
+    /* ALERTAS */
+    [data-testid="stAlert"] { border-radius: 12px; background: #18181C; border: 1px solid #33333A; }
+
+    /* TABS */
+    [data-baseweb="tab-list"] { gap: 8px; background: transparent; }
+    [data-baseweb="tab"] { background:#17171B; border-radius:10px; color:#CFC7C2; padding:.6rem .9rem; }
+    [aria-selected="true"][data-baseweb="tab"] { background:#6E1730 !important; color:white !important; }
+
+    /* DATAFRAME */
+    [data-testid="stDataFrame"] { border:1px solid #2D2D33; border-radius:12px; overflow:hidden; }
+
+    /* LOGIN */
+    .login-shell { max-width: 470px; margin: 2.2rem auto 1rem auto; text-align:center; }
+    .login-logo {
+        width: 78px; height: 78px; border-radius: 24px; margin: 0 auto 14px;
+        display:flex; align-items:center; justify-content:center;
+        background: radial-gradient(circle at 30% 30%, #8C2944, #4B0D1D 70%);
+        border: 1px solid rgba(214,174,99,.45); color:#FFF; font-size:2.2rem;
+        box-shadow:0 18px 44px rgba(64,10,27,.35);
+    }
+    .login-title { font-size: 1.85rem; font-weight: 900; letter-spacing:.04em; color:#F8F2EA; }
+    .login-title span { color: var(--wine-gold); }
+    .login-subtitle { color:#AFA7A2; margin-top:5px; margin-bottom:18px; }
+    .login-card {
+        background: linear-gradient(180deg, rgba(26,26,30,.97), rgba(18,18,21,.97));
+        border: 1px solid #302D31; border-radius:18px; padding:20px 22px 10px;
+        box-shadow: 0 24px 70px rgba(0,0,0,.35);
+    }
+
+    /* TOPBAR */
+    .topbar {
+        display:flex; align-items:center; justify-content:space-between; gap:16px;
+        background: linear-gradient(90deg, rgba(25,25,29,.94), rgba(21,17,20,.94));
+        border:1px solid #2D292C; border-radius:15px; padding:12px 16px; margin-bottom:18px;
+    }
+    .topbar-brand { font-weight:900; letter-spacing:.06em; color:#F8F2EA; }
+    .topbar-brand span { color:var(--wine-gold); }
+    .topbar-user { color:#B9B0AB; font-size:.84rem; text-align:right; }
+
+    /* HOME */
+    .hero-wine {
+        position:relative; overflow:hidden; border-radius:20px; padding:34px 36px; margin-bottom:18px;
+        background:
+          radial-gradient(circle at 82% 50%, rgba(214,174,99,.12), transparent 22%),
+          radial-gradient(circle at 72% 45%, rgba(119,23,49,.55), transparent 35%),
+          linear-gradient(120deg, #191317 0%, #251119 55%, #111114 100%);
+        border:1px solid #3A2830; min-height:190px;
+        box-shadow: 0 18px 50px rgba(0,0,0,.25);
+    }
+    .hero-wine:after {
+        content:"🍷"; position:absolute; right:6%; top:8%; font-size:8.5rem; opacity:.18;
+        filter: drop-shadow(0 10px 18px rgba(0,0,0,.45)); transform: rotate(5deg);
+    }
+    .hero-kicker { color:var(--wine-gold); text-transform:uppercase; letter-spacing:.16em; font-size:.74rem; font-weight:850; }
+    .hero-title { color:#FFF; font-size:2rem; font-weight:900; margin:.45rem 0 .35rem; max-width:760px; }
+    .hero-sub { color:#C1B7B1; font-size:.94rem; max-width:720px; }
+    .section-title { margin:22px 0 10px; color:#9A918C; font-size:.72rem; font-weight:850; letter-spacing:.14em; text-transform:uppercase; }
+    .action-card {
+        min-height:112px; padding:16px; border-radius:15px;
+        background:linear-gradient(180deg,#19191D,#131316); border:1px solid #2D2D33;
+        box-shadow:0 10px 24px rgba(0,0,0,.16); margin-bottom:6px;
+    }
+    .action-icon { font-size:1.45rem; margin-bottom:7px; }
+    .action-title { color:#F5EFEA; font-size:.98rem; font-weight:800; }
+    .action-desc { color:#918983; font-size:.77rem; margin-top:3px; line-height:1.35; }
+
+
+    /* ========================================================
+       TELAS INTERNAS — MESMA IDENTIDADE PREMIUM DA HOME
+       ======================================================== */
+    .page-hero {
+        position:relative; overflow:hidden; border-radius:18px; padding:22px 24px;
+        margin:2px 0 18px; background:
+          radial-gradient(circle at 90% 20%, rgba(214,174,99,.10), transparent 25%),
+          linear-gradient(125deg, #201218 0%, #17171B 62%, #111114 100%);
+        border:1px solid #3B2830; box-shadow:0 16px 38px rgba(0,0,0,.22);
+    }
+    .page-hero:after { content:"🍷"; position:absolute; right:24px; top:8px; font-size:4.5rem; opacity:.08; }
+    .page-kicker { color:var(--wine-gold); text-transform:uppercase; letter-spacing:.15em; font-size:.68rem; font-weight:850; }
+    .page-title { color:#FFF; font-size:1.45rem; font-weight:900; margin-top:6px; line-height:1.2; }
+    .page-desc { color:#AFA6A0; font-size:.86rem; margin-top:6px; max-width:900px; line-height:1.45; }
+
+    /* formulários e blocos */
+    [data-testid="stForm"] {
+        background:linear-gradient(180deg, rgba(25,25,29,.98), rgba(18,18,21,.98));
+        border:1px solid #302D33; border-radius:16px; padding:18px;
+        box-shadow:0 12px 30px rgba(0,0,0,.14);
+    }
+    [data-testid="stExpander"] {
+        background:linear-gradient(180deg,#19191D,#141417); border:1px solid #2E2E34 !important;
+        border-radius:13px !important; overflow:hidden; box-shadow:0 8px 22px rgba(0,0,0,.10);
+    }
+    [data-testid="stExpander"] summary {
+        color:#F3ECE7 !important;
+        font-weight:760 !important;
+        background:#29262B !important;
+        border-radius:10px !important;
+    }
+    [data-testid="stExpander"] summary:hover { background:#34242B !important; }
+    [data-testid="stExpander"] summary * { color:#F3ECE7 !important; }
+    [data-testid="stExpander"] details[open] > summary {
+        background:#32262C !important;
+        border-bottom:1px solid #4A353D !important;
+        border-radius:10px 10px 0 0 !important;
+    }
+    [data-testid="stFileUploader"] section {
+        background:#151519 !important; border:1px dashed #56424A !important; border-radius:13px !important;
+    }
+    [data-testid="stFileUploader"] section:hover { border-color:var(--wine-gold) !important; }
+    [data-testid="stFileUploader"] small, [data-testid="stFileUploader"] span { color:#BEB5B0 !important; }
+    [data-testid="stCameraInput"] { background:#151519; border-radius:14px; padding:8px; border:1px solid #2E2E34; }
+
+    /* rádios, toggles e checkboxes */
+    [role="radiogroup"] { background:#141417; border:1px solid #29292F; border-radius:12px; padding:8px 10px; }
+    [data-testid="stCheckbox"] label, [data-testid="stRadio"] label { color:#D8D0CB !important; }
+
+    /* tabela/data editor */
+    [data-testid="stDataFrame"], [data-testid="stDataEditor"] {
+        background:#151519; border:1px solid #2E2E34 !important; border-radius:14px !important;
+        box-shadow:0 10px 25px rgba(0,0,0,.12);
+    }
+
+    /* popovers/select dropdowns */
+    [data-baseweb="popover"] > div, [role="listbox"] { background:#1B1B1F !important; color:#F7F3EE !important; }
+    [role="option"] { color:#E8E0DB !important; }
+    [role="option"]:hover { background:#35121E !important; }
+
+    /* infos/avisos mais integrados ao tema */
+    [data-testid="stNotification"] { background:#17171B !important; border-color:#34343A !important; }
+    .premium-info {
+        background:linear-gradient(135deg, rgba(110,23,48,.16), rgba(214,174,99,.05));
+        border:1px solid #49313A; border-left:4px solid var(--wine-gold); border-radius:13px;
+        padding:14px 16px; margin:10px 0 16px; color:#D8D0CB;
+    }
+    .premium-panel {
+        background:linear-gradient(180deg,#19191D,#141417); border:1px solid #2E2E34;
+        border-radius:15px; padding:17px; margin:10px 0 15px; box-shadow:0 10px 28px rgba(0,0,0,.14);
+    }
+    .premium-panel-title { color:var(--wine-gold); font-weight:850; font-size:1rem; margin-bottom:5px; }
+    .premium-muted { color:#9F9792; font-size:.82rem; }
+
+    /* títulos Streamlit internos */
+    .stMarkdown h3 { color:#F4EFEA !important; font-size:1.08rem !important; margin-top:1rem !important; }
+    .stMarkdown h4 { color:var(--wine-gold) !important; }
+
+    /* links */
+    a { color:var(--wine-gold) !important; }
+
+    @media (max-width: 800px) {
+        .page-hero { padding:18px 16px; }
+        .page-title { font-size:1.2rem; padding-right:38px; }
+        .page-hero:after { font-size:3.2rem; right:10px; top:14px; }
+    }
+
+    @media (max-width: 800px) {
+        .block-container { padding-left: .8rem; padding-right:.8rem; padding-top:.8rem; }
+        .hero-wine { padding:24px 20px; min-height:160px; }
+        .hero-title { font-size:1.55rem; padding-right:50px; }
+        .hero-wine:after { font-size:5rem; right:2%; top:18%; }
+        .topbar-user { display:none; }
+    }
+
+
+
+    /* ========================================================
+       CORREÇÕES VISUAIS — CAMPOS ESCUROS + TOPO SEM FAIXA BRANCA
+       ======================================================== */
+
+    /* Remove a barra branca nativa do Streamlit (Share / editar / GitHub)
+       que estava cobrindo o cabeçalho Premium Wines. */
+    header[data-testid="stHeader"],
+    [data-testid="stHeader"],
+    [data-testid="stToolbar"],
+    [data-testid="stDecoration"],
+    [data-testid="stMainMenu"],
+    .stAppToolbar,
+    .stDeployButton {
+        display: none !important;
+        visibility: hidden !important;
+        height: 0 !important;
+        min-height: 0 !important;
+    }
+
+    [data-testid="stAppViewContainer"] {
+        background: transparent !important;
+        padding-top: 0 !important;
+    }
+
+    [data-testid="stAppViewContainer"] > .main,
+    [data-testid="stMain"] {
+        padding-top: 0 !important;
+        margin-top: 0 !important;
+    }
+
+    .block-container {
+        padding-top: .75rem !important;
+    }
+
+    /* Fundo premium inspirado no mockup aprovado. A imagem fica escurecida
+       pelas camadas de gradiente para não atrapalhar a leitura. */
+    .stApp {
+        background-image:
+            linear-gradient(135deg, rgba(7,7,9,.94) 0%, rgba(14,10,12,.92) 52%, rgba(10,7,9,.95) 100%),
+            radial-gradient(circle at 88% 8%, rgba(110,23,48,.28), transparent 33%),
+            url("data:image/jpeg;base64,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") !important;
+        background-size: cover !important;
+        background-position: center center !important;
+        background-attachment: fixed !important;
+    }
+
+    /* Imagem decorativa de barril/uvas nos destaques, sem encobrir texto. */
+    .hero-wine, .page-hero {
+        background-image:
+            linear-gradient(90deg, rgba(24,13,17,.98) 0%, rgba(24,13,17,.92) 55%, rgba(15,12,14,.66) 100%),
+            url("data:image/jpeg;base64,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") !important;
+        background-size: cover !important;
+        background-position: center right !important;
+        background-repeat: no-repeat !important;
+    }
+
+    /* Selectbox / multiselect — evita caixa branca com texto branco. */
+    [data-testid="stSelectbox"] div[data-baseweb="select"] > div,
+    [data-testid="stMultiSelect"] div[data-baseweb="select"] > div {
+        background-color: #17171B !important;
+        color: #F7F3EE !important;
+        border-color: #4A4045 !important;
+        box-shadow: none !important;
+    }
+
+    [data-testid="stSelectbox"] div[data-baseweb="select"] *,
+    [data-testid="stMultiSelect"] div[data-baseweb="select"] * {
+        color: #F7F3EE !important;
+        -webkit-text-fill-color: #F7F3EE !important;
+    }
+
+    [data-testid="stSelectbox"] input,
+    [data-testid="stMultiSelect"] input,
+    div[data-baseweb="select"] input {
+        background: transparent !important;
+        color: #F7F3EE !important;
+        -webkit-text-fill-color: #F7F3EE !important;
+        caret-color: #D6AE63 !important;
+    }
+
+    [data-testid="stSelectbox"] svg,
+    [data-testid="stMultiSelect"] svg,
+    div[data-baseweb="select"] svg {
+        fill: #D6AE63 !important;
+        color: #D6AE63 !important;
+    }
+
+    /* Menu suspenso dos selects. */
+    div[data-baseweb="popover"],
+    div[data-baseweb="popover"] > div,
+    ul[role="listbox"],
+    [role="listbox"] {
+        background: #19191D !important;
+        color: #F7F3EE !important;
+        border-color: #3C3539 !important;
+    }
+
+    li[role="option"], [role="option"] {
+        background: #19191D !important;
+        color: #F7F3EE !important;
+        -webkit-text-fill-color: #F7F3EE !important;
+    }
+
+    li[role="option"]:hover,
+    [role="option"]:hover,
+    [aria-selected="true"][role="option"] {
+        background: #4A1022 !important;
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+    }
+
+    /* Upload de arquivo — o botão Upload/Selecionar arquivo não fica branco. */
+    [data-testid="stFileUploader"] section,
+    [data-testid="stFileUploaderDropzone"] {
+        background: rgba(21,21,25,.96) !important;
+        color: #EDE6E1 !important;
+        border: 1px dashed #6A4D59 !important;
+    }
+
+    [data-testid="stFileUploader"] button {
+        background: linear-gradient(135deg, #751A35, #541125) !important;
+        color: #FFFFFF !important;
+        -webkit-text-fill-color: #FFFFFF !important;
+        border: 1px solid #8C2944 !important;
+        border-radius: 10px !important;
+        opacity: 1 !important;
+    }
+
+    [data-testid="stFileUploader"] button:hover {
+        border-color: #D6AE63 !important;
+        color: #FFFFFF !important;
+    }
+
+    [data-testid="stFileUploader"] * {
+        color: #D8D0CB;
+    }
+
+    /* Number input — corrige os botões + e - que apareciam claros. */
+    [data-testid="stNumberInput"] > div,
+    [data-testid="stNumberInput"] div[data-baseweb="input"] > div {
+        background: #17171B !important;
+        border-color: #3A3A42 !important;
+    }
+
+    [data-testid="stNumberInput"] button {
+        background: #242429 !important;
+        color: #FFFFFF !important;
+        border-color: #3A3A42 !important;
+    }
+
+    [data-testid="stNumberInput"] button:hover {
+        background: #541125 !important;
+        color: #FFFFFF !important;
+    }
+
+    [data-testid="stNumberInput"] button svg {
+        fill: #D6AE63 !important;
+        color: #D6AE63 !important;
+    }
+
+    /* Textos digitados permanecem visíveis inclusive em autofill/pesquisa. */
+    .stTextInput input,
+    .stNumberInput input,
+    .stTextArea textarea,
+    input[type="text"],
+    input[type="password"],
+    input[type="number"] {
+        background-color: #17171B !important;
+        color: #F7F3EE !important;
+        -webkit-text-fill-color: #F7F3EE !important;
+        caret-color: #D6AE63 !important;
+    }
+
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus {
+        -webkit-text-fill-color: #F7F3EE !important;
+        -webkit-box-shadow: 0 0 0 1000px #17171B inset !important;
+        transition: background-color 9999s ease-out 0s;
+    }
+
+    /* Radio e checkbox sempre legíveis. */
+    [data-testid="stRadio"] p,
+    [data-testid="stCheckbox"] p {
+        color: #E7DFDA !important;
+    }
+
+    /* Sidebar começa no topo real após remover o header nativo. */
+    [data-testid="stSidebar"] {
+        top: 0 !important;
+        height: 100vh !important;
+    }
+
+    /* Evita que algum container interno herde branco do tema claro do navegador. */
+    [data-testid="stVerticalBlockBorderWrapper"],
+    [data-testid="stForm"],
+    [data-testid="stExpander"] {
+        color: #F7F3EE !important;
+    }
+
+
+    @media print {
+        .no-print, [data-testid="stSidebar"] { display:none !important; }
+        .stApp { background:white !important; color:black !important; }
+        .qr-card { page-break-inside: avoid; }
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+# Tema claro Premium Wines — mais confortável para uso prolongado.
+st.markdown(
+    """
+    <style>
+    :root {
+        --wine-bg: #F5F1EC;
+        --wine-panel: #FFFFFF;
+        --wine-panel-2: #FBF8F4;
+        --wine-border: #DED5CC;
+        --wine-burgundy: #6E1730;
+        --wine-burgundy-2: #4A1022;
+        --wine-gold: #9A6B22;
+        --wine-text: #2B2525;
+        --wine-muted: #6F6662;
+    }
+
+    .stApp {
+        background: linear-gradient(135deg, #F8F5F1 0%, #F2ECE6 100%) !important;
+        color: #2B2525 !important;
+    }
+
+    .main, [data-testid="stAppViewContainer"],
+    [data-testid="stMain"], .block-container {
+        color: #2B2525 !important;
+    }
+
+    h1, h2, h3, h4, h5, h6,
+    p, .stMarkdown, [data-testid="stCaptionContainer"] {
+        color: #2B2525 !important;
+    }
+
+    label { color: #403838 !important; }
+    hr { border-color: #DED5CC !important; }
+
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #65172D 0%, #4A1022 100%) !important;
+        border-right: 1px solid #7B3145 !important;
+    }
+    [data-testid="stSidebar"] *,
+    [data-testid="stSidebar"] p,
+    [data-testid="stSidebar"] label {
+        color: #FFF8F3 !important;
+    }
+    [data-testid="stSidebar"] .sidebar-brand .brand-sub {
+        color: #F1D59B !important;
+    }
+    [data-testid="stSidebar"] .stButton > button {
+        color: #FFF8F3 !important;
+    }
+    [data-testid="stSidebar"] .stButton > button:hover {
+        background: rgba(255,255,255,.12) !important;
+    }
+
+    [data-baseweb="input"] > div,
+    [data-baseweb="select"] > div,
+    [data-baseweb="textarea"] > div,
+    .stTextInput input, .stNumberInput input, .stTextArea textarea {
+        background: #FFFFFF !important;
+        color: #2B2525 !important;
+        border-color: #D7CEC6 !important;
+    }
+    input, textarea { color: #2B2525 !important; }
+    [data-baseweb="select"] span { color: #2B2525 !important; }
+
+    .wine-card, .qr-card, .wine-item,
+    [data-testid="stMetric"],
+    [data-testid="stExpander"],
+    [data-testid="stFileUploaderDropzone"],
+    [data-testid="stCameraInput"] {
+        background: #FFFFFF !important;
+        color: #2B2525 !important;
+        border-color: #DED5CC !important;
+        box-shadow: 0 5px 18px rgba(65,42,35,.07) !important;
+    }
+    .wine-card *, .qr-card *, .wine-item *,
+    [data-testid="stMetric"] * {
+        color: #2B2525 !important;
+    }
+    .wine-title, [data-testid="stMetricValue"] {
+        color: #6E1730 !important;
+    }
+    [data-testid="stMetricLabel"] { color: #6F6662 !important; }
+
+    [data-testid="stAlert"] {
+        background: #FFFFFF !important;
+        border-color: #DED5CC !important;
+        color: #2B2525 !important;
+    }
+
+    [data-baseweb="tab"] {
+        background: #EEE6DF !important;
+        color: #514746 !important;
+    }
+    [aria-selected="true"][data-baseweb="tab"] {
+        background: #6E1730 !important;
+        color: #FFFFFF !important;
+    }
+
+    [data-baseweb="popover"] > div, [role="listbox"] {
+        background: #FFFFFF !important;
+        color: #2B2525 !important;
+    }
+    [role="option"] { color: #2B2525 !important; }
+    [role="option"]:hover { background: #F3E8E9 !important; }
+
+    [data-testid="stDataFrame"] {
+        background: #FFFFFF !important;
+        border-color: #DED5CC !important;
+    }
+
+    .stButton > button, .stDownloadButton > button, .stFormSubmitButton > button {
+        background: linear-gradient(135deg, #751A35, #581326) !important;
+        color: #FFFFFF !important;
+        border-color: #8C2944 !important;
+        box-shadow: 0 5px 14px rgba(88,19,38,.15) !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+st.markdown(
+    """
+    <style>
+    .stApp {
+        background:
+            radial-gradient(circle at 88% 8%, rgba(126,45,67,.20), transparent 31%),
+            linear-gradient(135deg, #1A1518 0%, #211A1E 55%, #171316 100%) !important;
+    }
+    [data-testid="stSidebar"] {
+        background: linear-gradient(180deg, #24161B 0%, #1C171A 100%) !important;
+        border-right-color: #4A353D !important;
+    }
+    .topbar, .wine-card, .qr-card, .wine-item, .action-card,
+    [data-testid="stMetric"], [data-testid="stForm"],
+    [data-testid="stExpander"], .premium-panel {
+        background: linear-gradient(180deg, #272125, #201A1E) !important;
+        border-color: #4B3A41 !important;
+    }
+    [data-baseweb="input"] > div, [data-baseweb="select"] > div,
+    [data-baseweb="textarea"] > div, .stTextInput input,
+    .stNumberInput input, .stTextArea textarea {
+        background: #241F22 !important;
+        border-color: #5A474F !important;
+    }
+    [role="radiogroup"] {
+        background: #211B1E !important;
+        border-color: #4B3A41 !important;
+    }
+    p, .stMarkdown, [data-testid="stCaptionContainer"] { color: #E3DCD7 !important; }
+    .action-desc, .premium-muted, .page-desc, .hero-sub { color: #C2B8B3 !important; }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+# ============================================================
+# ARQUIVOS
+# ============================================================
+
+NOME_ARQUIVO = "estoque_galpao_pro.json"
+ARQUIVO_USUARIOS = "usuarios_galpao.json"
+ARQUIVO_LOGS = "logs_auditoria.json"
+ARQUIVO_PEDIDOS = "pedidos_matriz.json"
+ARQUIVO_PALLETS = "pallets_galpao.json"
+
+PASTA_BACKUP = "backups_estoque"
+PASTA_FOTOS = "fotos_vinhos"
+PASTA_QR = "qr_pallets"
+
+SENHA_DEV = "1980"
+SENHA_DIVERGENCIA = "2026"
+
+
+# ============================================================
+# SUPABASE — API REST
+# ============================================================
+
+def obter_config_supabase():
+    """Lê URL e chave salvas em Settings > Secrets do Streamlit Cloud."""
+    try:
+        cfg = st.secrets["supabase"]
+        url = str(cfg["url"]).strip().rstrip("/")
+        key = str(cfg["key"]).strip()
+        if not url or not key:
+            return None
+        return {"url": url, "key": key}
+    except Exception:
+        return None
+
+
+def testar_conexao_supabase():
+    """Testa a API do Supabase sem exibir URL, chave ou outros segredos."""
+    import urllib.request
+    import urllib.error
+
+    cfg = obter_config_supabase()
+    if not cfg:
+        return False, "Secrets [supabase] incompletos. São necessários apenas url e key."
+
+    try:
+        endpoint = cfg["url"] + "/rest/v1/vinhos?select=id&limit=1"
+        req = urllib.request.Request(
+            endpoint,
+            headers={
+                "apikey": cfg["key"],
+                "Authorization": "Bearer " + cfg["key"],
+                "Accept": "application/json",
+            },
+            method="GET",
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            if 200 <= resp.status < 300:
+                return True, "Supabase conectado com sucesso. A tabela vinhos respondeu normalmente."
+            return False, "O Supabase respondeu, mas não confirmou o acesso à tabela vinhos."
+    except urllib.error.HTTPError as e:
+        if e.code in (401, 403):
+            return False, "A chave do Supabase foi recusada. Confira somente o campo key em Secrets."
+        if e.code == 404:
+            return False, "Conexão chegou ao Supabase, mas a tabela vinhos não foi encontrada."
+        return False, f"Supabase respondeu com erro HTTP {e.code}."
+    except urllib.error.URLError as e:
+        motivo = str(getattr(e, "reason", "erro de rede"))
+        motivo_low = motivo.lower()
+        if "name or service not known" in motivo_low or "getaddrinfo" in motivo_low:
+            return False, "DIAGNÓSTICO: o endereço do projeto Supabase não foi encontrado. Confira somente o campo url em Secrets."
+        if "timed out" in motivo_low or "timeout" in motivo_low:
+            return False, "DIAGNÓSTICO: a conexão com o Supabase expirou (timeout)."
+        if "certificate" in motivo_low or "ssl" in motivo_low:
+            return False, "DIAGNÓSTICO: ocorreu um erro SSL ao conectar ao Supabase."
+        return False, f"DIAGNÓSTICO DE REDE: {type(getattr(e, 'reason', e)).__name__}: {motivo}"
+    except ValueError as e:
+        return False, f"DIAGNÓSTICO DE URL: {type(e).__name__}: formato inválido no campo url do Supabase."
+    except Exception as e:
+        # Mostra somente o tipo do erro, sem URL, chave ou senha.
+        return False, f"DIAGNÓSTICO TÉCNICO: {type(e).__name__}."
+
+
+def diagnostico_conexao_supabase():
+    """Mantém compatibilidade com o botão de diagnóstico existente."""
+    return testar_conexao_supabase()
+
+
+@st.cache_data(ttl=10, show_spinner=False)
+def status_supabase_cache():
+    return testar_conexao_supabase()
+
+
+# ============================================================
+# CRIAÇÃO DE PASTAS
+# ============================================================
+
+os.makedirs(PASTA_BACKUP, exist_ok=True)
+os.makedirs(PASTA_FOTOS, exist_ok=True)
+os.makedirs(PASTA_QR, exist_ok=True)
+
+
+# ============================================================
+# LISTAS
+# ============================================================
+
+LISTA_CORREDORES = [
+    f"Corredor {i:02d}"
+    for i in range(1, 26)
+]
+
+LISTA_PALLETS = [
+    f"Pallet {i:02d}"
+    for i in range(1, 21)
+]
+
+LISTA_LOCAIS_TIPO = [
+    "Pallet",
+    "Prateleira"
+]
+
+LISTA_NUMEROS_LOCAL = [
+    f"Item {i:02d}"
+    for i in range(1, 26)
+]
+
+LISTA_LADOS = [
+    "Direito",
+    "Esquerdo",
+    "Centro / Único"
+]
+
+OPCOES_CAIXA = [
+    "Caixa com 24 garrafas",
+    "Caixa com 12 garrafas",
+    "Caixa com 6 garrafas",
+    "Caixa com 4 garrafas",
+    "Caixa com 3 garrafas",
+    "Caixa com 2 garrafas",
+    "Garrafa Avulsa (1 un)",
+    "Outra quantidade"
+]
+
+LISTA_LITRAGENS = [
+    "375 ml",
+    "500 ml",
+    "750 ml",
+    "1 L",
+    "1,5 L",
+    "3 L",
+]
+
+
+# ============================================================
+# HORÁRIO
+# ============================================================
+
+def obter_horario_brasilia():
+    fuso_brasilia = timezone(timedelta(hours=-3))
+    return datetime.now(fuso_brasilia)
+
+
+def obter_saudacao():
+    hora = obter_horario_brasilia().hour
+
+    if 0 <= hora < 12:
+        return "Bom dia"
+    elif 12 <= hora < 18:
+        return "Boa tarde"
+    else:
+        return "Boa noite"
+
+
+# ============================================================
+# BACKUP
+# ============================================================
+
+def realizar_backup(nome):
+    if os.path.exists(nome):
+        ts = obter_horario_brasilia().strftime("%Y%m%d_%H%M%S")
+
+        shutil.copy(
+            nome,
+            os.path.join(
+                PASTA_BACKUP,
+                f"backup_{ts}_{nome}"
+            )
+        )
+
+
+# ============================================================
+# ESTOQUE
+# ============================================================
+
+def _supabase_request(method, tabela, query="", payload=None, prefer=None):
+    """Faz chamadas REST ao Supabase sem expor a Secret Key."""
+    import urllib.request
+    import urllib.error
+
+    cfg = obter_config_supabase()
+    if not cfg:
+        raise RuntimeError("Secrets [supabase] incompletos.")
+
+    endpoint = f'{cfg["url"]}/rest/v1/{tabela}'
+    if query:
+        endpoint += "?" + query.lstrip("?")
+
+    headers = {
+        "apikey": cfg["key"],
+        "Authorization": "Bearer " + cfg["key"],
+        "Accept": "application/json",
+    }
+
+    body = None
+    if payload is not None:
+        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        headers["Content-Type"] = "application/json"
+
+    if prefer:
+        headers["Prefer"] = prefer
+
+    req = urllib.request.Request(
+        endpoint,
+        data=body,
+        headers=headers,
+        method=method,
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            raw = resp.read().decode("utf-8").strip()
+            return json.loads(raw) if raw else None
+    except urllib.error.HTTPError as e:
+        try:
+            detalhe = e.read().decode("utf-8", errors="ignore")
+            detalhe_json = json.loads(detalhe) if detalhe else {}
+            mensagem = (
+                detalhe_json.get("message")
+                or detalhe_json.get("hint")
+                or detalhe_json.get("details")
+                or f"HTTP {e.code}"
+            )
+        except Exception:
+            mensagem = f"HTTP {e.code}"
+        raise RuntimeError(f"Supabase: {mensagem}") from None
+    except urllib.error.URLError as e:
+        raise RuntimeError("Não foi possível comunicar com o Supabase.") from None
+
+
+def _campos_localizacao_para_supabase(vinho):
+    """Converte a localização usada pelo app para as colunas do banco."""
+    localizacao = str(vinho.get("localizacao", "") or "").strip()
+    corredor = ""
+    tipo_local = ""
+    pallet = ""
+
+    m = re.match(
+        r"^(Corredor\s+\d+)\s*-\s*(Pallet|Prateleira)\s+(Item\s+\d+)$",
+        localizacao,
+        flags=re.IGNORECASE,
+    )
+    if m:
+        corredor = m.group(1).title()
+        tipo_local = m.group(2).title()
+        pallet = m.group(3).title()
+    else:
+        partes = [p.strip() for p in localizacao.split("-", 1)]
+        corredor = partes[0] if partes else ""
+        if len(partes) > 1:
+            resto = partes[1]
+            if resto.lower().startswith("pallet"):
+                tipo_local = "Pallet"
+                pallet = resto[len("pallet"):].strip()
+            elif resto.lower().startswith("prateleira"):
+                tipo_local = "Prateleira"
+                pallet = resto[len("prateleira"):].strip()
+
+    return corredor, tipo_local, pallet
+
+
+def _vinho_app_para_supabase(vinho):
+    corredor, tipo_local, pallet = _campos_localizacao_para_supabase(vinho)
+    return {
+        "nome": str(vinho.get("nome", "") or "").strip(),
+        "safra": str(vinho.get("safra", "") or "").strip(),
+        "tipo": str(vinho.get("tipo", "") or "").strip(),
+        "litragem": str(vinho.get("litragem", "") or "").strip(),
+        "embalagem": str(vinho.get("caixa", "") or "").strip(),
+        "codigo_barras": str(vinho.get("codigo_barras", "") or "").strip() or None,
+        "corredor": corredor or None,
+        "tipo_local": tipo_local or None,
+        "pallet": pallet or None,
+        "lado": str(vinho.get("lado", "") or "").strip() or None,
+        "foto_url": str(vinho.get("foto", "") or "").strip() or None,
+        "ativo": True,
+    }
+
+
+def _vinho_supabase_para_app(registro):
+    corredor = str(registro.get("corredor", "") or "").strip()
+    tipo_local = str(registro.get("tipo_local", "") or "").strip()
+    pallet = str(registro.get("pallet", "") or "").strip()
+
+    localizacao = corredor
+    if tipo_local or pallet:
+        localizacao = f"{corredor} - {tipo_local} {pallet}".strip()
+
+    return {
+        "_db_id": registro.get("id"),
+        "nome": str(registro.get("nome", "") or ""),
+        "tipo": str(registro.get("tipo", "") or ""),
+        "safra": str(registro.get("safra", "") or ""),
+        "localizacao": localizacao,
+        "lado": str(registro.get("lado", "") or ""),
+        "caixa": str(registro.get("embalagem", "") or ""),
+        "litragem": str(registro.get("litragem", "") or ""),
+        "codigo_barras": str(registro.get("codigo_barras", "") or ""),
+        "foto": str(registro.get("foto_url", "") or ""),
+    }
+
+
+def carregar_dados():
+    """Carrega os vinhos diretamente do Supabase. JSON fica apenas como backup local."""
+    try:
+        registros = _supabase_request(
+            "GET",
+            "vinhos",
+            "select=*&ativo=eq.true&order=nome.asc",
+        ) or []
+
+        estoque = [_vinho_supabase_para_app(r) for r in registros]
+
+        # Mantém uma cópia local somente como backup de emergência.
+        try:
+            with open(NOME_ARQUIVO, "w", encoding="utf-8") as f:
+                json.dump(estoque, f, ensure_ascii=False, indent=4)
+        except Exception:
+            pass
+
+        return estoque
+
+    except Exception as e:
+        # Se houver uma indisponibilidade temporária, tenta abrir o último backup local.
+        estoque = []
+        if os.path.exists(NOME_ARQUIVO):
+            try:
+                with open(NOME_ARQUIVO, "r", encoding="utf-8") as f:
+                    dados = json.load(f)
+                    if isinstance(dados, list):
+                        estoque = dados
+            except Exception:
+                estoque = []
+
+        if estoque:
+            st.warning(
+                "Supabase temporariamente indisponível. "
+                "Exibindo o último backup local; alterações não serão perdidas no banco."
+            )
+            return sorted(estoque, key=lambda x: x.get("nome", "").lower())
+
+        st.error(f"Não foi possível carregar o estoque do Supabase: {e}")
+        return []
+
+
+def salvar_dados(estoque):
+    """
+    Sincroniza o estoque com o Supabase:
+    - registros existentes são atualizados pelo id;
+    - novos vinhos são inseridos;
+    - vinhos removidos no app recebem ativo=false (soft delete).
+    """
+    estoque_ordenado = sorted(
+        estoque,
+        key=lambda x: x.get("nome", "").lower()
+    )
+
+    try:
+        existentes = _supabase_request(
+            "GET",
+            "vinhos",
+            "select=id&ativo=eq.true",
+        ) or []
+        ids_banco = {str(r.get("id")) for r in existentes if r.get("id") is not None}
+        ids_app = {
+            str(v.get("_db_id"))
+            for v in estoque_ordenado
+            if v.get("_db_id") is not None
+        }
+
+        # Soft delete dos itens removidos no aplicativo.
+        for db_id in ids_banco - ids_app:
+            _supabase_request(
+                "PATCH",
+                "vinhos",
+                "id=eq." + str(db_id),
+                {"ativo": False},
+                prefer="return=minimal",
+            )
+
+        # Atualiza existentes e insere novos.
+        for vinho in estoque_ordenado:
+            payload = _vinho_app_para_supabase(vinho)
+            db_id = vinho.get("_db_id")
+
+            if db_id is not None:
+                _supabase_request(
+                    "PATCH",
+                    "vinhos",
+                    "id=eq." + str(db_id),
+                    payload,
+                    prefer="return=minimal",
+                )
+            else:
+                criado = _supabase_request(
+                    "POST",
+                    "vinhos",
+                    "",
+                    payload,
+                    prefer="return=representation",
+                )
+                if isinstance(criado, list) and criado:
+                    vinho["_db_id"] = criado[0].get("id")
+
+        # Backup local secundário.
+        try:
+            with open(NOME_ARQUIVO, "w", encoding="utf-8") as f:
+                json.dump(estoque_ordenado, f, ensure_ascii=False, indent=4)
+            realizar_backup(NOME_ARQUIVO)
+        except Exception:
+            pass
+
+        st.session_state.estoque = estoque_ordenado
+
+    except Exception as e:
+        st.error(f"Não foi possível salvar no Supabase: {e}")
+        st.stop()
+
+
+# ============================================================
+# USUÁRIOS
+# ============================================================
+
+def carregar_usuarios():
+    usuarios = []
+
+    if os.path.exists(ARQUIVO_USUARIOS):
+        try:
+            with open(ARQUIVO_USUARIOS, "r", encoding="utf-8") as f:
+                usuarios = json.load(f)
+        except Exception:
+            usuarios = []
+
+    # Primeiro acesso: mantém o administrador principal padrão do sistema.
+    if not usuarios:
+        usuarios = [
+            {
+                "nome": "Vagner Souza",
+                "cargo": "Administrador Principal",
+                "senha": "1980",
+                "status": "Aprovado",
+                "aprovado_por": "Sistema"
+            }
+        ]
+
+    # Compatibilidade com cadastros antigos.
+    alterado = False
+    for usuario in usuarios:
+        if usuario.get("cargo") == "Administrador":
+            usuario["cargo"] = "Administrador Principal"
+            alterado = True
+        if "status" not in usuario:
+            usuario["status"] = "Aprovado"
+            alterado = True
+        if "aprovado_por" not in usuario:
+            usuario["aprovado_por"] = "Cadastro antigo"
+            alterado = True
+
+    if alterado:
+        salvar_usuarios(usuarios)
+
+    return usuarios
+
+
+def salvar_usuarios(usuarios):
+
+    with open(
+        ARQUIVO_USUARIOS,
+        "w",
+        encoding="utf-8"
+    ) as f:
+
+        json.dump(
+            usuarios,
+            f,
+            ensure_ascii=False,
+            indent=4
+        )
+
+
+# ============================================================
+# LOGS
+# ============================================================
+
+def carregar_logs():
+
+    if os.path.exists(ARQUIVO_LOGS):
+
+        try:
+
+            with open(
+                ARQUIVO_LOGS,
+                "r",
+                encoding="utf-8"
+            ) as f:
+
+                return json.load(f)
+
+        except Exception:
+            pass
+
+    return []
+
+
+def registrar_log(
+    usuario,
+    acao,
+    detalhes
+):
+
+    logs = carregar_logs()
+
+    logs.insert(
+        0,
+        {
+            "data_hora":
+                obter_horario_brasilia().strftime(
+                    "%d/%m/%Y %H:%M:%S"
+                ),
+            "usuario": usuario,
+            "acao": acao,
+            "detalhes": detalhes
+        }
+    )
+
+    with open(
+        ARQUIVO_LOGS,
+        "w",
+        encoding="utf-8"
+    ) as f:
+
+        json.dump(
+            logs,
+            f,
+            ensure_ascii=False,
+            indent=4
+        )
+
+
+# ============================================================
+# PEDIDOS — SUPABASE + BACKUP LOCAL
+# ============================================================
+
+def _normalizar_pedidos(pedidos):
+    """Mantém compatibilidade com pedidos antigos e garante campos da conferência."""
+    pedidos_normalizados = []
+
+    for pedido in pedidos if isinstance(pedidos, list) else []:
+        if not isinstance(pedido, dict):
+            continue
+
+        p = dict(pedido)
+        p["id"] = str(p.get("id", "") or "").strip()
+        p.setdefault("data", "")
+        p.setdefault("status", "Pendente")
+        p.setdefault("itens", [])
+
+        itens_normalizados = []
+        for item in p.get("itens", []):
+            if not isinstance(item, dict):
+                continue
+
+            i = dict(item)
+            i.setdefault("litragem", "")
+            i.setdefault("qtd_caixas", i.get("quantidade", 0))
+            i.setdefault("unidades_caixa", 0)
+            i.setdefault("total_garrafas", 0)
+            i.setdefault("unidade_operacional", "caixa")
+            i.setdefault("qtd_separada", 0)
+            i.setdefault("divergencia", 0)
+            i.setdefault("autorizado_divergencia", False)
+            i.setdefault("separado", False)
+            itens_normalizados.append(i)
+
+        p["itens"] = itens_normalizados
+
+        if p["id"]:
+            pedidos_normalizados.append(p)
+
+    return pedidos_normalizados
+
+
+def _carregar_pedidos_backup_local():
+    """Lê o último backup local. Ele é somente contingência, não o banco principal."""
+    if not os.path.exists(ARQUIVO_PEDIDOS):
+        return []
+
+    try:
+        with open(ARQUIVO_PEDIDOS, "r", encoding="utf-8") as f:
+            dados = json.load(f)
+        return _normalizar_pedidos(dados)
+    except Exception:
+        return []
+
+
+def _salvar_pedidos_backup_local(pedidos):
+    """Mantém uma cópia local secundária para contingência."""
+    try:
+        with open(ARQUIVO_PEDIDOS, "w", encoding="utf-8") as f:
+            json.dump(
+                pedidos,
+                f,
+                ensure_ascii=False,
+                indent=4
+            )
+        realizar_backup(ARQUIVO_PEDIDOS)
+    except Exception:
+        pass
+
+
+def carregar_pedidos():
+    """
+    Carrega pedidos do Supabase.
+
+    Se a tabela estiver vazia e existir um JSON local de uma versão antiga,
+    migra automaticamente esses pedidos para o Supabase.
+    Em indisponibilidade temporária do Supabase, usa o último backup local.
+    """
+    try:
+        registros = _supabase_request(
+            "GET",
+            "pedidos_galpao",
+            "select=pedido_id,dados,criado_em,atualizado_em"
+            "&ativo=eq.true&order=criado_em.asc",
+        ) or []
+
+        pedidos = []
+        for registro in registros:
+            dados = registro.get("dados", {})
+            if isinstance(dados, str):
+                try:
+                    dados = json.loads(dados)
+                except Exception:
+                    dados = {}
+
+            if isinstance(dados, dict):
+                pedido = dict(dados)
+                pedido["id"] = str(
+                    pedido.get("id")
+                    or registro.get("pedido_id")
+                    or ""
+                ).strip()
+                pedidos.append(pedido)
+
+        pedidos = _normalizar_pedidos(pedidos)
+
+        # Migração automática do JSON antigo para a tabela nova.
+        if not pedidos:
+            backup_antigo = _carregar_pedidos_backup_local()
+            if backup_antigo:
+                salvar_pedidos(backup_antigo)
+                pedidos = backup_antigo
+
+        _salvar_pedidos_backup_local(pedidos)
+        return pedidos
+
+    except Exception as e:
+        backup = _carregar_pedidos_backup_local()
+
+        if backup:
+            st.warning(
+                "Supabase temporariamente indisponível para pedidos. "
+                "Exibindo o último backup local."
+            )
+            return backup
+
+        st.error(
+            "Não foi possível carregar os pedidos do Supabase. "
+            "Verifique se a tabela 'pedidos_galpao' foi criada. "
+            f"Detalhe: {e}"
+        )
+        return []
+
+
+def salvar_pedidos(pedidos):
+    """
+    Persiste os pedidos no Supabase.
+
+    - pedido_id é a chave estável do pedido;
+    - dados guarda toda a estrutura atual do pedido em JSONB;
+    - registros removidos pelo aplicativo recebem ativo=false;
+    - o JSON local permanece apenas como backup secundário.
+    """
+    from urllib.parse import quote
+
+    pedidos_normalizados = _normalizar_pedidos(pedidos)
+    ids_app = {
+        str(p.get("id", "")).strip()
+        for p in pedidos_normalizados
+        if str(p.get("id", "")).strip()
+    }
+
+    try:
+        existentes = _supabase_request(
+            "GET",
+            "pedidos_galpao",
+            "select=pedido_id&ativo=eq.true",
+        ) or []
+
+        ids_banco = {
+            str(r.get("pedido_id", "") or "").strip()
+            for r in existentes
+            if str(r.get("pedido_id", "") or "").strip()
+        }
+
+        # Exclusão lógica: não destrói histórico fisicamente no banco.
+        for pedido_id in ids_banco - ids_app:
+            _supabase_request(
+                "PATCH",
+                "pedidos_galpao",
+                "pedido_id=eq." + quote(pedido_id, safe=""),
+                {
+                    "ativo": False,
+                    "atualizado_em": obter_horario_brasilia().isoformat(),
+                },
+                prefer="return=minimal",
+            )
+
+        # UPSERT de todos os pedidos atuais.
+        if pedidos_normalizados:
+            agora = obter_horario_brasilia().isoformat()
+            payload = [
+                {
+                    "pedido_id": str(p["id"]).strip(),
+                    "dados": p,
+                    "ativo": True,
+                    "atualizado_em": agora,
+                }
+                for p in pedidos_normalizados
+            ]
+
+            _supabase_request(
+                "POST",
+                "pedidos_galpao",
+                "on_conflict=pedido_id",
+                payload,
+                prefer="resolution=merge-duplicates,return=minimal",
+            )
+
+        _salvar_pedidos_backup_local(pedidos_normalizados)
+
+    except Exception as e:
+        # Nunca grava silenciosamente só no arquivo local achando que persistiu.
+        # Mantém o backup para contingência, mas avisa que o banco não confirmou.
+        _salvar_pedidos_backup_local(pedidos_normalizados)
+        st.error(
+            "O pedido foi mantido no backup local, mas o Supabase não confirmou "
+            f"a gravação. Detalhe: {e}"
+        )
+        st.stop()
+
+
+# ============================================================
+# SINCRONIZA ESTOQUE COM PEDIDOS
+# ============================================================
+
+def sincronizar_estoque_com_pedidos(pedidos, estoque):
+    """Pedidos não devem criar ou recriar itens no cadastro de estoque.
+
+    O estoque é administrado somente por Cadastro, Edição e movimentação
+    de localização/pallet. Assim, excluir um vinho do estoque é definitivo
+    e uma lista de pedido antiga não faz o vinho reaparecer.
+    """
+    return estoque
+
+
+# ============================================================
+# INTERPRETAR PEDIDO
+# ============================================================
+
+def normalizar_litragem_pedido(valor):
+    """Converte formas como 375ml, 750 ml, 1.5L e 1,5 L para o padrão do cadastro."""
+    bruto = str(valor or "").strip()
+    if not bruto or bruto.lower() == "nan":
+        return ""
+
+    s = bruto.lower().replace(",", ".")
+    s = re.sub(r"\s+", " ", s).strip()
+
+    # Se vier apenas um número numa coluna de volume, números grandes são ml.
+    if re.fullmatch(r"\d+(?:\.\d+)?", s):
+        numero = float(s)
+        if numero >= 50:
+            s = f"{numero:g} ml"
+        else:
+            s = f"{numero:g} l"
+
+    m = re.search(r"(\d+(?:\.\d+)?)\s*(ml|l|litro|litros)\b", s, re.IGNORECASE)
+    if not m:
+        return bruto
+
+    numero = float(m.group(1))
+    unidade = m.group(2).lower()
+
+    if unidade == "ml":
+        if numero.is_integer():
+            candidato = f"{int(numero)} ml"
+        else:
+            candidato = f"{numero:g} ml"
+    else:
+        # Frações de litro são normalizadas para ml quando coincidem com tamanhos usuais.
+        if numero < 1:
+            ml = numero * 1000
+            candidato = f"{int(round(ml))} ml"
+        else:
+            if numero.is_integer():
+                candidato = f"{int(numero)} L"
+            else:
+                candidato = f"{str(numero).replace('.', ',')} L"
+
+    # Retorna exatamente a grafia oficial quando ela existir no cadastro.
+    alvo = normalizar_nome_vinho(candidato) if 'normalizar_nome_vinho' in globals() else candidato.lower()
+    for opcao in LISTA_LITRAGENS:
+        comp = normalizar_nome_vinho(opcao) if 'normalizar_nome_vinho' in globals() else opcao.lower()
+        if comp == alvo:
+            return opcao
+    return candidato
+
+
+def extrair_litragem_texto(texto):
+    """Retira a litragem do nome e devolve (texto_sem_litragem, litragem)."""
+    original = str(texto or "")
+    padrao = re.compile(r"\b(\d+(?:[.,]\d+)?)\s*(ml|l|litro|litros)\b", re.IGNORECASE)
+    m = padrao.search(original)
+    if not m:
+        return original.strip(), ""
+
+    litragem = normalizar_litragem_pedido(m.group(0))
+    limpo = padrao.sub(" ", original, count=1)
+    limpo = re.sub(r"\s+", " ", limpo).strip(" -/|–")
+    return limpo.strip(), litragem
+
+
+def rotulo_item_pedido(item):
+    """Rótulo de tela que diferencia o mesmo vinho por litragem e safra."""
+    partes = [str(item.get("nome", "") or "").strip()]
+    litragem = normalizar_litragem_pedido(item.get("litragem", ""))
+    safra = str(item.get("safra", "") or "").strip()
+    if litragem:
+        partes.append(litragem)
+    if safra:
+        partes.append(safra)
+    return " • ".join([p for p in partes if p])
+
+
+
+def unidades_por_caixa(valor):
+    """Converte a embalagem cadastrada em quantidade de garrafas por caixa."""
+    if isinstance(valor, dict):
+        direto = valor.get("unidades_caixa", "")
+        try:
+            if str(direto).strip():
+                return max(0, int(float(direto)))
+        except Exception:
+            pass
+        valor = valor.get("caixa", valor.get("embalagem", ""))
+
+    texto = str(valor or "").strip().lower()
+
+    if "avulsa" in texto or "1 un" in texto:
+        return 1
+
+    m = re.search(r"\b(\d+)\b", texto)
+    if m:
+        try:
+            return max(0, int(m.group(1)))
+        except Exception:
+            return 0
+
+    return 0
+
+
+def rotulo_vinho_cadastro_pedido(vinho):
+    """Rótulo do vinho para o formulário do pedido."""
+    nome = str(vinho.get("nome", "") or "").strip()
+    safra = str(vinho.get("safra", "") or "").strip() or "N/A"
+    litragem = normalizar_litragem_pedido(vinho.get("litragem", "")) or "N/A"
+    un_caixa = unidades_por_caixa(vinho)
+    embalagem = (
+        f"{un_caixa} garrafa(s) por caixa"
+        if un_caixa > 0
+        else str(vinho.get("caixa", "") or "Embalagem não informada")
+    )
+    return f"{nome} • Safra {safra} • {litragem} • {embalagem}"
+
+
+def analisar_consulta_pedido_manual(consulta):
+    """Separa nome, litragem e safra digitados na busca do pedido.
+
+    Aceita formas rápidas como:
+    - Quereu Carmenere
+    - Quereu Carmenere 375
+    - Quereu Carmenere/750
+    - Quereu Carmenere 750 ml
+    - Quereu Carmenere 2024 375
+
+    A litragem digitada serve como preferência inicial, mas a busca retorna
+    TODAS as litragem cadastradas do mesmo vinho para permitir a escolha.
+    """
+    bruto = str(consulta or "").strip()
+    q = normalizar_nome_vinho(bruto)
+    tokens = [t for t in q.split() if t]
+
+    safra_solicitada = ""
+    for token in tokens:
+        if re.fullmatch(r"(?:19|20)\d{2}", token):
+            safra_solicitada = token
+            break
+
+    # Mapeia formas curtas para as litragem oficiais cadastráveis.
+    aliases_litragem = {
+        "375": "375 ml", "375ml": "375 ml",
+        "500": "500 ml", "500ml": "500 ml",
+        "750": "750 ml", "750ml": "750 ml",
+        "1000": "1 L", "1000ml": "1 L", "1l": "1 L",
+        "1500": "1,5 L", "1500ml": "1,5 L", "15l": "1,5 L",
+        "3000": "3 L", "3000ml": "3 L", "3l": "3 L",
+    }
+
+    litragem_solicitada = ""
+    remover_indices = set()
+    for idx, token in enumerate(tokens):
+        combinado = token
+        if idx + 1 < len(tokens) and tokens[idx + 1] in {"ml", "l", "litro", "litros"}:
+            combinado = token + tokens[idx + 1]
+        if combinado in aliases_litragem:
+            litragem_solicitada = aliases_litragem[combinado]
+            remover_indices.add(idx)
+            if idx + 1 < len(tokens) and tokens[idx + 1] in {"ml", "l", "litro", "litros"}:
+                remover_indices.add(idx + 1)
+            break
+        if token in aliases_litragem:
+            litragem_solicitada = aliases_litragem[token]
+            remover_indices.add(idx)
+            break
+
+    # Tenta também a função geral para formatos como 1,5 L.
+    if not litragem_solicitada:
+        _sem_lit, _lit = extrair_litragem_texto(bruto)
+        if _lit:
+            litragem_solicitada = _lit
+
+    nome_tokens = [
+        token for idx, token in enumerate(tokens)
+        if idx not in remover_indices
+        and token not in {"ml", "l", "litro", "litros"}
+        and token != safra_solicitada
+    ]
+
+    return {
+        "nome_tokens": nome_tokens,
+        "litragem": litragem_solicitada,
+        "safra": safra_solicitada,
+    }
+
+
+def localizar_vinhos_por_consulta_pedido(consulta):
+    """Procura o VINHO pelo nome, sem esconder as outras litragem dele.
+
+    Se o usuário digitar ``Quereu Carmenere/750``, por exemplo, o sistema
+    encontra Quereu Carmenere e devolve todas as variantes cadastradas desse
+    título. A litragem 750 ml é usada apenas como escolha inicial do formulário.
+    """
+    consulta = str(consulta or "").strip()
+    if not consulta:
+        return []
+
+    por_codigo = [
+        v for v in st.session_state.get("estoque", [])
+        if str(v.get("codigo_barras", "") or "").strip() == consulta
+    ]
+    if por_codigo:
+        # Código de barras identifica uma variante específica.
+        # Ainda assim devolvemos as variantes do mesmo título para o formulário
+        # saber que existem outras litragem disponíveis.
+        nome_codigo = normalizar_nome_vinho(por_codigo[0].get("nome", ""))
+        variantes = [
+            v for v in st.session_state.get("estoque", [])
+            if normalizar_nome_vinho(v.get("nome", "")) == nome_codigo
+        ]
+        return variantes or por_codigo
+
+    analise = analisar_consulta_pedido_manual(consulta)
+    nome_tokens = analise.get("nome_tokens", [])
+    if not nome_tokens:
+        return []
+
+    encontrados = []
+    for vinho in st.session_state.get("estoque", []):
+        nome_alvo = normalizar_nome_vinho(vinho.get("nome", ""))
+        if all(token in nome_alvo for token in nome_tokens):
+            encontrados.append(vinho)
+
+    encontrados.sort(
+        key=lambda v: (
+            normalizar_nome_vinho(v.get("nome", "")),
+            normalizar_litragem_pedido(v.get("litragem", "")),
+            str(v.get("safra", "")),
+        )
+    )
+    return encontrados
+
+
+def item_pedido_com_caixas(vinho, quantidade_caixas=1):
+    """Cria item de pedido usando CAIXA como unidade operacional."""
+    qtd_caixas = max(0, int(quantidade_caixas))
+    un_caixa = unidades_por_caixa(vinho)
+    return {
+        "nome": vinho.get("nome", ""),
+        "safra": vinho.get("safra", ""),
+        "litragem": normalizar_litragem_pedido(vinho.get("litragem", "")),
+        "caixa": str(vinho.get("caixa", "") or ""),
+        "unidades_caixa": un_caixa,
+        # Mantém "quantidade" para compatibilidade. Em pedidos novos = caixas.
+        "quantidade": qtd_caixas,
+        "qtd_caixas": qtd_caixas,
+        "total_garrafas": qtd_caixas * un_caixa if un_caixa > 0 else 0,
+        "unidade_operacional": "caixa",
+        "separado": False,
+        # Em pedidos novos qtd_separada = caixas conferidas.
+        "qtd_separada": 0,
+        "divergencia": 0,
+        "autorizado_divergencia": False,
+    }
+
+
+def sincronizar_campos_caixas_item(item, vinho=None):
+    """Completa campos de caixa puxando a embalagem do cadastro do vinho."""
+    item = dict(item or {})
+    qtd = int(item.get("qtd_caixas", item.get("quantidade", 0)) or 0)
+    item["quantidade"] = qtd
+    item["qtd_caixas"] = qtd
+
+    if vinho is None and "localizar_vinho_cadastrado" in globals():
+        vinho = localizar_vinho_cadastrado(
+            item.get("nome", ""),
+            item.get("safra", ""),
+            item.get("litragem", ""),
+        )
+
+    if vinho:
+        item["nome"] = vinho.get("nome", item.get("nome", ""))
+        if not str(item.get("safra", "")).strip():
+            item["safra"] = vinho.get("safra", "")
+        item["litragem"] = normalizar_litragem_pedido(
+            vinho.get("litragem", item.get("litragem", ""))
+        )
+        item["caixa"] = str(vinho.get("caixa", item.get("caixa", "")) or "")
+
+    un_caixa = unidades_por_caixa(item)
+    if un_caixa <= 0 and vinho:
+        un_caixa = unidades_por_caixa(vinho)
+
+    item["unidades_caixa"] = un_caixa
+    item["total_garrafas"] = qtd * un_caixa if un_caixa > 0 else 0
+    item.setdefault("unidade_operacional", "caixa")
+    return item
+
+
+def interpretar_linha_pedido_com_cadastro(texto_linha):
+    """
+    Aceita TXT como:
+      Quereu Carmenere 375 / 5
+      Quereu Carmenere 375 5 caixas
+    O cadastro fornece safra, litragem e unidades por caixa.
+    """
+    linha = str(texto_linha or "").strip()
+    if not linha:
+        return None
+
+    qtd_caixas = 1
+    consulta = linha
+
+    m_qtd = re.search(
+        r"(?:/|\bcaixas?\s*[:=-]?|\bqtd(?:\.|\s+)?caixas?\s*[:=-]?)\s*(\d+)\s*$",
+        consulta,
+        flags=re.IGNORECASE,
+    )
+    if m_qtd:
+        qtd_caixas = int(m_qtd.group(1))
+        consulta = (consulta[:m_qtd.start()] + " " + consulta[m_qtd.end():]).strip()
+
+    candidatos = localizar_vinhos_por_consulta_pedido(consulta)
+    if len(candidatos) == 1:
+        return item_pedido_com_caixas(candidatos[0], qtd_caixas)
+
+    legado = interpretar_linha_pedido(linha)
+    legado["qtd_caixas"] = int(legado.get("quantidade", 1) or 1)
+    legado["unidade_operacional"] = "caixa"
+    return legado
+
+
+def interpretar_linha_pedido(
+    texto_linha
+):
+
+    texto = texto_linha.strip()
+
+    safra = ""
+    quantidade = 1
+
+    anos = re.findall(
+        r"\b(20\d{2})\b",
+        texto
+    )
+
+    if anos:
+
+        safra = anos[0]
+        texto_limpo = texto.replace(
+            safra,
+            ""
+        )
+
+    else:
+        texto_limpo = texto
+
+    # Remove a litragem antes de procurar números de quantidade.
+    # Ex.: "Quereu Carmenere 375 ml / 5" => litragem 375 ml, quantidade 5.
+    texto_limpo, litragem = extrair_litragem_texto(texto_limpo)
+
+    match_qtd = re.search(
+        r"(?:/|\bcaixas?|\bqt[d]?\.?)\s*(\d+)",
+        texto_limpo,
+        re.IGNORECASE
+    )
+
+    if match_qtd:
+
+        quantidade = int(
+            match_qtd.group(1)
+        )
+
+        texto_limpo = texto_limpo.replace(
+            match_qtd.group(0),
+            ""
+        )
+
+    else:
+
+        numeros_soltos = re.findall(
+            r"\b(\d+)\b",
+            texto_limpo
+        )
+
+        if numeros_soltos:
+
+            quantidade = int(
+                numeros_soltos[-1]
+            )
+
+            texto_limpo = texto_limpo.replace(
+                numeros_soltos[-1],
+                ""
+            )
+
+    texto_limpo = re.sub(
+        r"\bcaixas?\b",
+        "",
+        texto_limpo,
+        flags=re.IGNORECASE
+    )
+
+    nome = re.sub(
+        r"[/\|\-\–]+",
+        "",
+        texto_limpo
+    ).strip().title()
+
+    return {
+        "nome": nome,
+        "safra": safra,
+        "litragem": litragem,
+        "quantidade": quantidade,
+        "separado": False,
+        "qtd_separada": 0,
+        "divergencia": 0,
+        "autorizado_divergencia": False
+    }
+
+
+# ============================================================
+# ARQUIVO DE PEDIDO
+# ============================================================
+
+def extrair_pedidos_de_arquivo(arq):
+
+    itens = []
+    if arq is None:
+        return itens
+
+    ext = arq.name.split(".")[-1].lower()
+
+    def _limpo(valor):
+        try:
+            if pd.isna(valor):
+                return ""
+        except Exception:
+            pass
+        return str(valor or "").strip()
+
+    def _valor_row(row, nomes, fallback_idx=None, default=""):
+        mapa = {normalizar_nome_vinho(c): c for c in row.index}
+        for nome in nomes:
+            chave = mapa.get(normalizar_nome_vinho(nome))
+            if chave is not None:
+                return row.get(chave, default)
+        if fallback_idx is not None and len(row) > fallback_idx:
+            return row.iloc[fallback_idx]
+        return default
+
+    try:
+        if ext in ["xlsx", "xls"]:
+
+            df = pd.read_excel(arq)
+
+            for _, row in df.iterrows():
+
+                nome_bruto = _limpo(
+                    _valor_row(row, ["Nome", "Produto", "Vinho"], 0, "")
+                )
+                if not nome_bruto or nome_bruto.lower() == "nan":
+                    continue
+
+                safra_col = _limpo(
+                    _valor_row(row, ["Safra", "Ano"], 1, "")
+                )
+
+                litragem_col = normalizar_litragem_pedido(
+                    _limpo(
+                        _valor_row(
+                            row,
+                            ["Litragem", "Volume", "ML", "Tamanho"],
+                            None,
+                            "",
+                        )
+                    )
+                )
+
+                qtd_col = _valor_row(
+                    row,
+                    [
+                        "Quantidade de Caixas",
+                        "Qtd Caixas",
+                        "Qtd. Caixas",
+                        "Caixas",
+                        "Quantidade",
+                        "Qtd",
+                    ],
+                    2,
+                    1,
+                )
+                try:
+                    qtd_caixas = max(0, int(float(str(qtd_col).replace(",", "."))))
+                except Exception:
+                    qtd_caixas = 1
+
+                consulta = " ".join(
+                    p for p in [nome_bruto, safra_col, litragem_col] if p
+                ).strip()
+
+                candidatos = localizar_vinhos_por_consulta_pedido(consulta)
+                vinho = candidatos[0] if len(candidatos) == 1 else None
+
+                if vinho is None:
+                    nome_sem_litragem, litragem_nome = extrair_litragem_texto(nome_bruto)
+                    vinho = localizar_vinho_cadastrado(
+                        nome_sem_litragem,
+                        safra_col,
+                        litragem_col or litragem_nome,
+                    )
+
+                if vinho is not None:
+                    itens.append(item_pedido_com_caixas(vinho, qtd_caixas))
+                else:
+                    nome_sem_litragem, litragem_nome = extrair_litragem_texto(nome_bruto)
+                    itens.append({
+                        "nome": nome_sem_litragem.title(),
+                        "safra": safra_col,
+                        "litragem": litragem_col or litragem_nome,
+                        "quantidade": qtd_caixas,
+                        "qtd_caixas": qtd_caixas,
+                        "unidades_caixa": 0,
+                        "total_garrafas": 0,
+                        "unidade_operacional": "caixa",
+                        "separado": False,
+                        "qtd_separada": 0,
+                        "divergencia": 0,
+                        "autorizado_divergencia": False,
+                    })
+
+        elif ext == "txt":
+
+            linhas = [
+                l.strip()
+                for l in arq.getvalue().decode("utf-8").split("\n")
+                if l.strip()
+            ]
+
+            for linha in linhas:
+                item = interpretar_linha_pedido_com_cadastro(linha)
+                if item:
+                    itens.append(item)
+
+    except Exception as e:
+        st.error(f"Não foi possível interpretar o arquivo do pedido: {e}")
+
+    return itens
+
+
+# ============================================================
+# PALLETS
+# ============================================================
+
+def gerar_id_pallet(
+    corredor,
+    pallet,
+    lado
+):
+
+    c = re.search(
+        r"(\d+)",
+        corredor
+    )
+
+    p = re.search(
+        r"(\d+)",
+        pallet
+    )
+
+    numero_c = (
+        c.group(1).zfill(2)
+        if c
+        else "00"
+    )
+
+    numero_p = (
+        p.group(1).zfill(2)
+        if p
+        else "00"
+    )
+
+    if lado == "Direito":
+        lado_codigo = "D"
+
+    elif lado == "Esquerdo":
+        lado_codigo = "E"
+
+    else:
+        lado_codigo = "C"
+
+    return f"C{numero_c}-P{numero_p}-{lado_codigo}"
+
+
+def carregar_pallets():
+
+    if os.path.exists(ARQUIVO_PALLETS):
+
+        try:
+
+            with open(
+                ARQUIVO_PALLETS,
+                "r",
+                encoding="utf-8"
+            ) as f:
+
+                pallets = json.load(f)
+
+        except Exception:
+
+            pallets = []
+
+    else:
+
+        pallets = []
+
+    # Garante estrutura correta
+    for pallet in pallets:
+
+        if "id" not in pallet:
+            pallet["id"] = ""
+
+        if "vinhos" not in pallet:
+            pallet["vinhos"] = []
+
+    return pallets
+
+
+def salvar_pallets(pallets):
+
+    with open(
+        ARQUIVO_PALLETS,
+        "w",
+        encoding="utf-8"
+    ) as f:
+
+        json.dump(
+            pallets,
+            f,
+            ensure_ascii=False,
+            indent=4
+        )
+
+    st.session_state.pallets = pallets
+
+
+def reconciliar_pallets_com_estoque(pallets, estoque):
+    """
+    Faz do estoque a fonte oficial do conteúdo dos pallets.
+
+    Isso remove referências antigas de vinhos já apagados e garante que o QR
+    mostre somente os vinhos que realmente existem no estoque e estão naquela
+    posição/lado. Mantém as posições de pallet já criadas, mesmo quando vazias.
+    """
+    pallets = pallets if isinstance(pallets, list) else []
+    estoque = estoque if isinstance(estoque, list) else []
+
+    # Preserva as posições existentes, mas zera a lista de vinhos para
+    # reconstruí-la a partir do cadastro atual do estoque.
+    novos_pallets = []
+    por_id = {}
+
+    for p in pallets:
+        if not isinstance(p, dict):
+            continue
+        novo = dict(p)
+        novo.setdefault("id", "")
+        novo.setdefault("corredor", "")
+        novo.setdefault("pallet", "")
+        novo.setdefault("lado", "")
+        novo["vinhos"] = []
+        novos_pallets.append(novo)
+        if novo.get("id"):
+            por_id[novo["id"]] = novo
+
+    for vinho in estoque:
+        if not isinstance(vinho, dict):
+            continue
+
+        localizacao = str(vinho.get("localizacao", "") or "")
+        # Só entra em QR de pallet quando a localização for realmente um pallet.
+        if "pallet" not in localizacao.lower():
+            continue
+
+        corredor_match = re.search(r"Corredor\s*(\d+)", localizacao, re.IGNORECASE)
+        pallet_match = re.search(r"Pallet(?:\s+Item)?\s*(\d+)", localizacao, re.IGNORECASE)
+        if not corredor_match or not pallet_match:
+            continue
+
+        corredor = f"Corredor {corredor_match.group(1).zfill(2)}"
+        pallet_nome = f"Pallet {pallet_match.group(1).zfill(2)}"
+        lado = str(vinho.get("lado", "") or "").strip() or "Centro / Único"
+        if lado not in LISTA_LADOS:
+            lado = "Centro / Único"
+
+        pallet_id = gerar_id_pallet(corredor, pallet_nome, lado)
+        pallet_obj = por_id.get(pallet_id)
+
+        if pallet_obj is None:
+            pallet_obj = {
+                "id": pallet_id,
+                "corredor": corredor,
+                "pallet": pallet_nome,
+                "lado": lado,
+                "vinhos": [],
+            }
+            novos_pallets.append(pallet_obj)
+            por_id[pallet_id] = pallet_obj
+
+        item = {
+            "nome": str(vinho.get("nome", "") or "").strip(),
+            "safra": str(vinho.get("safra", "N/A") or "N/A").strip(),
+        }
+        if item["nome"] and item not in pallet_obj["vinhos"]:
+            pallet_obj["vinhos"].append(item)
+
+    # Ordena o conteúdo de cada pallet para deixar a prévia e o QR consistentes.
+    for p in novos_pallets:
+        p["vinhos"] = sorted(
+            p.get("vinhos", []),
+            key=lambda v: (str(v.get("nome", "")).lower(), str(v.get("safra", "")))
+        )
+
+    return novos_pallets
+
+
+def obter_pallet(
+    pallets,
+    pallet_id
+):
+
+    return next(
+        (
+            p
+            for p in pallets
+            if p.get("id") == pallet_id
+        ),
+        None
+    )
+
+
+def criar_ou_atualizar_pallet(
+    corredor,
+    pallet_nome,
+    lado,
+    pallets
+):
+
+    pallet_id = gerar_id_pallet(
+        corredor,
+        pallet_nome,
+        lado
+    )
+
+    existente = obter_pallet(
+        pallets,
+        pallet_id
+    )
+
+    if existente:
+        return existente
+
+    novo = {
+        "id": pallet_id,
+        "corredor": corredor,
+        "pallet": pallet_nome,
+        "lado": lado,
+        "vinhos": []
+    }
+
+    pallets.append(novo)
+
+    return novo
+
+
+
+# ============================================================
+# SINCRONIZAÇÃO DE LOCALIZAÇÃO / FOTOS
+# ============================================================
+
+def _numero_de_texto(valor, padrao="01"):
+    match = re.search(r"(\d+)", str(valor or ""))
+    return match.group(1).zfill(2) if match else padrao
+
+
+def decompor_localizacao_vinho(vinho):
+    """Converte a localização salva nos campos usados no formulário."""
+    localizacao = str(vinho.get("localizacao", "") or "")
+
+    corredor_match = re.search(r"Corredor\s*(\d+)", localizacao, re.IGNORECASE)
+    corredor = (
+        f"Corredor {corredor_match.group(1).zfill(2)}"
+        if corredor_match else LISTA_CORREDORES[0]
+    )
+
+    if re.search(r"Prateleira", localizacao, re.IGNORECASE):
+        local_tipo = "Prateleira"
+    else:
+        local_tipo = "Pallet"
+
+    item_match = re.search(
+        r"(?:Pallet|Prateleira)(?:\s+Item)?\s*(\d+)",
+        localizacao,
+        re.IGNORECASE,
+    )
+    numero_item = (
+        f"Item {item_match.group(1).zfill(2)}"
+        if item_match else LISTA_NUMEROS_LOCAL[0]
+    )
+
+    lado = vinho.get("lado", LISTA_LADOS[0])
+    if lado not in LISTA_LADOS:
+        lado = LISTA_LADOS[0]
+
+    return corredor, local_tipo, numero_item, lado
+
+
+def nome_pallet_por_item(numero_item):
+    return f"Pallet {_numero_de_texto(numero_item)}"
+
+
+def localizacao_por_campos(corredor, local_tipo, numero_item):
+    return f"{corredor} - {local_tipo} {numero_item}"
+
+
+def remover_vinho_de_todos_pallets(nome, safra=None):
+    nome_ref = str(nome or "").strip().lower()
+    safra_ref = None if safra is None else str(safra or "").strip()
+    alterado = False
+
+    for pallet in st.session_state.get("pallets", []):
+        vinhos_antes = pallet.get("vinhos", [])
+        vinhos_depois = []
+
+        for item in vinhos_antes:
+            mesmo_nome = str(item.get("nome", "")).strip().lower() == nome_ref
+            mesma_safra = (
+                safra_ref is None
+                or str(item.get("safra", "")).strip() == safra_ref
+            )
+            if mesmo_nome and mesma_safra:
+                alterado = True
+            else:
+                vinhos_depois.append(item)
+
+        pallet["vinhos"] = vinhos_depois
+
+    if alterado:
+        salvar_pallets(st.session_state.pallets)
+
+
+def sincronizar_vinho_com_pallet(vinho, corredor, pallet_nome, lado, nome_antigo=None):
+    """Move o vinho para um único pallet e atualiza estoque + cadastro de pallets."""
+    nome_atual = str(vinho.get("nome", "")).strip()
+    safra_atual = str(vinho.get("safra", "")).strip()
+
+    remover_vinho_de_todos_pallets(nome_antigo or nome_atual)
+    if nome_antigo and nome_antigo != nome_atual:
+        remover_vinho_de_todos_pallets(nome_atual)
+
+    pallet_obj = criar_ou_atualizar_pallet(
+        corredor,
+        pallet_nome,
+        lado,
+        st.session_state.pallets,
+    )
+    pallet_obj.setdefault("vinhos", []).append({
+        "nome": nome_atual,
+        "safra": safra_atual,
+    })
+
+    numero = _numero_de_texto(pallet_nome)
+    vinho["localizacao"] = f"{corredor} - Pallet Item {numero}"
+    vinho["lado"] = lado
+
+    salvar_pallets(st.session_state.pallets)
+    salvar_dados(st.session_state.estoque)
+
+
+def salvar_foto_vinho(arquivo, nome_vinho, foto_atual=""):
+    if arquivo is None:
+        return foto_atual or ""
+
+    extensao = Path(arquivo.name).suffix.lower()
+    if extensao not in [".jpg", ".jpeg", ".png", ".webp"]:
+        return foto_atual or ""
+
+    nome_seguro = re.sub(r"[^a-zA-Z0-9_-]+", "_", nome_vinho.strip())[:60]
+    timestamp = obter_horario_brasilia().strftime("%Y%m%d_%H%M%S_%f")
+    caminho = os.path.join(PASTA_FOTOS, f"{nome_seguro}_{timestamp}{extensao}")
+
+    with open(caminho, "wb") as f:
+        f.write(arquivo.getbuffer())
+
+    return caminho
+
+
+def item_pedido_por_vinho(vinho, quantidade=1):
+    # Compatibilidade: "quantidade" passa a representar quantidade de caixas.
+    return item_pedido_com_caixas(vinho, quantidade)
+
+
+def adicionar_codigo_lista_pedido(codigo, quantidade=1):
+    codigo = str(codigo or "").strip()
+    if not codigo:
+        return False, "Informe ou leia um código de barras."
+
+    vinho = next(
+        (
+            v for v in st.session_state.estoque
+            if str(v.get("codigo_barras", "")).strip() == codigo
+        ),
+        None,
+    )
+
+    if not vinho:
+        return False, f"Código {codigo} não encontrado no cadastro de vinhos."
+
+    lista = st.session_state.setdefault("itens_pedido_scanner", [])
+    existente = next(
+        (
+            item for item in lista
+            if item.get("nome") == vinho.get("nome")
+            and str(item.get("safra", "")) == str(vinho.get("safra", ""))
+            and normalizar_litragem_pedido(item.get("litragem", ""))
+                == normalizar_litragem_pedido(vinho.get("litragem", ""))
+        ),
+        None,
+    )
+
+    if existente:
+        existente["quantidade"] = int(existente.get("quantidade", 0)) + int(quantidade)
+        existente["qtd_caixas"] = existente["quantidade"]
+        _un = unidades_por_caixa(existente) or unidades_por_caixa(vinho)
+        existente["unidades_caixa"] = _un
+        existente["total_garrafas"] = existente["quantidade"] * _un if _un > 0 else 0
+        existente["unidade_operacional"] = "caixa"
+    else:
+        lista.append(item_pedido_por_vinho(vinho, quantidade))
+
+    return True, f"{vinho.get('nome', '')} incluído na lista."
+
+
+def adicionar_manual_lista_pedido(texto):
+    texto = str(texto or "").strip()
+    if not texto:
+        return False, "Digite o nome do vinho antes de adicionar."
+
+    linhas = [linha.strip() for linha in texto.split("\n") if linha.strip()]
+    if not linhas:
+        return False, "Digite pelo menos um vinho."
+
+    lista = st.session_state.setdefault("itens_pedido_scanner", [])
+    adicionados = 0
+
+    for linha in linhas:
+        item = interpretar_linha_pedido(linha)
+        if not item.get("nome"):
+            continue
+
+        # Se já estiver cadastrado, usa nome/safra oficiais do estoque.
+        vinho = localizar_vinho_cadastrado(
+            item.get("nome", ""),
+            item.get("safra", ""),
+            item.get("litragem", ""),
+        )
+        novo_item = (
+            item_pedido_por_vinho(vinho, item.get("quantidade", 1))
+            if vinho
+            else item
+        )
+
+        existente = next(
+            (
+                x for x in lista
+                if normalizar_nome_vinho(x.get("nome", "")) == normalizar_nome_vinho(novo_item.get("nome", ""))
+                and str(x.get("safra", "")).strip() == str(novo_item.get("safra", "")).strip()
+                and normalizar_litragem_pedido(x.get("litragem", ""))
+                    == normalizar_litragem_pedido(novo_item.get("litragem", ""))
+            ),
+            None,
+        )
+
+        if existente:
+            existente["quantidade"] = int(existente.get("quantidade", 0)) + int(novo_item.get("quantidade", 1))
+            existente["qtd_caixas"] = existente["quantidade"]
+            _un = unidades_por_caixa(existente) or unidades_por_caixa(novo_item)
+            existente["unidades_caixa"] = _un
+            existente["total_garrafas"] = existente["quantidade"] * _un if _un > 0 else 0
+            existente["unidade_operacional"] = "caixa"
+        else:
+            lista.append(sincronizar_campos_caixas_item(novo_item, vinho))
+        adicionados += 1
+
+    if not adicionados:
+        return False, "Nenhum vinho válido foi informado."
+    return True, f"{adicionados} item(ns) adicionado(s) à lista."
+
+
+def callback_adicionar_manual_pedido():
+    sucesso, mensagem = adicionar_manual_lista_pedido(
+        st.session_state.get("texto_manual_novo_pedido", "")
+    )
+    st.session_state["mensagem_adicao_pedido"] = (sucesso, mensagem)
+    if sucesso:
+        # Callback executa antes da remontagem dos widgets: o campo volta vazio.
+        st.session_state["texto_manual_novo_pedido"] = ""
+
+
+def callback_adicionar_codigo_pedido():
+    sucesso, mensagem = adicionar_codigo_lista_pedido(
+        st.session_state.get("codigo_manual_lista_pedido", ""),
+        st.session_state.get("qtd_lista_pedido", 1),
+    )
+    st.session_state["mensagem_adicao_pedido"] = (sucesso, mensagem)
+    if sucesso:
+        # Limpa o código e volta a quantidade para 1 após adicionar à lista.
+        st.session_state["codigo_manual_lista_pedido"] = ""
+        st.session_state["qtd_lista_pedido"] = 1
+
+
+def normalizar_nome_vinho(texto):
+    texto = str(texto or "").strip().lower()
+    texto = unicodedata.normalize("NFKD", texto)
+    texto = "".join(c for c in texto if not unicodedata.combining(c))
+    texto = re.sub(r"[^a-z0-9]+", " ", texto)
+    return re.sub(r"\s+", " ", texto).strip()
+
+
+def localizar_vinho_cadastrado(nome, safra="", litragem=""):
+    nome_norm = normalizar_nome_vinho(nome)
+    safra = str(safra or "").strip()
+    litragem_norm = normalizar_litragem_pedido(litragem)
+
+    candidatos = [
+        v for v in st.session_state.estoque
+        if normalizar_nome_vinho(v.get("nome", "")) == nome_norm
+    ]
+
+    if not candidatos:
+        return None
+
+    if safra:
+        candidatos_safra = [
+            v for v in candidatos
+            if str(v.get("safra", "")).strip() == safra
+        ]
+        if candidatos_safra:
+            candidatos = candidatos_safra
+
+    if litragem_norm:
+        candidatos_litragem = [
+            v for v in candidatos
+            if normalizar_litragem_pedido(v.get("litragem", "")) == litragem_norm
+        ]
+        if candidatos_litragem:
+            return candidatos_litragem[0]
+        # Se a litragem foi informada, nunca substitui silenciosamente por outra.
+        return None
+
+    return candidatos[0]
+
+
+def localizar_item_checkout(pedido_ativo, entrada):
+    """Localiza exatamente o item do pedido pelo nome ou pelo código de barras.
+
+    Evita o casamento amplo por substring que podia associar um código ao item errado.
+    Retorna (item_do_pedido, vinho_do_estoque_ou_none).
+    """
+    entrada = str(entrada or "").strip()
+    if not entrada:
+        return None, None
+
+    estoque = st.session_state.get("estoque", [])
+
+    # 1) Código de barras: só aceita igualdade exata.
+    vinho_codigo = next(
+        (
+            v for v in estoque
+            if str(v.get("codigo_barras", "")).strip() == entrada
+        ),
+        None,
+    )
+
+    if vinho_codigo is not None:
+        nome_norm = normalizar_nome_vinho(vinho_codigo.get("nome", ""))
+        safra_codigo = str(vinho_codigo.get("safra", "")).strip()
+        litragem_codigo = normalizar_litragem_pedido(vinho_codigo.get("litragem", ""))
+
+        # Nome + safra + litragem impedem misturar 375 ml com 750 ml.
+        item = next(
+            (
+                i for i in pedido_ativo.get("itens", [])
+                if normalizar_nome_vinho(i.get("nome", "")) == nome_norm
+                and (
+                    not safra_codigo
+                    or not str(i.get("safra", "")).strip()
+                    or str(i.get("safra", "")).strip() == safra_codigo
+                )
+                and (
+                    not litragem_codigo
+                    or not normalizar_litragem_pedido(i.get("litragem", ""))
+                    or normalizar_litragem_pedido(i.get("litragem", "")) == litragem_codigo
+                )
+            ),
+            None,
+        )
+        return item, vinho_codigo
+
+    # 2) Rótulo da seleção (Nome • Litragem • Safra).
+    item_rotulo = next(
+        (i for i in pedido_ativo.get("itens", []) if rotulo_item_pedido(i) == entrada),
+        None,
+    )
+    if item_rotulo is not None:
+        return item_rotulo, None
+
+    # 3) Nome digitado: igualdade normalizada, não substring.
+    entrada_nome, entrada_litragem = extrair_litragem_texto(entrada)
+    entrada_norm = normalizar_nome_vinho(entrada_nome)
+    candidatos = [
+        i for i in pedido_ativo.get("itens", [])
+        if normalizar_nome_vinho(i.get("nome", "")) == entrada_norm
+    ]
+    if entrada_litragem:
+        candidatos = [
+            i for i in candidatos
+            if normalizar_litragem_pedido(i.get("litragem", "")) == entrada_litragem
+        ]
+    return (candidatos[0] if candidatos else None), None
+
+
+def gerar_html_pedidos_selecionados(pedidos):
+    """Gera um documento HTML limpo para salvar ou imprimir pedidos selecionados."""
+    partes = [
+        "<!doctype html><html><head><meta charset='utf-8'>",
+        "<title>Premium Wines - Pedidos</title>",
+        "<style>",
+        "body{font-family:Arial,sans-serif;color:#2b2225;margin:28px;background:#fff}",
+        "h1{color:#71172f;margin:0 0 6px} .sub{color:#756a6d;margin-bottom:24px}",
+        ".pedido{page-break-inside:avoid;margin:0 0 26px;border:1px solid #ddd3cd;border-radius:12px;overflow:hidden}",
+        ".cab{background:#71172f;color:#fff;padding:14px 16px}.cab strong{font-size:18px}",
+        ".meta{font-size:12px;margin-top:5px;color:#f4e8eb}",
+        "table{width:100%;border-collapse:collapse}th,td{padding:9px 10px;border-bottom:1px solid #eee5df;text-align:left;font-size:12px}",
+        "th{background:#f8f4f1;color:#4a1021}tr:last-child td{border-bottom:0}",
+        "@media print{body{margin:10mm}.pedido{break-inside:avoid}.no-print{display:none}}",
+        "</style></head><body>",
+        "<h1>PREMIUM WINES</h1><div class='sub'>Pedidos selecionados • Galpão / Expedição</div>",
+    ]
+
+    for pedido in pedidos:
+        pid = html.escape(str(pedido.get("id", "")))
+        pdata = html.escape(str(pedido.get("data", "")))
+        pstatus = html.escape(str(pedido.get("status", "Pendente")))
+        partes.append(
+            f"<section class='pedido'><div class='cab'><strong>Pedido {pid}</strong>"
+            f"<div class='meta'>Data: {pdata} &nbsp;•&nbsp; Status: {pstatus}</div></div>"
+            "<table><thead><tr><th>Produto</th><th>Safra</th><th>Litragem</th>"
+            "<th>Unid./Caixa</th><th>Caixas Pedidas</th><th>Total Garrafas</th>"
+            "<th>Caixas Conferidas</th><th>Divergência (Caixas)</th><th>Origem</th></tr></thead><tbody>"
+        )
+
+        for item in pedido.get("itens", []):
+            qtd_pedida = int(item.get("quantidade", 0) or 0)
+            qtd_sep = int(item.get("qtd_separada", 0) or 0)
+            dif = int(item.get("divergencia", qtd_sep - qtd_pedida) or 0)
+            origem = "Fora da lista / Extra" if item.get("fora_lista", False) else "Pedido original"
+            un_caixa = unidades_por_caixa(item)
+            partes.append(
+                "<tr>"
+                f"<td>{html.escape(str(item.get('nome','')))}</td>"
+                f"<td>{html.escape(str(item.get('safra','N/A')))}</td>"
+                f"<td>{html.escape(str(item.get('litragem','N/A') or 'N/A'))}</td>"
+                f"<td>{un_caixa}</td>"
+                f"<td>{qtd_pedida}</td>"
+                f"<td>{qtd_pedida * un_caixa}</td>"
+                f"<td>{qtd_sep}</td>"
+                f"<td>{dif:+d}</td>"
+                f"<td>{html.escape(origem)}</td>"
+                "</tr>"
+            )
+
+        partes.append("</tbody></table></section>")
+
+    partes.append("</body></html>")
+    return "".join(partes)
+
+
+def botao_imprimir_pedidos(html_documento):
+    """Mostra um botão de impressão sem exigir biblioteca PDF adicional."""
+    documento_js = json.dumps(str(html_documento))
+    components.html(
+        f"""
+        <button id="pw-print" style="width:100%;height:42px;border:0;border-radius:10px;"
+          onclick="pwPrint()">🖨️ Imprimir / Salvar em PDF</button>
+        <script>
+        function pwPrint() {{
+            const conteudo = {documento_js};
+            const janela = window.open('', '_blank');
+            if (!janela) {{
+                alert('Permita pop-ups para imprimir os pedidos.');
+                return;
+            }}
+            janela.document.open();
+            janela.document.write(conteudo);
+            janela.document.close();
+            setTimeout(() => {{ janela.focus(); janela.print(); }}, 350);
+        }}
+        const btn = document.getElementById('pw-print');
+        btn.style.background='linear-gradient(135deg,#811B39,#64142D)';
+        btn.style.color='#fff';
+        btn.style.fontWeight='800';
+        btn.style.cursor='pointer';
+        </script>
+        """,
+        height=50,
+    )
+
+
+def validar_itens_pedido_no_estoque(itens):
+    """Valida a lista antes de salvar. Pedido nunca cadastra vinho automaticamente."""
+    validos = []
+    nao_cadastrados = []
+
+    for item in itens or []:
+        vinho = localizar_vinho_cadastrado(
+            item.get("nome", ""),
+            item.get("safra", ""),
+            item.get("litragem", ""),
+        )
+
+        if not vinho:
+            nao_cadastrados.append({
+                "nome": item.get("nome", ""),
+                "safra": item.get("safra", ""),
+                "litragem": normalizar_litragem_pedido(item.get("litragem", "")),
+            })
+            continue
+
+        item_validado = dict(item)
+        # Usa o nome oficial do cadastro para evitar variações na conferência.
+        item_validado["nome"] = vinho.get("nome", item.get("nome", ""))
+        if not str(item_validado.get("safra", "")).strip():
+            item_validado["safra"] = vinho.get("safra", "")
+        item_validado["litragem"] = normalizar_litragem_pedido(
+            vinho.get("litragem", item_validado.get("litragem", ""))
+        )
+        item_validado = sincronizar_campos_caixas_item(item_validado, vinho)
+
+        if int(item_validado.get("unidades_caixa", 0) or 0) <= 0:
+            nao_cadastrados.append({
+                "nome": item_validado.get("nome", ""),
+                "safra": item_validado.get("safra", ""),
+                "litragem": item_validado.get("litragem", ""),
+                "motivo": "Embalagem / caixa não definida no cadastro",
+            })
+            continue
+
+        validos.append(item_validado)
+
+    return validos, nao_cadastrados
+
+
+# ============================================================
+# QR CODE
+# ============================================================
+
+def url_publica_pallet(pallet_id):
+    """Mantido apenas por compatibilidade com QR Codes antigos que continham URL."""
+    base_url = "https://galpaopremium-gwiywrdxssrwmzv9tdpeff.streamlit.app/"
+    pallet_limpo = str(pallet_id or "").strip().upper()
+    return f"{base_url}?p={pallet_limpo}"
+
+
+def montar_conteudo_qr_pallet(pallet_id, estoque=None):
+    """Monta o texto visível diretamente ao escanear o QR fora do aplicativo."""
+    pallet_id = str(pallet_id or "").strip().upper()
+    dados = dados_posicao_pallet_id(pallet_id)
+    if not dados:
+        return f"PREMIUM WINES\nLocalizacao: {pallet_id}"
+
+    if estoque is None:
+        estoque = st.session_state.get("estoque", [])
+
+    vinhos = vinhos_atuais_da_posicao(pallet_id, estoque)
+
+    linhas = [
+        "PREMIUM WINES",
+        f"Localizacao: {dados['id']}",
+        f"{dados['corredor']} | {dados['pallet']} | {dados['lado']}",
+        "Vinhos:",
+    ]
+
+    if vinhos:
+        for idx, vinho in enumerate(vinhos, start=1):
+            nome = str(vinho.get("nome", "") or "Vinho sem nome").strip()
+            safra = str(vinho.get("safra", "") or "N/A").strip()
+            linhas.append(f"{idx}. {nome} - Safra {safra}")
+    else:
+        linhas.append("Nenhum vinho cadastrado nesta posicao.")
+
+    return "\n".join(linhas)
+
+
+def gerar_qr_pallet(pallet_id, pallet=None, estoque=None):
+    """Gera um QR FIXO por posição física do galpão.
+
+    O conteúdo do QR é somente o identificador da posição (ex.: C01-P01-D).
+    Assim, o QR de uma mesma posição será sempre o mesmo, independentemente
+    dos vinhos que entrarem ou saírem do pallet. Os vinhos são consultados
+    pelo aplicativo no momento da leitura.
+    """
+    if not QRCODE_DISPONIVEL:
+        return None
+
+    pallet_id = str(pallet_id or "").strip().upper()
+    dados = dados_posicao_pallet_id(pallet_id)
+    if dados:
+        pallet_id = dados["id"]
+
+    # IMPORTANTE: não incluir nomes, safras ou quantidade de vinhos aqui.
+    # Isso garante que a mesma posição gere exatamente o mesmo QR para sempre.
+    conteudo_qr = pallet_id
+
+    caminho = os.path.join(PASTA_QR, f"{pallet_id}.png")
+
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_M,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(conteudo_qr)
+    qr.make(fit=True)
+
+    img = qr.make_image(fill_color="black", back_color="white")
+    img.save(caminho)
+    return caminho
+
+def extrair_id_do_qr(conteudo):
+    """
+    Aceita tanto o código antigo (C01-P01-D) quanto
+    o novo conteúdo completo do QR Code.
+    """
+    texto = str(conteudo or "").strip()
+
+    match = re.search(
+        r"(?:Codigo|Código)\s*:\s*(C\d{2}-P\d{2}-[DEC])",
+        texto,
+        re.IGNORECASE
+    )
+
+    if match:
+        return match.group(1).upper()
+
+    match = re.search(
+        r"\b(C\d{2}-P\d{2}-[DEC])\b",
+        texto,
+        re.IGNORECASE
+    )
+
+    if match:
+        return match.group(1).upper()
+
+    return texto.upper()
+
+
+def dados_posicao_pallet_id(pallet_id):
+    """Converte C01-P01-D em corredor, pallet e lado."""
+    match = re.fullmatch(r"C(\d{2})-P(\d{2})-([DEC])", str(pallet_id or "").strip().upper())
+    if not match:
+        return None
+    mapa_lado = {"D": "Direito", "E": "Esquerdo", "C": "Centro / Único"}
+    return {
+        "id": f"C{match.group(1)}-P{match.group(2)}-{match.group(3)}",
+        "corredor": f"Corredor {match.group(1)}",
+        "pallet": f"Pallet {match.group(2)}",
+        "lado": mapa_lado[match.group(3)],
+    }
+
+
+def vinhos_atuais_da_posicao(pallet_id, estoque):
+    """Consulta o estoque ao vivo para o QR público."""
+    dados = dados_posicao_pallet_id(pallet_id)
+    if not dados:
+        return []
+    encontrados = []
+    for vinho in estoque or []:
+        corredor, local_tipo, numero_item, lado = decompor_localizacao_vinho(vinho)
+        if local_tipo != "Pallet":
+            continue
+        id_vinho = gerar_id_pallet(corredor, nome_pallet_por_item(numero_item), lado)
+        if id_vinho == dados["id"]:
+            encontrados.append({
+                "nome": str(vinho.get("nome", "") or "").strip(),
+                "safra": str(vinho.get("safra", "") or "N/A").strip(),
+                "litragem": str(vinho.get("litragem", "") or "").strip(),
+            })
+    return sorted(encontrados, key=lambda v: (v.get("nome", "").lower(), v.get("safra", "")))
+
+
+# ============================================================
+# LEITOR QR CODE
+# ============================================================
+
+def componente_leitor_qr(chave_sessao, tela_retorno=None):
+    """Leitor de QR do pallet dentro do app.
+
+    Em vez de tentar navegar o iframe para outra página (comportamento instável em
+    alguns celulares), grava o resultado na URL da própria tela e recarrega o app.
+    Assim a sessão permanece ativa e o resultado aparece imediatamente abaixo.
+    """
+    html_code = f"""
+    <div style="text-align:center;background:#211B1E;padding:15px;border-radius:12px;border:1px solid #4A3A40;">
+        <div id="reader_{chave_sessao}" style="width:100%;max-width:400px;margin:auto;border-radius:8px;overflow:hidden;"></div>
+        <p id="resultado_{chave_sessao}" style="font-weight:bold;color:#E3BD72;margin-top:10px;font-size:1rem;"></p>
+    </div>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script>
+    let leituraConcluida_{chave_sessao} = false;
+
+    function extrairCodigoPallet(texto) {{
+        const valor = String(texto || '').trim();
+        const m = valor.match(/C[0-9]{{2}}-P[0-9]{{2}}-[DEC]/i);
+        return m ? m[0].toUpperCase() : valor;
+    }}
+
+    function publicarResultado(decodedText) {{
+        const codigo = extrairCodigoPallet(decodedText);
+        const url = new URL(window.parent.location.href);
+        url.searchParams.delete('pallet');
+        url.searchParams.delete('public');
+        url.searchParams.delete('p');
+        url.searchParams.delete('scan_pallet');
+        url.searchParams.set('screen', 'LerQRPallet');
+        url.searchParams.set('scanned_{chave_sessao}', codigo);
+        // Navega a própria página do Streamlit já com o código lido.
+        // No celular isso é mais confiável do que replaceState + reload dentro do iframe.
+        window.parent.location.href = url.toString();
+    }}
+
+    function onScanSuccess(decodedText, decodedResult) {{
+        if (leituraConcluida_{chave_sessao}) return;
+        leituraConcluida_{chave_sessao} = true;
+        document.getElementById("resultado_{chave_sessao}").innerText = "QR lido. Consultando vinhos desta posição...";
+
+        if (window.html5QrCode_{chave_sessao}) {{
+            window.html5QrCode_{chave_sessao}.stop()
+                .then(() => publicarResultado(decodedText))
+                .catch(() => publicarResultado(decodedText));
+        }} else {{
+            publicarResultado(decodedText);
+        }}
+    }}
+
+    try {{
+        const html5QrCode = new Html5Qrcode("reader_{chave_sessao}");
+        window.html5QrCode_{chave_sessao} = html5QrCode;
+        html5QrCode.start(
+            {{ facingMode: "environment" }},
+            {{ fps: 10, qrbox: {{ width: 260, height: 260 }} }},
+            onScanSuccess
+        ).catch(err => {{
+            document.getElementById("resultado_{chave_sessao}").innerText = "Não foi possível iniciar a câmera.";
+        }});
+    }} catch (e) {{
+        document.getElementById("resultado_{chave_sessao}").innerText = "Não foi possível iniciar a câmera.";
+    }}
+    </script>
+    """
+    components.html(html_code, height=420)
+
+
+# ============================================================
+# LEITOR DE CÓDIGO DE BARRAS PARA PEDIDOS
+# ============================================================
+
+def componente_leitor_codigo_barras(chave_sessao, tela_retorno=None):
+    """Lê EAN/UPC/CODE/ITF no celular com início da câmera por toque.
+
+    O botão explícito é importante no Android/iOS porque muitos navegadores
+    bloqueiam a abertura automática da câmera dentro de componentes/iframes.
+    """
+    tela_js = str(tela_retorno or "").replace('"', "")
+    html_code = f"""
+    <div style="text-align:center;background:#211B1E;padding:15px;border-radius:12px;border:1px solid #4A3A40;">
+        <button id="btn_start_{chave_sessao}" type="button"
+            style="width:100%;max-width:440px;padding:12px 16px;border:0;border-radius:10px;background:#811B39;color:white;font-weight:800;font-size:15px;cursor:pointer;">
+            📷 Abrir câmera e ler código
+        </button>
+        <div id="barcode_{chave_sessao}" style="width:100%;max-width:440px;margin:12px auto 0;border-radius:8px;overflow:hidden;"></div>
+        <p id="barcode_result_{chave_sessao}" style="font-weight:bold;color:#E3BD72;margin-top:10px;font-size:1rem;">
+            Toque no botão acima para liberar a câmera.
+        </p>
+    </div>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <script>
+    (() => {{
+        let leituraConcluida = false;
+        let reader = null;
+        const btn = document.getElementById("btn_start_{chave_sessao}");
+        const status = document.getElementById("barcode_result_{chave_sessao}");
+
+        function publicar(decodedText) {{
+            const codigo = String(decodedText || '').trim();
+            if (!codigo) return;
+            const url = new URL(window.parent.location.href);
+            url.searchParams.set('scanned_{chave_sessao}', codigo);
+            if ("{tela_js}") url.searchParams.set('screen', "{tela_js}");
+            if ("{chave_sessao}" === "checkout_camera") {{
+                url.searchParams.set('checkout', '1');
+                url.searchParams.set('checkout_area', 'conferencia');
+            }} else if ("{chave_sessao}" === "pedido_scanner") {{
+                url.searchParams.set('checkout_area', 'pedidos');
+            }}
+            window.parent.location.href = url.toString();
+        }}
+
+        function sucesso(decodedText) {{
+            if (leituraConcluida) return;
+            leituraConcluida = true;
+            status.innerText = "✅ Código lido: " + decodedText;
+            btn.disabled = true;
+            btn.style.opacity = '.65';
+            const finalizar = () => publicar(decodedText);
+            if (reader) reader.stop().then(finalizar).catch(finalizar);
+            else finalizar();
+        }}
+
+        async function iniciar() {{
+            btn.disabled = true;
+            status.innerText = "Solicitando acesso à câmera...";
+            try {{
+                const formatos = [
+                    Html5QrcodeSupportedFormats.EAN_13,
+                    Html5QrcodeSupportedFormats.EAN_8,
+                    Html5QrcodeSupportedFormats.CODE_128,
+                    Html5QrcodeSupportedFormats.CODE_39,
+                    Html5QrcodeSupportedFormats.UPC_A,
+                    Html5QrcodeSupportedFormats.UPC_E,
+                    Html5QrcodeSupportedFormats.ITF,
+                    Html5QrcodeSupportedFormats.QR_CODE
+                ];
+                reader = new Html5Qrcode("barcode_{chave_sessao}", {{
+                    formatsToSupport: formatos,
+                    verbose: false
+                }});
+
+                const config = {{
+                    fps: 15,
+                    qrbox: {{ width: 320, height: 150 }},
+                    aspectRatio: 1.777778
+                }};
+
+                // Primeira tentativa: câmera traseira pelo facingMode.
+                try {{
+                    await reader.start({{ facingMode: {{ ideal: "environment" }} }}, config, sucesso);
+                }} catch (primeiroErro) {{
+                    // Fallback: enumera as câmeras e usa a última, que normalmente é a traseira.
+                    const cameras = await Html5Qrcode.getCameras();
+                    if (!cameras || !cameras.length) throw primeiroErro;
+                    const camera = cameras[cameras.length - 1];
+                    await reader.start(camera.id, config, sucesso);
+                }}
+                status.innerText = "Aponte a câmera para o código de barras.";
+            }} catch (err) {{
+                btn.disabled = false;
+                status.innerText = "Não foi possível abrir a câmera. Confira a permissão da câmera no navegador e tente novamente.";
+            }}
+        }}
+
+        btn.addEventListener('click', iniciar);
+    }})();
+    </script>
+    """
+    components.html(html_code, height=410)
+
+
+def autofoco_campo_checkout():
+    components.html(
+        """
+        <script>
+        setTimeout(() => {
+            try {
+                const doc = window.parent.document;
+                const inputs = Array.from(doc.querySelectorAll('input'));
+                const alvo = inputs.find(el => {
+                    const a = (el.getAttribute('aria-label') || '').toLowerCase();
+                    return a.includes('digite/bipe') ||
+                           a.includes('código de barras ou nome') ||
+                           a.includes('codigo de barras ou nome');
+                });
+                if (alvo) { alvo.focus(); alvo.select(); }
+            } catch (e) {}
+        }, 250);
+        </script>
+        """,
+        height=0,
+    )
+
+
+def instalar_atalhos_teclado():
+    components.html(
+        """
+        <script>
+        try {
+            const win = window.parent;
+            function voltarHome(e) {
+                if (e.key === 'Escape' || e.key === 'Esc') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const url = new URL(win.location.href);
+                    url.searchParams.set('screen', 'home');
+                    url.searchParams.delete('checkout');
+                    Array.from(url.searchParams.keys()).forEach(key => {
+                        if (key.startsWith('scanned_')) url.searchParams.delete(key);
+                    });
+                    win.location.href = url.toString();
+                }
+            }
+            // Captura ESC tanto quando o foco está no app quanto dentro deste componente.
+            document.addEventListener('keydown', voltarHome, true);
+            if (!win.__premiumWinesAtalhosInstalados) {
+                win.__premiumWinesAtalhosInstalados = true;
+                win.document.addEventListener('keydown', voltarHome, true);
+            }
+        } catch (e) {}
+        </script>
+        """,
+        height=0,
+    )
+# ============================================================
+# NAVEGAÇÃO PARA CADASTRO A PARTIR DO PEDIDO
+# ============================================================
+
+def abrir_cadastro_vinho_faltante(nome, safra="", litragem=""):
+    """Abre o cadastro já preenchido sem perder o pedido em andamento."""
+    st.session_state.cadastro_vinho_prefill = {
+        "nome": str(nome or "").strip(),
+        "safra": str(safra or "").strip(),
+        "litragem": normalizar_litragem_pedido(litragem),
+    }
+    st.session_state.retornar_apos_cadastro = "PedidosMatriz"
+    st.session_state.menu_atual = "Cadastrar"
+
+
+# ============================================================
+# INICIALIZAÇÃO SESSION STATE
+# ============================================================
+
+if "usuarios" not in st.session_state:
+
+    st.session_state.usuarios = (
+        carregar_usuarios()
+    )
+
+st.session_state.estoque = (
+    carregar_dados()
+)
+
+st.session_state.pedidos = (
+    carregar_pedidos()
+)
+
+st.session_state.pallets = (
+    carregar_pallets()
+)
+
+# O estoque é a fonte oficial do conteúdo dos pallets. Assim, ao apagar um
+# vinho do estoque ele também desaparece automaticamente dos QR Codes/pallets.
+_pallets_reconciliados = reconciliar_pallets_com_estoque(
+    st.session_state.pallets,
+    st.session_state.estoque,
+)
+if _pallets_reconciliados != st.session_state.pallets:
+    st.session_state.pallets = _pallets_reconciliados
+    with open(ARQUIVO_PALLETS, "w", encoding="utf-8") as _f_pallets:
+        json.dump(st.session_state.pallets, _f_pallets, ensure_ascii=False, indent=4)
+
+sincronizar_estoque_com_pedidos(
+    st.session_state.pedidos,
+    st.session_state.estoque
+)
+
+if "menu_atual" not in st.session_state:
+    st.session_state.menu_atual = "🏠 Home"
+
+if "termo_busca" not in st.session_state:
+    st.session_state.termo_busca = ""
+
+if "itens_pedido_scanner" not in st.session_state:
+    st.session_state.itens_pedido_scanner = []
+
+if "codigo_bipado_pedido" not in st.session_state:
+    st.session_state.codigo_bipado_pedido = ""
+
+
+# ============================================================
+# TRATAMENTO DE QR SCANEADO
+# ============================================================
+
+qp = st.query_params
+
+_screen_param = str(qp.get("screen", "") or "").strip()
+if _screen_param:
+    if _screen_param.lower() == "home":
+        st.session_state.menu_atual = "🏠 Home"
+    elif _screen_param == "PedidosMatriz":
+        st.session_state.menu_atual = "PedidosMatriz"
+    try:
+        del st.query_params["screen"]
+    except Exception:
+        pass
+
+if str(qp.get("checkout", "") or "") == "1":
+    st.session_state["checkout_forcar_aba"] = True
+    st.session_state["checkout_aba_persistente"] = "🔍 Conferência (Checkout de Expedição)"
+    st.query_params["checkout_area"] = "conferencia"
+    try:
+        del st.query_params["checkout"]
+    except Exception:
+        pass
+
+# ------------------------------------------------------------
+# LEITOR PÚBLICO DE QR DO PALLET
+# Permite escanear outro pallet sem voltar ao login/menu.
+# ------------------------------------------------------------
+_scan_publico = str(qp.get("scan_pallet", "") or "") == "1"
+if _scan_publico:
+    st.markdown(
+        """
+        <style>
+        [data-testid='stSidebar'],
+        [data-testid='stHeader'],
+        [data-testid='stToolbar'],
+        [data-testid='stDecoration'],
+        [data-testid='stMainMenu'],
+        footer, #MainMenu, .stDeployButton, .stAppToolbar {display:none!important;visibility:hidden!important;}
+        .block-container{padding-top:1.2rem!important;max-width:900px!important;}
+        .stApp{background:linear-gradient(135deg,#21181C,#2A2024)!important;}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        """
+        <div style="background:linear-gradient(135deg,#2B2024,#3A1823);border:1px solid #735063;border-radius:18px;padding:22px 24px;margin-bottom:18px;">
+            <div style="font-size:1.45rem;font-weight:800;color:#F0C97A;">🍷 PREMIUM WINES</div>
+            <div style="color:#E0D8D3;margin-top:3px;">Escanear pallet</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.caption("Aponte a câmera para o QR Code do próximo pallet.")
+    components.html(
+        """
+        <div style="text-align:center;background:#272125;padding:14px;border-radius:14px;border:1px solid #534049;">
+            <div id="reader_publico" style="width:100%;max-width:430px;margin:auto;border-radius:10px;overflow:hidden;"></div>
+            <p id="resultado_publico" style="font-weight:700;color:#F0C97A;margin-top:10px;"></p>
+        </div>
+        <script src="https://unpkg.com/html5-qrcode"></script>
+        <script>
+        let concluiu = false;
+        function extrairCodigoPallet(texto) {
+            const valor = String(texto || '').trim();
+            const m = valor.match(/C[0-9]{2}-P[0-9]{2}-[DEC]/i);
+            return m ? m[0].toUpperCase() : valor;
+        }
+        function sucesso(decodedText) {
+            if (concluiu) return;
+            concluiu = true;
+            document.getElementById('resultado_publico').innerText = 'QR lido. Carregando vinhos...';
+            const codigo = extrairCodigoPallet(decodedText);
+            const url = new URL(window.parent.location.href);
+            url.search = '';
+            url.searchParams.set('p', codigo);
+            const ir = () => {
+                window.parent.history.replaceState({}, '', url.toString());
+                window.parent.location.reload();
+            };
+            if (window.readerPublico) {
+                window.readerPublico.stop().then(ir).catch(ir);
+            } else { ir(); }
+        }
+        try {
+            const reader = new Html5Qrcode('reader_publico');
+            window.readerPublico = reader;
+            reader.start(
+                { facingMode: 'environment' },
+                { fps: 10, qrbox: { width: 260, height: 260 } },
+                sucesso
+            ).catch(() => {
+                document.getElementById('resultado_publico').innerText = 'Não foi possível iniciar a câmera.';
+            });
+        } catch (e) {}
+        </script>
+        """,
+        height=500,
+    )
+    st.stop()
+
+# ------------------------------------------------------------
+# CONSULTA PÚBLICA DO PALLET PELO QR CODE
+# Não exige login e é somente leitura.
+# ------------------------------------------------------------
+_pallet_publico_param = qp.get("p", None) or qp.get("pallet", None)
+if _pallet_publico_param:
+    _id_publico = extrair_id_do_qr(_pallet_publico_param)
+    _dados_publicos = dados_posicao_pallet_id(_id_publico)
+    _vinhos_pub = vinhos_atuais_da_posicao(_id_publico, st.session_state.estoque)
+
+    components.html(
+        """
+        <script>
+        try {
+            const doc = window.parent.document;
+            doc.title = 'Premium Wines - Consulta do Pallet';
+            doc.querySelectorAll('link[rel="manifest"]').forEach(el => el.remove());
+            doc.querySelectorAll('meta[name="mobile-web-app-capable"], meta[name="apple-mobile-web-app-capable"], meta[name="application-name"]').forEach(el => el.remove());
+        } catch (e) {}
+        </script>
+        """,
+        height=0,
+    )
+
+    st.markdown(
+        """
+        <style>
+        [data-testid='stSidebar'],
+        [data-testid='stHeader'],
+        [data-testid='stToolbar'],
+        [data-testid='stDecoration'],
+        [data-testid='stMainMenu'],
+        footer, #MainMenu, .stDeployButton, .stAppToolbar {display:none!important;visibility:hidden!important;}
+        .block-container{padding-top:1.2rem!important;max-width:900px!important;}
+        .stApp{background:linear-gradient(135deg,#21181C,#2A2024)!important;}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        """
+        <div style="background:linear-gradient(135deg,#2B2024,#3A1823);border:1px solid #735063;border-radius:18px;padding:22px 24px;margin-bottom:18px;">
+            <div style="font-size:1.45rem;font-weight:800;color:#F0C97A;">🍷 PREMIUM WINES</div>
+            <div style="color:#E0D8D3;margin-top:3px;">Consulta pública do pallet • somente leitura</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    if _dados_publicos:
+        _corredor_pub = html.escape(_dados_publicos["corredor"])
+        _pallet_nome_pub = html.escape(_dados_publicos["pallet"])
+        _lado_pub = html.escape(_dados_publicos["lado"])
+        st.markdown(
+            f"""
+            <div style="background:#272125;border:1px solid #534049;border-radius:16px;padding:18px 20px;margin-bottom:16px;">
+                <div style="color:#F0C97A;font-size:1.15rem;font-weight:800;">📍 {_corredor_pub} • {_pallet_nome_pub} • {_lado_pub}</div>
+                <div style="color:#D6CCC7;margin-top:6px;">{len(_vinhos_pub)} vinho(s) nesta posição</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if _vinhos_pub:
+            st.markdown("### Vinhos nesta posição")
+            for _i, _vinho in enumerate(_vinhos_pub, start=1):
+                _nome = html.escape(str(_vinho.get("nome", "Vinho")))
+                _safra = html.escape(str(_vinho.get("safra", "N/A")))
+                _lit = html.escape(str(_vinho.get("litragem", "") or ""))
+                _lit_html = f" • {_lit}" if _lit else ""
+                st.markdown(
+                    f"""
+                    <div style="background:#272125;border:1px solid #534049;border-radius:12px;padding:14px 16px;margin:8px 0;">
+                        <div style="font-weight:750;color:#F5F0EC;">{_i}. {_nome}</div>
+                        <div style="color:#CFC4BE;margin-top:3px;">Safra: {_safra}{_lit_html}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+        else:
+            st.info("Nenhum vinho cadastrado nesta posição no momento.")
+    else:
+        st.error("QR Code de pallet inválido.")
+
+    st.markdown("---")
+    if st.button(
+        "📷 Escanear outro pallet",
+        key="btn_publico_escanear_outro_pallet",
+        use_container_width=True,
+    ):
+        st.query_params.clear()
+        st.query_params["scan_pallet"] = "1"
+        st.rerun()
+    st.stop()
+
+for key, val in list(qp.items()):
+
+    if key.startswith("scanned_"):
+
+        sess_key = key.replace(
+            "scanned_",
+            ""
+        )
+
+        valor_limpo = str(
+            val
+        ).strip()
+
+        if sess_key == "leitor_pallet":
+
+            st.session_state.qr_pallet_lido = extrair_id_do_qr(valor_limpo)
+            st.session_state.menu_atual = "LerQRPallet"
+
+        elif sess_key == "checkout_camera":
+
+            st.session_state.codigo_bipado_checkout = (
+                valor_limpo
+            )
+            st.session_state.menu_atual = "PedidosMatriz"
+            st.session_state["checkout_forcar_aba"] = True
+            st.session_state["checkout_aba_persistente"] = "🔍 Conferência (Checkout de Expedição)"
+            st.query_params["checkout_area"] = "conferencia"
+            st.session_state["checkout_codigo_pendente"] = valor_limpo
+            st.session_state["checkout_codigo_lido"] = True
+            # O bip só identifica o vinho; nunca conclui sozinho.
+            st.session_state["checkout_auto_conferir"] = False
+
+        elif sess_key == "pedido_scanner":
+
+            # No celular, a câmera primeiro identifica o vinho.
+            # A quantidade de caixas é informada somente depois da leitura.
+            st.session_state.codigo_bipado_pedido = valor_limpo
+            st.session_state["codigo_manual_lista_pedido"] = valor_limpo
+            st.session_state["pedido_scanner_codigo_lido"] = True
+            st.session_state.menu_atual = "PedidosMatriz"
+            st.session_state["checkout_aba_persistente"] = "📋 Enviar / Cadastrar / Excluir Pedidos"
+            st.query_params["checkout_area"] = "pedidos"
+
+        del st.query_params[key]
+
+        st.rerun()
+
+
+# ============================================================
+# LOGIN
+# ============================================================
+
+st.markdown("""<style>
+.pw-login-logo{width:150px;height:150px;margin:0 auto 16px auto;background:#fff;border-radius:30px;padding:7px;box-shadow:0 12px 35px rgba(0,0,0,.28);overflow:hidden;}
+.pw-login-logo img{width:100%;height:100%;object-fit:cover;border-radius:24px;display:block;}
+</style>""", unsafe_allow_html=True)
+
+user_url = qp.get("user", None)
+cargo_url = qp.get("cargo", "Operador")
+
+if (
+    "usuario_logado" not in st.session_state
+    or st.session_state.usuario_logado is None
+):
+    usuario_url_valido = next(
+        (
+            u for u in st.session_state.usuarios
+            if u.get("nome", "").lower() == str(user_url or "").lower()
+            and u.get("status", "Aprovado") == "Aprovado"
+        ),
+        None
+    )
+
+    if usuario_url_valido:
+        st.session_state.usuario_logado = usuario_url_valido
+    elif (
+        str(user_url or "").lower() == "dev"
+        and str(qp.get("auth", "")) == SENHA_DEV
+    ):
+        st.session_state.usuario_logado = {
+            "nome": "Dev",
+            "cargo": "Desenvolvedor",
+            "status": "Aprovado"
+        }
+    else:
+        st.session_state.usuario_logado = None
+
+
+if st.session_state.usuario_logado is None:
+    # Tela de login clara com a identidade Premium Wines em marca d'água.
+    st.markdown(f"""
+    <style>
+    [data-testid="stSidebar"]{{display:none!important;}}
+    .stApp {{
+        background-color:#F6F1EC !important;
+        background-image:
+            linear-gradient(rgba(250,247,243,.86), rgba(250,247,243,.90)),
+            url("{PREMIUM_LOGO_DATA_URI}") !important;
+        background-repeat:no-repeat !important;
+        background-position:center center !important;
+        background-size:min(78vh, 760px) auto !important;
+        background-attachment:fixed !important;
+    }}
+    .login-title {{ color:#35101B !important; text-shadow:none !important; }}
+    .login-title span {{ color:#A56B16 !important; }}
+    .login-subtitle {{ color:#6E5A60 !important; }}
+    .login-shell {{ position:relative; z-index:2; }}
+    .pw-login-logo {{
+        background:rgba(255,255,255,.92) !important;
+        border:1px solid rgba(110,23,48,.18) !important;
+        box-shadow:0 14px 38px rgba(75,13,29,.16) !important;
+    }}
+    /* Navegação do login via rádio horizontal: sempre visível */
+    div[data-testid="stRadio"] {{
+        max-width:360px !important;
+        margin:0 auto 8px auto !important;
+    }}
+    div[data-testid="stRadio"] > div {{
+        display:flex !important;
+        flex-direction:row !important;
+        justify-content:center !important;
+        gap:6px !important;
+        margin: 0 0 10px 0 !important;
+    }}
+    div[data-testid="stRadio"] label {{
+        background:rgba(255,255,255,.96) !important;
+        border:1px solid #D8C9C1 !important;
+        border-radius:10px !important;
+        padding:5px 10px !important;
+        min-height:36px !important;
+        display:flex !important;
+        align-items:center !important;
+        gap:8px !important;
+        box-shadow:0 8px 24px rgba(72,25,38,.10) !important;
+        cursor:pointer !important;
+        opacity:1 !important;
+    }}
+    div[data-testid="stRadio"] label p,
+    div[data-testid="stRadio"] label span {{
+        color:#4A1A28 !important;
+        -webkit-text-fill-color:#4A1A28 !important;
+        opacity:1 !important;
+        text-shadow:none !important;
+        font-weight:700 !important;
+        font-size:.84rem !important;
+        margin:0 !important;
+    }}
+    div[data-testid="stRadio"] label:has(input:checked) {{
+        background:#FFF8F2 !important;
+        border-color:#8B1738 !important;
+        box-shadow:0 10px 26px rgba(72,25,38,.18) !important;
+    }}
+    div[data-testid="stRadio"] label:has(input:checked) p,
+    div[data-testid="stRadio"] label:has(input:checked) span {{
+        color:#7A1733 !important;
+        -webkit-text-fill-color:#7A1733 !important;
+        font-weight:800 !important;
+    }}
+    div[data-testid="stRadio"] input {{
+        accent-color:#7A1733 !important;
+    }}
+    /* Títulos e textos externos do login */
+    .login-shell + div p,
+    [data-testid="stCaptionContainer"] p {{
+        color:#5B474D !important;
+        -webkit-text-fill-color:#5B474D !important;
+        opacity:1 !important;
+    }}
+    h4 {{ color:#8A5912 !important; -webkit-text-fill-color:#8A5912 !important; opacity:1 !important; }}
+
+    /* Card do formulário: contraste forte contra o fundo claro */
+    [data-testid="stForm"] {{
+        background:linear-gradient(160deg, rgba(74,16,34,.97), rgba(42,14,24,.97)) !important;
+        border:1px solid rgba(197,146,65,.58) !important;
+        border-radius:18px !important;
+        box-shadow:0 18px 48px rgba(55,15,28,.28) !important;
+        backdrop-filter:blur(12px);
+        padding:18px !important;
+    }}
+    [data-testid="stForm"] label, [data-testid="stForm"] label *,
+    [data-testid="stForm"] p {{
+        color:#FFF8F2 !important;
+        -webkit-text-fill-color:#FFF8F2 !important;
+        opacity:1 !important;
+    }}
+    [data-testid="stForm"] input {{
+        background:#FFFFFF !important;
+        color:#2B2024 !important;
+        -webkit-text-fill-color:#2B2024 !important;
+        border:1px solid #E1D7D0 !important;
+    }}
+
+    .stCaptionContainer, .stCaptionContainer p, [data-testid="stCaptionContainer"], [data-testid="stCaptionContainer"] p {{
+        color:#66555A !important; -webkit-text-fill-color:#66555A !important; opacity:1 !important;
+    }}
+    [data-testid="stFormSubmitButton"] button {{
+        background:linear-gradient(135deg,#8B1738,#651027) !important;
+        color:#FFFFFF !important; -webkit-text-fill-color:#FFFFFF !important;
+        border:1px solid #9D3150 !important; opacity:1 !important;
+    }}
+    [data-testid="stFormSubmitButton"] button *, [data-testid="stFormSubmitButton"] button p {{
+        color:#FFFFFF !important; -webkit-text-fill-color:#FFFFFF !important; opacity:1 !important; font-weight:800 !important;
+    }}
+    .login-switch-card {{
+        max-width:340px !important;
+        margin:0 auto 10px auto !important;
+        padding:10px !important;
+        border-radius:16px !important;
+        background:rgba(255,255,255,.78) !important;
+        border:1px solid rgba(110,23,48,.12) !important;
+        box-shadow:0 12px 28px rgba(75,13,29,.10) !important;
+        backdrop-filter:blur(8px) !important;
+    }}
+    .login-switch-card + div [data-testid="stHorizontalBlock"] {{
+        align-items:center !important;
+    }}
+    div[data-testid="stButton"] > button[kind] {{
+        min-height:38px !important;
+        border-radius:12px !important;
+        font-weight:800 !important;
+    }}
+    /* Navegação do login mais compacta e centralizada */
+    button[kind="secondary"] {{
+        background:#FFFFFF !important;
+        color:#5C1A2B !important;
+        border:1px solid #DCCBC4 !important;
+        box-shadow:0 6px 16px rgba(72,25,38,.08) !important;
+    }}
+    button[kind="secondary"] * {{
+        color:#5C1A2B !important;
+        -webkit-text-fill-color:#5C1A2B !important;
+        font-weight:800 !important;
+    }}
+    button[kind="primary"] {{
+        background:linear-gradient(135deg,#8B1738,#651027) !important;
+        border:1px solid #9D3150 !important;
+        box-shadow:0 8px 20px rgba(72,25,38,.18) !important;
+    }}
+    </style>
+    """, unsafe_allow_html=True)
+    st.markdown(
+        f"""
+        <div class="login-shell">
+            <div class="pw-login-logo"><img src="{PREMIUM_LOGO_DATA_URI}" alt="Premium Wines"></div>
+            <div class="login-title">PREMIUM <span>WINES</span></div>
+            <div class="login-subtitle">Gestão de Estoque & Expedição • Galpão</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+
+    st.markdown("""
+    <style>
+    /* V7 - alertas legíveis em qualquer tela */
+    [data-testid="stAlert"] p,
+    [data-testid="stAlert"] span,
+    [data-testid="stAlert"] div {
+        color:#241B1E !important;
+        -webkit-text-fill-color:#241B1E !important;
+        opacity:1 !important;
+        text-shadow:none !important;
+    }
+    [data-testid="stAlert"] svg {
+        color:#5B1528 !important;
+        fill:#5B1528 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+
+    _, cc, _ = st.columns([1, 1.1, 1])
+    with cc:
+        _db_ok, _db_msg = status_supabase_cache()
+        # Status técnico do Supabase oculto da tela de login.
+
+        if "login_modo" not in st.session_state:
+            st.session_state.login_modo = "🔑 Entrar"
+
+        st.markdown("<div class='login-switch-card'>", unsafe_allow_html=True)
+        c1, c2, c3 = st.columns([1, 1, 0.8])
+        with c1:
+            if st.button(
+                "🔑 Entrar",
+                key="login_nav_entrar",
+                use_container_width=True,
+                type="primary" if st.session_state.login_modo == "🔑 Entrar" else "secondary",
+            ):
+                st.session_state.login_modo = "🔑 Entrar"
+                st.rerun()
+        with c2:
+            if st.button(
+                "👤 Criar Conta",
+                key="login_nav_cadastro",
+                use_container_width=True,
+                type="primary" if st.session_state.login_modo == "👤 Criar Conta" else "secondary",
+            ):
+                st.session_state.login_modo = "👤 Criar Conta"
+                st.rerun()
+        with c3:
+            if st.button(
+                "⚙️ Dev",
+                key="login_nav_dev",
+                use_container_width=True,
+                type="primary" if st.session_state.login_modo == "⚙️ Dev" else "secondary",
+            ):
+                st.session_state.login_modo = "⚙️ Dev"
+                st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        login_modo = st.session_state.login_modo
+
+        if login_modo == "🔑 Entrar":
+            st.caption("Acesse sua área de operação.")
+            with st.form("l_form"):
+                u = st.text_input("Usuário", placeholder="Digite seu usuário").strip().title()
+                p = st.text_input("Senha", type="password", placeholder="Digite sua senha").strip()
+                if st.form_submit_button("ENTRAR", use_container_width=True):
+                    user = next(
+                        (
+                            x for x in st.session_state.usuarios
+                            if x["nome"].lower() == u.lower()
+                            and x["senha"] == p
+                            and x.get("status", "Aprovado") == "Aprovado"
+                        ),
+                        None
+                    )
+                    if user:
+                        st.session_state.usuario_logado = user
+                        st.query_params["user"] = user["nome"]
+                        st.query_params["cargo"] = user.get("cargo", "Operador")
+                        st.rerun()
+                    else:
+                        st.error("Usuário, senha ou autorização inválidos.")
+
+        elif login_modo == "👤 Criar Conta":
+            st.caption(
+                "Administrador Principal precisa de aprovação do DEV. "
+                "Usuário comum precisa de aprovação de um Administrador Principal."
+            )
+            admins_aprovados = [
+                u for u in st.session_state.usuarios
+                if u.get("cargo") == "Administrador Principal"
+                and u.get("status", "Aprovado") == "Aprovado"
+            ]
+            with st.form("c_form", clear_on_submit=True):
+                n = st.text_input("Nome", placeholder="Nome para acesso").strip().title()
+                s_conta = st.text_input("Senha", type="password", placeholder="Crie uma senha").strip()
+                tipo_conta = st.selectbox(
+                    "Tipo de conta",
+                    ["Usuário Comum", "Administrador Principal"]
+                )
+                if st.form_submit_button("SOLICITAR CADASTRO", use_container_width=True):
+                    if not n or not s_conta:
+                        st.error("Preencha nome e senha.")
+                    elif any(
+                        u.get("nome", "").lower() == n.lower()
+                        for u in st.session_state.usuarios
+                    ):
+                        st.error("Já existe uma conta ou solicitação com esse nome.")
+                    elif tipo_conta == "Usuário Comum" and not admins_aprovados:
+                        st.error(
+                            "Ainda não existe Administrador Principal aprovado. "
+                            "Um administrador precisa ser aprovado pelo DEV primeiro."
+                        )
+                    else:
+                        cargo_novo = (
+                            "Administrador Principal"
+                            if tipo_conta == "Administrador Principal"
+                            else "Operador"
+                        )
+                        novo = {
+                            "nome": n,
+                            "cargo": cargo_novo,
+                            "senha": s_conta,
+                            "status": "Pendente",
+                            "aprovado_por": "",
+                            "data_solicitacao": obter_horario_brasilia().strftime("%d/%m/%Y %H:%M:%S")
+                        }
+                        st.session_state.usuarios.append(novo)
+                        salvar_usuarios(st.session_state.usuarios)
+                        registrar_log(n, "Solicitou Cadastro", f"Tipo: {cargo_novo}")
+                        if cargo_novo == "Administrador Principal":
+                            st.success("Solicitação enviada ao DEV para aprovação.")
+                        else:
+                            st.success("Solicitação enviada a um Administrador Principal.")
+
+        else:
+            st.markdown("#### Acesso do Desenvolvedor")
+            st.caption("Área restrita do desenvolvedor.")
+            with st.form("d_form"):
+                sp = st.text_input("Senha Mestra", type="password")
+                if st.form_submit_button("ACESSAR COMO DEV", use_container_width=True):
+                    if sp == SENHA_DEV:
+                        st.session_state.usuario_logado = {
+                            "nome": "Dev", "cargo": "Desenvolvedor", "status": "Aprovado"
+                        }
+                        st.query_params["user"] = "Dev"
+                        st.query_params["cargo"] = "Desenvolvedor"
+                        st.query_params["auth"] = SENHA_DEV
+                        st.rerun()
+                    else:
+                        st.error("Senha incorreta.")
+
+    st.stop()
+
+
+
+
+def render_page_header(icone, titulo, descricao, secao="Premium Wines • Galpão"):
+    """Cabeçalho visual padrão para todas as telas internas."""
+    st.markdown(
+        f"""
+        <div class="page-hero">
+            <div class="page-kicker">{html.escape(secao)}</div>
+            <div class="page-title">{icone} {html.escape(titulo)}</div>
+            <div class="page-desc">{html.escape(descricao)}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+# ============================================================
+# CABEÇALHO + MENU LATERAL
+# ============================================================
+
+cargo_logado = st.session_state.usuario_logado.get("cargo", "Operador")
+acesso_gestao = cargo_logado in ["Administrador Principal", "Desenvolvedor"]
+usuario_nome = st.session_state.usuario_logado.get("nome", "Usuário")
+
+instalar_atalhos_teclado()
+
+# Menu lateral inspirado no mockup Premium Wines
+with st.sidebar:
+    st.markdown(
+        f"""
+        <div class="sidebar-brand" style="text-align:center;">
+            <img src="{PREMIUM_LOGO_DATA_URI}" alt="Premium Wines" style="width:92px;height:92px;object-fit:cover;border-radius:20px;background:#fff;padding:4px;margin:0 auto 10px auto;display:block;box-shadow:0 8px 22px rgba(0,0,0,.25);">
+            <div class="brand-title">PREMIUM WINES</div>
+            <div class="brand-sub">GALPÃO • WMS</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    if st.button("🏠  Início", use_container_width=True, key="nav_home"):
+        st.session_state.menu_atual = "🏠 Home"; st.rerun()
+
+    st.markdown('<div class="sidebar-section">Operação</div>', unsafe_allow_html=True)
+    if st.button("📦  Checkout de Expedição", use_container_width=True, key="nav_checkout"):
+        st.session_state.menu_atual = "PedidosMatriz"; st.rerun()
+    if st.button("🏢  Painel da Matriz", use_container_width=True, key="nav_painel"):
+        st.session_state.menu_atual = "PainelMatriz"; st.rerun()
+    st.markdown('<div class="sidebar-section">Estoque</div>', unsafe_allow_html=True)
+    if st.button("🍷  Estoque / Buscar", use_container_width=True, key="nav_estoque_busca"):
+        st.session_state.menu_atual = "Filtros"; st.rerun()
+    if st.button("📱  Ler QR do Pallet", use_container_width=True, key="nav_lerqr"):
+        st.session_state.menu_atual = "LerQRPallet"; st.rerun()
+    if st.button("🏷️  Gerar QR dos Pallets", use_container_width=True, key="nav_gerarqr"):
+        st.session_state.menu_atual = "GerarQRPallets"; st.rerun()
+    if st.button("➕  Cadastrar Vinho", use_container_width=True, key="nav_cadastrar"):
+        st.session_state.menu_atual = "Cadastrar"; st.rerun()
+    if st.button("✏️  Editar Vinho", use_container_width=True, key="nav_editar"):
+        st.session_state.menu_atual = "Editar"; st.rerun()
+    if st.button("🗂️  Gerenciar Pallets", use_container_width=True, key="nav_pallets"):
+        st.session_state.menu_atual = "GerenciarPallets"; st.rerun()
+
+    if acesso_gestao:
+        st.markdown('<div class="sidebar-section">Administração</div>', unsafe_allow_html=True)
+        if st.button("📋  Histórico", use_container_width=True, key="nav_historico"):
+            st.session_state.menu_atual = "Historico"; st.rerun()
+        if st.button("⚙️  Gerenciar Usuários", use_container_width=True, key="nav_usuarios"):
+            st.session_state.menu_atual = "GerenciarUsuarios"; st.rerun()
+
+    st.markdown('<div class="sidebar-section">Sessão</div>', unsafe_allow_html=True)
+    st.caption(f"{usuario_nome} • {cargo_logado}")
+    if st.button("🚪  Sair", use_container_width=True, key="nav_sair"):
+        st.session_state.usuario_logado = None
+        st.query_params.clear()
+        st.session_state.menu_atual = "🏠 Home"
+        st.rerun()
+
+# Topbar compacta e funcional
+# O status do Supabase aparece somente para o Desenvolvedor.
+_db_chip_html = ""
+if cargo_logado == "Desenvolvedor":
+    _db_status_ok, _db_status_msg = status_supabase_cache()
+    _db_label = "Banco online" if _db_status_ok else "Banco indisponível"
+    _db_class = "online" if _db_status_ok else "offline"
+    _db_chip_html = (
+        f'<div class="db-chip-v8 {_db_class}"><span></span>{_db_label}</div>'
+    )
+
+# Monta todo o lado direito sem deixar uma linha vazia no HTML.
+# Isso evita que o Streamlit interprete o cartão do usuário como bloco de código
+# quando o "Banco online" não é exibido (Administrador Principal / Operador).
+_user_chip_html = (
+    '<div class="user-chip-v8">'
+    f'<strong>{html.escape(usuario_nome)}</strong>'
+    f'<small>{html.escape(cargo_logado)}</small>'
+    '</div>'
+)
+_topbar_right_html = _db_chip_html + _user_chip_html
+
+col_top1, col_top2 = st.columns([5, 1.2])
+with col_top1:
+    st.markdown(
+        f"""
+        <div class="topbar premium-topbar-v8">
+            <div class="topbar-left-v8">
+                <img src="{PREMIUM_LOGO_DATA_URI}" alt="Premium Wines" class="topbar-logo-v8">
+                <div>
+                    <div class="topbar-brand">PREMIUM <span>WINES</span></div>
+                    <div class="topbar-sub-v8">Galpão • Estoque • Expedição</div>
+                </div>
+            </div>
+            <div class="topbar-right-v8">{_topbar_right_html}</div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+with col_top2:
+    if st.session_state.menu_atual != "🏠 Home":
+        if st.button("← Início", use_container_width=True, key="top_voltar"):
+            st.session_state.menu_atual = "🏠 Home"
+            st.rerun()
+
+
+# ============================================================
+# V11.6 — AJUSTES FINAIS: LOGO E CONFERÊNCIA DIVERGENTE
+# ============================================================
+st.markdown(r"""
+<style>
+/* Logo do topo e da lateral travada em tamanho fixo para não estourar. */
+html body .premium-topbar-v8 .topbar-logo-v8,
+html body .topbar.premium-topbar-v8 img.topbar-logo-v8 {
+    width:48px !important;
+    height:48px !important;
+    min-width:48px !important;
+    min-height:48px !important;
+    max-width:48px !important;
+    max-height:48px !important;
+    flex:0 0 48px !important;
+    object-fit:cover !important;
+    display:block !important;
+    aspect-ratio:1 / 1 !important;
+}
+html body [data-testid="stSidebar"] .sidebar-brand img,
+html body [data-testid="stSidebar"] .pw-logo-box img {
+    width:78px !important;
+    height:78px !important;
+    min-width:78px !important;
+    min-height:78px !important;
+    max-width:78px !important;
+    max-height:78px !important;
+    object-fit:cover !important;
+    display:block !important;
+    margin:0 auto !important;
+    aspect-ratio:1 / 1 !important;
+}
+.page-hero::after {
+    width:58px !important;
+    height:58px !important;
+    top:14px !important;
+    right:18px !important;
+    background-size:cover !important;
+}
+@media (max-width:640px) {
+    html body .premium-topbar-v8 .topbar-logo-v8,
+    html body .topbar.premium-topbar-v8 img.topbar-logo-v8 {
+        width:42px !important;
+        height:42px !important;
+        min-width:42px !important;
+        min-height:42px !important;
+        max-width:42px !important;
+        max-height:42px !important;
+        flex:0 0 42px !important;
+    }
+    .page-hero::after {
+        width:48px !important;
+        height:48px !important;
+        top:16px !important;
+        right:14px !important;
+    }
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ============================================================
+# V11.8 — CONTRASTE DOS ALERTAS CARREGADO ANTES DAS TELAS
+# Precisa ficar antes dos st.stop() usados em Checkout/Conferência.
+# ============================================================
+st.markdown(r"""
+<style>
+/* Texto de success/info/warning/error SEMPRE visível, inclusive quando a tela usa st.stop(). */
+html body div[data-testid="stAlert"],
+html body [data-testid="stAlert"],
+html body div[role="alert"],
+html body [role="alert"] {
+    opacity:1 !important;
+    visibility:visible !important;
+}
+
+html body div[data-testid="stAlert"] [data-testid="stMarkdownContainer"],
+html body div[data-testid="stAlert"] [data-testid="stMarkdownContainer"] p,
+html body div[data-testid="stAlert"] p,
+html body div[data-testid="stAlert"] span,
+html body div[data-testid="stAlert"] strong,
+html body div[data-testid="stAlert"] em,
+html body div[role="alert"] p,
+html body div[role="alert"] span,
+html body div[role="alert"] strong,
+html body div[role="alert"] em {
+    color:#24181B !important;
+    -webkit-text-fill-color:#24181B !important;
+    opacity:1 !important;
+    visibility:visible !important;
+    filter:none !important;
+    text-shadow:none !important;
+}
+
+/* Fundos e bordas com contraste estável. */
+html body div[data-testid="stAlert"] {
+    border:1px solid #CFC2BB !important;
+    box-shadow:0 4px 14px rgba(35,15,20,.06) !important;
+}
+
+/* O ícone pode manter a cor do tipo de alerta, sem afetar o texto. */
+html body div[data-testid="stAlert"] svg {
+    opacity:1 !important;
+    visibility:visible !important;
+}
+
+/* Garante leitura mesmo se algum CSS antigo tentar herdar cor clara. */
+html body [data-testid="stMain"] div[data-testid="stAlert"] *:not(svg):not(path) {
+    color:#24181B !important;
+    -webkit-text-fill-color:#24181B !important;
+    opacity:1 !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ============================================================
+# HOME
+# ============================================================
+
+if st.session_state.menu_atual == "🏠 Home":
+    # Indicadores seguros para diferentes versões dos dados existentes
+    total_vinhos = len(st.session_state.get("estoque", []))
+    pallets_ocupados = sum(
+        1 for p in st.session_state.get("pallets", [])
+        if p.get("vinhos")
+    )
+    # Conta como pendente somente o que realmente estiver com status Pendente.
+    # Pedidos já "Concluído / Expedido" não entram mais neste indicador.
+    pedidos_pendentes = sum(
+        1
+        for p in st.session_state.get("pedidos", [])
+        if normalizar_nome_vinho(str(p.get("status", "Pendente"))) == "pendente"
+    )
+    divergencias = sum(
+        1
+        for p in st.session_state.get("pedidos", [])
+        for item in p.get("itens", [])
+        if int(item.get("divergencia", 0) or 0) != 0
+    )
+
+    st.markdown(
+        f"""
+        <div class="hero-wine">
+            <div class="hero-kicker">Gestão de estoque & expedição</div>
+            <div class="hero-title">{obter_saudacao()}, {html.escape(usuario_nome)}.</div>
+            <div class="hero-sub">
+                Controle o galpão, localize vinhos, confira pedidos e acompanhe pallets em um só lugar.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    m1, m2, m3, m4 = st.columns(4)
+    with m1: st.metric("🍷 Vinhos cadastrados", total_vinhos)
+    with m2: st.metric("📦 Pallets ocupados", pallets_ocupados)
+    with m3: st.metric("📋 Pedidos pendentes", pedidos_pendentes)
+    with m4: st.metric("⚠️ Divergências", divergencias)
+
+    st.markdown('<div class="section-title">Operação</div>', unsafe_allow_html=True)
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown('<div class="action-card"><div class="action-icon">📦</div><div class="action-title">Checkout de Expedição</div><div class="action-desc">Separar, conferir e finalizar pedidos.</div></div>', unsafe_allow_html=True)
+        if st.button("Abrir Checkout", use_container_width=True, key="home_checkout"):
+            st.session_state.menu_atual = "PedidosMatriz"; st.rerun()
+    with c2:
+        st.markdown('<div class="action-card"><div class="action-icon">🏢</div><div class="action-title">Painel da Matriz</div><div class="action-desc">Visualizar pedidos recebidos e andamento.</div></div>', unsafe_allow_html=True)
+        if st.button("Abrir Painel", use_container_width=True, key="home_painel"):
+            st.session_state.menu_atual = "PainelMatriz"; st.rerun()
+
+    st.markdown('<div class="section-title">Estoque & Localização</div>', unsafe_allow_html=True)
+    c4, c5, c6 = st.columns(3)
+    with c4:
+        st.markdown('<div class="action-card"><div class="action-icon">🍷</div><div class="action-title">Estoque / Buscar</div><div class="action-desc">Consultar todo o estoque e localizar vinhos rapidamente.</div></div>', unsafe_allow_html=True)
+        if st.button("Abrir Estoque", use_container_width=True, key="home_estoque_busca"):
+            st.session_state.menu_atual = "Filtros"; st.rerun()
+    with c5:
+        st.markdown('<div class="action-card"><div class="action-icon">📱</div><div class="action-title">QR do Pallet</div><div class="action-desc">Ler o pallet e visualizar os vinhos armazenados.</div></div>', unsafe_allow_html=True)
+        if st.button("Ler QR", use_container_width=True, key="home_lerqr"):
+            st.session_state.menu_atual = "LerQRPallet"; st.rerun()
+    with c6:
+        st.markdown('<div class="action-card"><div class="action-icon">🏷️</div><div class="action-title">Gerar QR</div><div class="action-desc">Criar etiquetas QR fixas por posição. O código não muda quando o vinho troca de pallet.</div></div>', unsafe_allow_html=True)
+        if st.button("Gerar QR", use_container_width=True, key="home_gerarqr"):
+            st.session_state.menu_atual = "GerarQRPallets"; st.rerun()
+
+    st.markdown('<div class="section-title">Cadastro & Organização</div>', unsafe_allow_html=True)
+    c7, c8, c9 = st.columns(3)
+    with c7:
+        st.markdown('<div class="action-card"><div class="action-icon">➕</div><div class="action-title">Cadastrar Vinho</div><div class="action-desc">Adicionar vinho, safra, código, foto e localização.</div></div>', unsafe_allow_html=True)
+        if st.button("Novo Vinho", use_container_width=True, key="home_cadastrar"):
+            st.session_state.menu_atual = "Cadastrar"; st.rerun()
+    with c8:
+        st.markdown('<div class="action-card"><div class="action-icon">✏️</div><div class="action-title">Editar Vinho</div><div class="action-desc">Atualizar cadastro, localização e informações.</div></div>', unsafe_allow_html=True)
+        if st.button("Editar Cadastro", use_container_width=True, key="home_editar"):
+            st.session_state.menu_atual = "Editar"; st.rerun()
+    with c9:
+        st.markdown('<div class="action-card"><div class="action-icon">🗂️</div><div class="action-title">Gerenciar Pallets</div><div class="action-desc">Organizar os vinhos nas posições físicas do galpão.</div></div>', unsafe_allow_html=True)
+        if st.button("Gerenciar Pallets", use_container_width=True, key="home_pallets"):
+            st.session_state.menu_atual = "GerenciarPallets"; st.rerun()
+
+    if acesso_gestao:
+        st.markdown('<div class="section-title">Administração</div>', unsafe_allow_html=True)
+        a1, a2 = st.columns(2)
+        with a1:
+            st.markdown('<div class="action-card"><div class="action-icon">📋</div><div class="action-title">Histórico</div><div class="action-desc">Auditoria por usuário, data e movimentação.</div></div>', unsafe_allow_html=True)
+            if st.button("Abrir Histórico", use_container_width=True, key="home_historico"):
+                st.session_state.menu_atual = "Historico"; st.rerun()
+        with a2:
+            st.markdown('<div class="action-card"><div class="action-icon">⚙️</div><div class="action-title">Gerenciar Usuários</div><div class="action-desc">Aprovar contas e administrar permissões.</div></div>', unsafe_allow_html=True)
+            if st.button("Gerenciar Usuários", use_container_width=True, key="home_usuarios"):
+                st.session_state.menu_atual = "GerenciarUsuarios"; st.rerun()
+
+
+# ============================================================
+# LER QR PALLET
+# ============================================================
+
+elif st.session_state.menu_atual == "LerQRPallet":
+
+    render_page_header("📱", "Leitura de QR Code do Pallet", "Aponte a câmera para a etiqueta do pallet e veja imediatamente os vinhos e safras cadastrados naquela posição.", "Estoque • Localização")
+
+    st.caption("O QR identifica somente a posição física. A lista abaixo é consultada no estoque atual, portanto não é necessário reimprimir o QR quando os vinhos mudarem de pallet.")
+
+    # Se já existe resultado, escondemos a câmera para deixar a consulta limpa.
+    codigo_ja_lido = str(st.session_state.get("qr_pallet_lido", "") or "").strip()
+
+    if not codigo_ja_lido:
+        modo_leitura = st.radio(
+            "Forma de leitura:",
+            ["📷 Câmera do celular", "⌨️ Digitar código"],
+            horizontal=True,
+            key="modo_leitura_qr_pallet",
+        )
+
+        codigo_lido = ""
+        if modo_leitura == "📷 Câmera do celular":
+            componente_leitor_qr("leitor_pallet", tela_retorno="LerQRPallet")
+            codigo_lido = str(st.session_state.get("qr_pallet_lido", "") or "").strip()
+        else:
+            codigo_lido = st.text_input(
+                "Digite o código do pallet",
+                placeholder="Ex.: C01-P04-D",
+                key="codigo_digitado_pallet",
+            ).strip()
+    else:
+        codigo_lido = codigo_ja_lido
+
+    if codigo_lido:
+        # Aceita tanto o código C01-P01-D quanto a URL pública completa do QR.
+        codigo_posicao = extrair_id_do_qr(codigo_lido)
+        dados_posicao = dados_posicao_pallet_id(codigo_posicao)
+        vinhos = vinhos_atuais_da_posicao(codigo_posicao, st.session_state.estoque)
+
+        if dados_posicao:
+            st.markdown(
+                f"""
+                <div class="pallet-header">
+                    <div style="font-size:0.9rem;opacity:0.85;">POSIÇÃO IDENTIFICADA</div>
+                    <div style="font-size:1.6rem;font-weight:700;">📍 {html.escape(dados_posicao['corredor'])}</div>
+                    <div style="font-size:1.2rem;">{html.escape(dados_posicao['pallet'])} &nbsp; | &nbsp; {html.escape(dados_posicao['lado'])}</div>
+                    <div style="margin-top:8px;font-size:0.85rem;opacity:0.8;">Código: {html.escape(dados_posicao['id'])}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            st.markdown("### 🍷 Vinhos neste pallet")
+            if not vinhos:
+                st.info("Nenhum vinho cadastrado neste pallet.")
+            else:
+                st.success(f"{len(vinhos)} vinho(s) cadastrado(s) nesta posição.")
+                for vinho in vinhos:
+                    lit = str(vinho.get("litragem", "") or "").strip()
+                    lit_html = f" • {html.escape(lit)}" if lit else ""
+                    st.markdown(
+                        f"""
+                        <div class="wine-item">
+                            <div style="color:#D6AE63;font-size:1.05rem;font-weight:700;">🍷 {html.escape(vinho.get('nome',''))}</div>
+                            <div style="color:#AFA6A0;margin-top:3px;">Safra: <b>{html.escape(vinho.get('safra','N/A'))}</b>{lit_html}</div>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+        else:
+            st.error(f"O QR Code {html.escape(str(codigo_lido))} não contém uma posição de pallet válida.")
+
+        def _nova_leitura_pallet():
+            st.session_state["qr_pallet_lido"] = ""
+            st.session_state["modo_leitura_qr_pallet"] = "📷 Câmera do celular"
+            st.session_state.pop("codigo_digitado_pallet", None)
+            try:
+                if "scanned_leitor_pallet" in st.query_params:
+                    del st.query_params["scanned_leitor_pallet"]
+            except Exception:
+                pass
+
+        st.markdown("---")
+        st.button(
+            "📷 Escanear outro pallet",
+            key="btn_escanear_outro_pallet",
+            use_container_width=True,
+            on_click=_nova_leitura_pallet,
+            help="Limpa este resultado e abre novamente a câmera para ler o próximo pallet.",
+        )
+
+
+# ============================================================
+# GERAR QR PALLETS
+# ============================================================
+
+elif st.session_state.menu_atual == "GerarQRPallets":
+
+    render_page_header("🏷️", "Gerar QR dos Pallets", "", "Estoque • Identificação")
+
+    if not QRCODE_DISPONIVEL:
+        st.error("A biblioteca qrcode não está instalada.")
+        st.code("pip install qrcode[pil]")
+    else:
+        modo_qr = st.radio(
+            "Modo de geração",
+            ["Um pallet", "Vários pallets"],
+            horizontal=True,
+            key="modo_geracao_qr",
+        )
+
+        if modo_qr == "Um pallet":
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                corredor_qr = st.selectbox("Corredor", LISTA_CORREDORES, key="qr_corredor")
+            with col2:
+                pallet_qr = st.selectbox("Pallet", LISTA_PALLETS, key="qr_pallet")
+            with col3:
+                lado_qr = st.selectbox("Lado", LISTA_LADOS, key="qr_lado")
+
+            id_qr = gerar_id_pallet(corredor_qr, pallet_qr, lado_qr)
+            pallet_preview = obter_pallet(st.session_state.pallets, id_qr)
+            vinhos_preview = vinhos_atuais_da_posicao(id_qr, st.session_state.estoque)
+
+            resumo = (
+                '<div style="background:#17171b;border:1px solid #34343b;border-radius:14px;padding:18px 20px;margin:14px 0;">'
+                f'<div style="font-size:1.05rem;font-weight:700;color:#f3c45b;">📍 {html.escape(corredor_qr)} • {html.escape(pallet_qr)} • {html.escape(lado_qr)}</div>'
+                f'<div style="margin-top:6px;color:#c9c9cf;">{len(vinhos_preview)} vinho(s) nesta posição</div>'
+                '</div>'
+            )
+            st.markdown(resumo, unsafe_allow_html=True)
+
+            with st.expander("🍷 Ver vinhos deste pallet"):
+                if vinhos_preview:
+                    for numero, vinho_preview in enumerate(vinhos_preview, start=1):
+                        nome_preview = str(vinho_preview.get("nome", "")).strip() or "Vinho sem nome"
+                        safra_preview = str(vinho_preview.get("safra", "N/A")).strip() or "N/A"
+                        st.markdown(f"**{numero}. {nome_preview}** — Safra **{safra_preview}**")
+                else:
+                    st.caption("Nenhum vinho cadastrado nesta posição no momento.")
+
+            if st.button("🏷️ Gerar QR Code", use_container_width=True, key="gerar_qr_unico"):
+                pallet_obj = criar_ou_atualizar_pallet(corredor_qr, pallet_qr, lado_qr, st.session_state.pallets)
+                salvar_pallets(st.session_state.pallets)
+                caminho_qr = gerar_qr_pallet(id_qr, pallet_obj, st.session_state.estoque)
+                if caminho_qr and os.path.exists(caminho_qr):
+                    registrar_log(st.session_state.usuario_logado.get("nome", "Usuário"), "Gerou QR Code de Pallet", f"Posição: {id_qr}")
+                    st.success(f"QR Code fixo da posição {id_qr} gerado com sucesso.")
+                    st.image(caminho_qr, width=280)
+                    with open(caminho_qr, "rb") as arquivo_qr:
+                        st.download_button("⬇️ Baixar QR Code", data=arquivo_qr.read(), file_name=f"QR_{id_qr}.png", mime="image/png", use_container_width=True, key=f"download_qr_{id_qr}")
+                else:
+                    st.error("Não foi possível gerar o QR Code.")
+
+        else:
+            st.markdown("### 🖨️ Gerar vários QR Codes")
+            col1, col2 = st.columns(2)
+            with col1:
+                corredor_lote = st.selectbox("Corredor", LISTA_CORREDORES, key="qr_lote_corredor")
+            with col2:
+                lado_lote = st.selectbox("Lado", LISTA_LADOS, key="qr_lote_lado")
+
+            numeros_pallets = [_numero_de_texto(p) or i + 1 for i, p in enumerate(LISTA_PALLETS)]
+            minimo_pallet = min(numeros_pallets) if numeros_pallets else 1
+            maximo_pallet = max(numeros_pallets) if numeros_pallets else 20
+
+            cini, cfim = st.columns(2)
+            with cini:
+                pallet_inicio = st.number_input("Do pallet", min_value=int(minimo_pallet), max_value=int(maximo_pallet), value=int(minimo_pallet), step=1, key="qr_lote_inicio")
+            with cfim:
+                pallet_fim = st.number_input("Até o pallet", min_value=int(minimo_pallet), max_value=int(maximo_pallet), value=int(min(int(maximo_pallet), 20)), step=1, key="qr_lote_fim")
+
+            if pallet_inicio > pallet_fim:
+                st.warning("O pallet inicial precisa ser menor ou igual ao pallet final.")
+            else:
+                qtd_qrs = int(pallet_fim - pallet_inicio + 1)
+                st.caption(f"Serão gerados {qtd_qrs} QR Codes fixos por posição em um arquivo A4 pronto para impressão.")
+
+                if st.button("🖨️ Preparar QR Codes para imprimir", use_container_width=True, key="gerar_qr_lote"):
+                    try:
+                        # A4 em 150 DPI: 1240 x 1754 px. Grade 4x5 = 20 etiquetas por página.
+                        page_w, page_h = 1240, 1754
+                        cols, rows = 4, 5
+                        cell_w, cell_h = page_w // cols, page_h // rows
+                        margem = 16
+                        qr_size = min(cell_w - 48, cell_h - 86)
+                        paginas = []
+
+                        try:
+                            fonte = ImageFont.truetype("DejaVuSans-Bold.ttf", 24)
+                            fonte_peq = ImageFont.truetype("DejaVuSans.ttf", 19)
+                        except Exception:
+                            fonte = ImageFont.load_default()
+                            fonte_peq = ImageFont.load_default()
+
+                        ids_gerados = []
+                        pagina = Image.new("RGB", (page_w, page_h), "white")
+                        draw = ImageDraw.Draw(pagina)
+                        pos = 0
+
+                        for numero in range(int(pallet_inicio), int(pallet_fim) + 1):
+                            pallet_nome = f"Pallet {numero:02d}"
+                            if pallet_nome not in LISTA_PALLETS:
+                                continue
+
+                            id_lote = gerar_id_pallet(corredor_lote, pallet_nome, lado_lote)
+                            pallet_obj = criar_ou_atualizar_pallet(corredor_lote, pallet_nome, lado_lote, st.session_state.pallets)
+                            caminho_qr = gerar_qr_pallet(id_lote, pallet_obj, st.session_state.estoque)
+                            if not caminho_qr or not os.path.exists(caminho_qr):
+                                continue
+
+                            if pos > 0 and pos % (cols * rows) == 0:
+                                paginas.append(pagina)
+                                pagina = Image.new("RGB", (page_w, page_h), "white")
+                                draw = ImageDraw.Draw(pagina)
+
+                            idx_pagina = pos % (cols * rows)
+                            linha = idx_pagina // cols
+                            coluna = idx_pagina % cols
+                            x0 = coluna * cell_w
+                            y0 = linha * cell_h
+
+                            # Contorno fino facilita recortar sem prejudicar o QR.
+                            draw.rectangle([x0 + margem, y0 + margem, x0 + cell_w - margem, y0 + cell_h - margem], outline="black", width=1)
+
+                            resample_nearest = getattr(getattr(Image, "Resampling", Image), "NEAREST", Image.NEAREST)
+                            qr_img = Image.open(caminho_qr).convert("RGB").resize((qr_size, qr_size), resample_nearest)
+                            qx = x0 + (cell_w - qr_size) // 2
+                            qy = y0 + 20
+                            pagina.paste(qr_img, (qx, qy))
+
+                            texto1 = id_lote
+                            texto2 = f"{corredor_lote} • {pallet_nome} • {lado_lote}"
+                            b1 = draw.textbbox((0, 0), texto1, font=fonte)
+                            b2 = draw.textbbox((0, 0), texto2, font=fonte_peq)
+                            draw.text((x0 + (cell_w - (b1[2]-b1[0]))/2, y0 + qr_size + 28), texto1, fill="black", font=fonte)
+                            draw.text((x0 + (cell_w - (b2[2]-b2[0]))/2, y0 + qr_size + 58), texto2, fill="black", font=fonte_peq)
+
+                            ids_gerados.append(id_lote)
+                            pos += 1
+
+                        if pos % (cols * rows) != 0 or not paginas:
+                            paginas.append(pagina)
+
+                        salvar_pallets(st.session_state.pallets)
+
+                        if not ids_gerados:
+                            st.error("Nenhum QR Code pôde ser gerado para o intervalo informado.")
+                        else:
+                            pdf_buffer = BytesIO()
+                            primeira = paginas[0].convert("RGB")
+                            restantes = [pg.convert("RGB") for pg in paginas[1:]]
+                            primeira.save(pdf_buffer, format="PDF", save_all=True, append_images=restantes, resolution=150.0)
+                            pdf_bytes = pdf_buffer.getvalue()
+
+                            registrar_log(
+                                st.session_state.usuario_logado.get("nome", "Usuário"),
+                                "Gerou QR Codes em lote",
+                                f"{corredor_lote} | Pallets {int(pallet_inicio):02d} a {int(pallet_fim):02d} | {lado_lote} | {len(ids_gerados)} QR(s)",
+                            )
+                            st.success(f"{len(ids_gerados)} QR Codes preparados para impressão.")
+                            st.download_button(
+                                "⬇️ Baixar PDF para imprimir",
+                                data=pdf_bytes,
+                                file_name=f"QR_{corredor_lote.replace(' ', '_')}_P{int(pallet_inicio):02d}-P{int(pallet_fim):02d}_{lado_lote.replace(' / ', '_').replace(' ', '_')}.pdf",
+                                mime="application/pdf",
+                                use_container_width=True,
+                                key="download_qr_lote_pdf",
+                            )
+                    except Exception as e:
+                        st.error(f"Não foi possível preparar os QR Codes em lote: {e}")
+
+elif st.session_state.menu_atual == "GerenciarPallets":
+
+    render_page_header("🗂️", "Gerenciar Pallets e Vinhos", "Organize os vinhos por corredor, pallet e lado. As movimentações atualizam a localização em todo o sistema.", "Estoque • Organização")
+
+    st.info(
+        "Ao mover um vinho por aqui, a localização também é atualizada "
+        "automaticamente no Estoque / Buscar e no cadastro do vinho."
+    )
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        corredor_gp = st.selectbox("Corredor", LISTA_CORREDORES, key="gp_corredor")
+    with col2:
+        pallet_gp = st.selectbox("Pallet", LISTA_PALLETS, key="gp_pallet")
+    with col3:
+        lado_gp = st.selectbox("Lado", LISTA_LADOS, key="gp_lado")
+
+    id_gp = gerar_id_pallet(corredor_gp, pallet_gp, lado_gp)
+    pallet_atual = obter_pallet(st.session_state.pallets, id_gp)
+    if not pallet_atual:
+        pallet_atual = criar_ou_atualizar_pallet(
+            corredor_gp, pallet_gp, lado_gp, st.session_state.pallets
+        )
+        salvar_pallets(st.session_state.pallets)
+
+    st.markdown(
+        f"""
+        <div class="pallet-header">
+            <div style="font-size:0.85rem;">POSIÇÃO SELECIONADA</div>
+            <div style="font-size:1.5rem;font-weight:700;">{corredor_gp} | {pallet_gp}</div>
+            <div>Lado: <b>{lado_gp}</b></div>
+            <div style="margin-top:6px;font-size:0.85rem;">QR: {id_gp}</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    if st.session_state.estoque:
+        opcoes = list(range(len(st.session_state.estoque)))
+        indice_vinho = st.selectbox(
+            "Selecione o vinho para mover para este pallet",
+            [None] + opcoes,
+            format_func=lambda i: "-- Selecionar --" if i is None else (
+                f"{st.session_state.estoque[i].get('nome','')} — "
+                f"Safra {st.session_state.estoque[i].get('safra','N/A')} — "
+                f"{st.session_state.estoque[i].get('litragem','N/A') or 'N/A'}"
+            ),
+            key="gp_vinho_indice",
+        )
+
+        if indice_vinho is not None:
+            vinho_obj = st.session_state.estoque[indice_vinho]
+            st.caption(
+                f"Localização atual: {vinho_obj.get('localizacao','Sem localização')} "
+                f"| {vinho_obj.get('lado','')}"
+            )
+
+            if st.button("📦 Mover vinho para este pallet", use_container_width=True):
+                sincronizar_vinho_com_pallet(
+                    vinho_obj,
+                    corredor_gp,
+                    pallet_gp,
+                    lado_gp,
+                )
+                registrar_log(
+                    st.session_state.usuario_logado["nome"],
+                    "Moveu Vinho de Pallet",
+                    f"{vinho_obj.get('nome','')} -> {id_gp}",
+                )
+                st.success("Vinho movido e localização atualizada em todo o sistema!")
+                st.rerun()
+
+    st.markdown("---")
+    st.markdown("### 🍷 Vinhos atualmente neste pallet")
+    vinhos_pallet = pallet_atual.get("vinhos", [])
+
+    if not vinhos_pallet:
+        st.info("Nenhum vinho cadastrado neste pallet.")
+    else:
+        for indice, vinho in enumerate(list(vinhos_pallet)):
+            col_a, col_b = st.columns([5, 1])
+            with col_a:
+                st.markdown(
+                    f"""
+                    <div class="wine-item">
+                    <b>🍷 {html.escape(vinho.get('nome',''))}</b><br>
+                    Safra: <b>{html.escape(str(vinho.get('safra','N/A')))}</b>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            with col_b:
+                if st.button("🗑️", key=f"remover_{id_gp}_{indice}"):
+                    removido = vinhos_pallet.pop(indice)
+                    salvar_pallets(st.session_state.pallets)
+
+                    estoque_vinho = next(
+                        (
+                            v for v in st.session_state.estoque
+                            if v.get("nome") == removido.get("nome")
+                            and str(v.get("safra", "")) == str(removido.get("safra", ""))
+                            and corredor_gp in str(v.get("localizacao", ""))
+                            and _numero_de_texto(pallet_gp) in str(v.get("localizacao", ""))
+                        ),
+                        None,
+                    )
+                    if estoque_vinho:
+                        estoque_vinho["localizacao"] = "Sem localização"
+                        estoque_vinho["lado"] = ""
+                        salvar_dados(st.session_state.estoque)
+
+                    registrar_log(
+                        st.session_state.usuario_logado["nome"],
+                        "Removeu Vinho do Pallet",
+                        f"{id_gp} - {removido.get('nome','')}",
+                    )
+                    st.rerun()
+
+
+# ============================================================
+# PAINEL MATRIZ
+# ============================================================
+
+elif st.session_state.menu_atual == "PainelMatriz":
+
+    render_page_header(
+        "🏢",
+        "Painel da Matriz",
+        "Filtre por número do pedido, data ou status e veja somente os pedidos que procura.",
+        "Operação • Acompanhamento",
+    )
+
+    if not st.session_state.pedidos:
+        st.info("Nenhum pedido registrado no sistema.")
+
+    else:
+        st.markdown("### 🔎 Localizar pedidos")
+        st.caption(
+            "Você pode usar apenas um filtro ou combinar vários. Ex.: somente Status = Pendente, somente uma data, ou o número 123002."
+        )
+
+        col_numero, col_data, col_status = st.columns([1.5, 1.25, 1.25])
+
+        with col_numero:
+            filtro_numero = st.text_input(
+                "Número do pedido",
+                placeholder="Ex.: 123002",
+                key="filtro_numero_painel_matriz",
+            ).strip()
+
+        with col_data:
+            filtro_data = st.text_input(
+                "Data",
+                placeholder="Ex.: 10/09/2026",
+                key="filtro_data_painel_matriz",
+            ).strip()
+
+        with col_status:
+            filtro_status_painel = st.selectbox(
+                "Status",
+                ["Escolher...", "Todos", "Pendente", "Concluído / Expedido", "Concluído com Divergência"],
+                key="filtro_status_painel_matriz_v2",
+            )
+
+        # Um filtro já é suficiente para mostrar a lista. Não é necessário
+        # preencher o número do pedido para pesquisar por status ou data.
+        tem_filtro = bool(filtro_numero or filtro_data or filtro_status_painel != "Escolher...")
+
+        if not tem_filtro:
+            st.info("Escolha um status ou informe a data ou o número do pedido para mostrar a lista.")
+        else:
+            pedidos_filtrados = []
+            termo_numero = normalizar_nome_vinho(filtro_numero) if filtro_numero else ""
+            data_procurada = filtro_data.replace("-", "/").strip()
+
+            for p in st.session_state.pedidos:
+                status_p = str(p.get("status", "Pendente")).strip()
+                status_norm = normalizar_nome_vinho(status_p)
+
+                # Filtro por status
+                if filtro_status_painel not in ["Escolher...", "Todos"]:
+                    if status_norm != normalizar_nome_vinho(filtro_status_painel):
+                        continue
+
+                # Filtro por número do pedido
+                if termo_numero:
+                    id_pedido = normalizar_nome_vinho(str(p.get("id", "")))
+                    if termo_numero not in id_pedido:
+                        continue
+
+                # Filtro por data. O pedido normalmente guarda "DD/MM/AAAA HH:MM".
+                if data_procurada:
+                    data_pedido = str(p.get("data", "")).strip()
+                    data_pedido_norm = data_pedido.replace("-", "/")
+                    if data_procurada not in data_pedido_norm:
+                        continue
+
+                pedidos_filtrados.append(p)
+
+            if not pedidos_filtrados:
+                st.warning("Nenhum pedido encontrado com os filtros selecionados.")
+            else:
+                st.success(f"{len(pedidos_filtrados)} pedido(s) encontrado(s).")
+
+                ids_filtrados = [str(p.get("id", "")) for p in pedidos_filtrados]
+                ids_selecionados = st.multiselect(
+                    "Selecionar pedidos para salvar ou imprimir",
+                    ids_filtrados,
+                    key="pedidos_selecionados_painel_matriz",
+                    placeholder="Escolha um ou mais pedidos",
+                )
+
+                pedidos_selecionados = [
+                    p for p in pedidos_filtrados
+                    if str(p.get("id", "")) in ids_selecionados
+                ]
+
+                # Ações ficam sempre visíveis. No celular elas são empilhadas em largura total.
+                with st.container(key="painel_acoes_pedidos_mobile"):
+                    st.markdown("**Ações dos pedidos selecionados**")
+
+                    if pedidos_selecionados:
+                        documento_pedidos = gerar_html_pedidos_selecionados(pedidos_selecionados)
+                        col_salvar_pedidos, col_imprimir_pedidos = st.columns(2)
+
+                        with col_salvar_pedidos:
+                            st.download_button(
+                                "💾 Salvar pedidos selecionados",
+                                data=documento_pedidos.encode("utf-8"),
+                                file_name=(
+                                    "premium_wines_pedidos_"
+                                    + obter_horario_brasilia().strftime("%Y%m%d_%H%M")
+                                    + ".html"
+                                ),
+                                mime="text/html",
+                                use_container_width=True,
+                                key="baixar_pedidos_selecionados",
+                            )
+
+                        with col_imprimir_pedidos:
+                            botao_imprimir_pedidos(documento_pedidos)
+                    else:
+                        col_salvar_pedidos, col_imprimir_pedidos = st.columns(2)
+                        with col_salvar_pedidos:
+                            st.button(
+                                "💾 Salvar pedidos selecionados",
+                                disabled=True,
+                                use_container_width=True,
+                                key="salvar_pedidos_desabilitado",
+                            )
+                        with col_imprimir_pedidos:
+                            st.button(
+                                "🖨️ Imprimir / Salvar em PDF",
+                                disabled=True,
+                                use_container_width=True,
+                                key="imprimir_pedidos_desabilitado",
+                            )
+                        st.caption("Selecione pelo menos um pedido para habilitar Salvar e Imprimir.")
+
+                # Lista compacta: cada pedido aparece fechado e só abre quando o usuário clicar.
+                # Isso evita uma tela enorme quando há muitos resultados.
+                for p in pedidos_filtrados:
+                    status_p = str(p.get("status", "Pendente"))
+                    pedido_id = str(p.get("id", ""))
+                    pedido_data = str(p.get("data", ""))
+                    total_itens = len(p.get("itens", []))
+
+                    resumo = f"Pedido {pedido_id}  •  {pedido_data}  •  {status_p}  •  {total_itens} item(ns)"
+                    with st.expander(resumo, expanded=False):
+                        status_norm_p = normalizar_nome_vinho(status_p)
+                        if status_norm_p == normalizar_nome_vinho("Concluído / Expedido"):
+                            status_col = "#66C38A"
+                        elif status_norm_p == normalizar_nome_vinho("Concluído com Divergência"):
+                            status_col = "#F3C45B"
+                        else:
+                            status_col = "#E0A95A"
+
+                        st.markdown(
+                            f"""
+                            <div class="pedido-resumo-card">
+                                <div class="pedido-resumo-titulo">
+                                    Mapa / Pedido Nº {html.escape(pedido_id)}
+                                </div>
+                                <div class="pedido-resumo-meta">
+                                    Data: {html.escape(pedido_data)}
+                                    &nbsp;&nbsp;•&nbsp;&nbsp;
+                                    Status: <b style="color:{status_col};">{html.escape(status_p)}</b>
+                                </div>
+                            </div>
+                            """,
+                            unsafe_allow_html=True,
+                        )
+
+                        df_itens = []
+                        for item in p.get("itens", []):
+                            dif = int(item.get("divergencia", 0) or 0)
+                            if dif > 0:
+                                dif_str = f"({dif:+d}) ⚠️ Excedente"
+                            elif dif < 0:
+                                dif_str = f"({dif}) ⚠️ Falta"
+                            else:
+                                dif_str = "(0) Correto"
+
+                            _un_caixa = unidades_por_caixa(item)
+                            _q_caixas = int(item.get("quantidade", 0) or 0)
+                            df_itens.append({
+                                "Produto": item.get("nome", ""),
+                                "Safra": item.get("safra", "N/A"),
+                                "Litragem": item.get("litragem", "N/A") or "N/A",
+                                "Unid./Caixa": _un_caixa,
+                                "Caixas Pedidas": _q_caixas,
+                                "Total Garrafas": _q_caixas * _un_caixa,
+                                "Caixas Conferidas": item.get("qtd_separada", 0),
+                                "Divergência (Caixas)": dif_str,
+                                "Origem": "Fora da lista / Extra" if item.get("fora_lista", False) else "Pedido original",
+                            })
+
+                        if df_itens:
+                            st.dataframe(
+                                pd.DataFrame(df_itens),
+                                use_container_width=True,
+                                hide_index=True,
+                            )
+                        else:
+                            st.caption("Este pedido não possui itens cadastrados.")
+
+
+# ============================================================
+# PEDIDOS MATRIZ
+# ============================================================
+
+elif st.session_state.menu_atual == "PedidosMatriz":
+
+    render_page_header("📦", "Checkout de Expedição", "Crie pedidos, faça a separação, confira por código de barras e trate divergências antes da expedição.", "Operação • Separação")
+
+    _msg_pedido_salvo = st.session_state.pop("mensagem_pedido_salvo", None)
+    if _msg_pedido_salvo:
+        st.success(_msg_pedido_salvo)
+
+    if st.session_state.pop("_limpar_pedido_apos_salvar", False):
+        st.session_state.itens_pedido_scanner = []
+        for _chave_limpar in [
+            "id_novo_pedido", "modo_novo_pedido",
+            "texto_manual_novo_pedido", "codigo_manual_lista_pedido",
+            "qtd_lista_pedido", "mensagem_adicao_pedido", "itens_pedido_retomados",
+            "pedido_manual_consulta", "pedido_manual_escolha", "pedido_manual_qtd_caixas",
+            "checkout_codigo_pendente", "checkout_codigo_lido", "checkout_auto_conferir",
+        ]:
+            st.session_state.pop(_chave_limpar, None)
+
+    aba_checkout_opcoes = [
+        "📋 Enviar / Cadastrar / Excluir Pedidos",
+        "🔍 Conferência (Checkout de Expedição)",
+    ]
+
+    # A tela escolhida fica persistente mesmo após reruns, bipagens e recarregamentos.
+    _checkout_param = str(st.query_params.get("checkout_area", "") or "").strip().lower()
+    _checkout_desejada = st.session_state.get("checkout_aba_persistente", aba_checkout_opcoes[0])
+
+    if _checkout_param == "conferencia":
+        _checkout_desejada = aba_checkout_opcoes[1]
+    elif _checkout_param == "pedidos":
+        _checkout_desejada = aba_checkout_opcoes[0]
+
+    if st.session_state.pop("checkout_forcar_aba", False):
+        _checkout_desejada = aba_checkout_opcoes[1]
+
+    if _checkout_desejada not in aba_checkout_opcoes:
+        _checkout_desejada = aba_checkout_opcoes[0]
+
+    st.session_state["checkout_aba_persistente"] = _checkout_desejada
+    st.session_state["checkout_aba_widget"] = _checkout_desejada
+
+    def _persistir_area_checkout():
+        _valor = st.session_state.get("checkout_aba_widget", aba_checkout_opcoes[0])
+        st.session_state["checkout_aba_persistente"] = _valor
+        st.query_params["checkout_area"] = (
+            "conferencia" if _valor == aba_checkout_opcoes[1] else "pedidos"
+        )
+        if _valor == aba_checkout_opcoes[1]:
+            st.session_state["checkout_reset_campos"] = True
+
+    checkout_aba_ativa = st.radio(
+        "Área do Checkout",
+        aba_checkout_opcoes,
+        horizontal=True,
+        label_visibility="collapsed",
+        key="checkout_aba_widget",
+        on_change=_persistir_area_checkout,
+    )
+
+    st.session_state["checkout_aba_persistente"] = checkout_aba_ativa
+    st.query_params["checkout_area"] = (
+        "conferencia" if checkout_aba_ativa == aba_checkout_opcoes[1] else "pedidos"
+    )
+
+    if checkout_aba_ativa == aba_checkout_opcoes[0]:
+
+        st.markdown("### 📝 Montar novo pedido")
+        st.caption(
+            "A unidade do pedido é CAIXA. Nome, safra, litragem e garrafas por caixa "
+            "são puxados do cadastro do vinho. Você informa somente quantas caixas."
+        )
+
+        rascunho_pendente = st.session_state.get("rascunho_pedido_pendente")
+        if rascunho_pendente:
+            st.success(
+                "✅ Seu pedido em andamento foi preservado enquanto você cadastrava o vinho."
+            )
+            c_ret1, c_ret2 = st.columns([3, 1])
+            with c_ret1:
+                st.caption(
+                    f"Pedido: {rascunho_pendente.get('id', '')} • "
+                    f"{len(rascunho_pendente.get('itens', []))} item(ns) guardado(s)."
+                )
+            with c_ret2:
+                if st.button(
+                    "▶️ Retomar pedido",
+                    key="retomar_rascunho_pedido",
+                    use_container_width=True,
+                ):
+                    st.session_state.id_novo_pedido = rascunho_pendente.get("id", "")
+                    st.session_state.modo_novo_pedido = rascunho_pendente.get(
+                        "modo", "⌨️ Digitar manualmente"
+                    )
+                    st.session_state.itens_pedido_retomados = [
+                        dict(item) for item in rascunho_pendente.get("itens", [])
+                    ]
+                    st.rerun()
+
+        proximo_numero = len(st.session_state.pedidos) + 1
+        id_sugerido = f"123{proximo_numero:03d}"
+        id_pedido = st.text_input(
+            "Código de Barras / Identificação do Mapa",
+            value=id_sugerido,
+            key="id_novo_pedido",
+        )
+
+        modo_novo_pedido = st.radio(
+            "Como deseja adicionar os vinhos?",
+            [
+                "📄 Enviar arquivo",
+                "⌨️ Digitar manualmente",
+                "📷 Leitor de código de barras",
+            ],
+            horizontal=True,
+            key="modo_novo_pedido",
+        )
+
+        itens_novos = None
+
+        # Ao voltar do cadastro, o pedido preservado pode ser retomado sem reconstruir a lista.
+        if "itens_pedido_retomados" in st.session_state:
+            itens_retomados = st.session_state.pop("itens_pedido_retomados")
+            itens_novos = [dict(item) for item in itens_retomados]
+            st.info("🔄 Retomando o pedido que estava em andamento...")
+
+        if modo_novo_pedido == "📄 Enviar arquivo":
+            if "arquivo_pedido_versao" not in st.session_state:
+                st.session_state.arquivo_pedido_versao = 0
+            arq_pedido = st.file_uploader(
+                "Arquivo de Pedido (Excel ou TXT)",
+                type=["xlsx", "xls", "txt"],
+                key=f"arquivo_novo_pedido_{st.session_state.arquivo_pedido_versao}",
+            )
+            st.caption(
+                "No Excel use: Nome, Safra, Litragem e Quantidade de Caixas. "
+                "As garrafas por caixa são puxadas automaticamente do cadastro."
+            )
+            if st.button("💾 Salvar Pedido do Arquivo", use_container_width=True):
+                itens_novos = (
+                    extrair_pedidos_de_arquivo(arq_pedido)
+                    if arq_pedido is not None else []
+                )
+
+        elif modo_novo_pedido == "⌨️ Digitar manualmente":
+
+            if st.session_state.pop("pedido_manual_limpar_campos", False):
+                for _k in [
+                    "pedido_manual_consulta",
+                    "pedido_manual_nome_variante",
+                    "pedido_manual_litragem_escolha",
+                    "pedido_manual_safra_escolha",
+                    "pedido_manual_qtd_caixas",
+                    "pedido_manual_consulta_litragem_estado",
+                ]:
+                    st.session_state.pop(_k, None)
+
+            st.caption(
+                "Digite apenas parte do nome, como **La Consulta**, **Horgelus** ou "
+                "**Quereu Carmenere**. O sistema mostra todos os vinhos cadastrados "
+                "que correspondem à busca. Depois você escolhe o vinho e, quando houver, "
+                "a litragem e a safra."
+            )
+
+            consulta_manual = st.text_input(
+                "Buscar vinho",
+                placeholder="Ex.: La Consulta",
+                key="pedido_manual_consulta",
+            ).strip()
+
+            candidatos_manual = localizar_vinhos_por_consulta_pedido(consulta_manual)
+            vinho_manual = None
+
+            if consulta_manual and not candidatos_manual:
+                st.warning(
+                    "Nenhum vinho do cadastro corresponde à busca. "
+                    "Confira o nome ou cadastre o vinho primeiro."
+                )
+
+            elif candidatos_manual:
+                # Agrupa pelo título exato do cadastro. Assim, ao digitar "La Consulta",
+                # aparecem La Consulta Malbec, Chardonnay, Cabernet etc.
+                nomes_map = {}
+                for _v in candidatos_manual:
+                    _nome_exato = str(_v.get("nome", "") or "").strip()
+                    _nome_norm = normalizar_nome_vinho(_nome_exato)
+                    if _nome_norm and _nome_norm not in nomes_map:
+                        nomes_map[_nome_norm] = _nome_exato
+
+                nomes_norm = sorted(
+                    nomes_map.keys(),
+                    key=lambda _n: normalizar_nome_vinho(nomes_map[_n]),
+                )
+
+                if len(nomes_norm) > 1:
+                    if st.session_state.get("pedido_manual_nome_variante") not in nomes_norm:
+                        st.session_state.pop("pedido_manual_nome_variante", None)
+
+                    nome_norm_escolhido = st.selectbox(
+                        "Escolha o vinho",
+                        options=nomes_norm,
+                        format_func=lambda n: nomes_map[n],
+                        key="pedido_manual_nome_variante",
+                        help=f"Foram encontrados {len(nomes_norm)} vinhos para esta busca.",
+                    )
+                else:
+                    nome_norm_escolhido = nomes_norm[0]
+                    # Quando há apenas um resultado, mostra o nome uma única vez.
+                    st.markdown(
+                        f"### 🍷 {html.escape(nomes_map[nome_norm_escolhido])}"
+                    )
+
+                # Depois de escolher o título, busca TODAS as variantes desse vinho
+                # no cadastro para descobrir litragem e safras disponíveis.
+                candidatos_nome = [
+                    _v for _v in st.session_state.get("estoque", [])
+                    if normalizar_nome_vinho(_v.get("nome", "")) == nome_norm_escolhido
+                ]
+
+                litros_opcoes = []
+                for _v in candidatos_nome:
+                    _lit = normalizar_litragem_pedido(_v.get("litragem", "")) or "N/A"
+                    if _lit not in litros_opcoes:
+                        litros_opcoes.append(_lit)
+
+                analise_consulta_manual = analisar_consulta_pedido_manual(consulta_manual)
+                litragem_sugerida = analise_consulta_manual.get("litragem", "")
+                safra_sugerida = analise_consulta_manual.get("safra", "")
+
+                consulta_estado = normalizar_nome_vinho(consulta_manual) + "|" + nome_norm_escolhido
+                if st.session_state.get("pedido_manual_consulta_litragem_estado") != consulta_estado:
+                    st.session_state["pedido_manual_consulta_litragem_estado"] = consulta_estado
+                    if litragem_sugerida in litros_opcoes:
+                        st.session_state["pedido_manual_litragem_escolha"] = litragem_sugerida
+                    elif len(litros_opcoes) > 1:
+                        st.session_state.pop("pedido_manual_litragem_escolha", None)
+
+                if len(litros_opcoes) > 1:
+                    if st.session_state.get("pedido_manual_litragem_escolha") not in litros_opcoes:
+                        st.session_state["pedido_manual_litragem_escolha"] = litros_opcoes[0]
+                    litragem_escolhida = st.selectbox(
+                        "Escolha a litragem",
+                        options=litros_opcoes,
+                        key="pedido_manual_litragem_escolha",
+                        help="Este vinho possui mais de uma litragem cadastrada.",
+                    )
+                else:
+                    litragem_escolhida = litros_opcoes[0] if litros_opcoes else "N/A"
+
+                candidatos_litragem = [
+                    _v for _v in candidatos_nome
+                    if (normalizar_litragem_pedido(_v.get("litragem", "")) or "N/A")
+                    == litragem_escolhida
+                ]
+
+                safras_opcoes = []
+                for _v in candidatos_litragem:
+                    _safra = str(_v.get("safra", "") or "").strip() or "N/A"
+                    if _safra not in safras_opcoes:
+                        safras_opcoes.append(_safra)
+
+                if len(safras_opcoes) > 1:
+                    if safra_sugerida in safras_opcoes:
+                        st.session_state["pedido_manual_safra_escolha"] = safra_sugerida
+                    elif st.session_state.get("pedido_manual_safra_escolha") not in safras_opcoes:
+                        st.session_state["pedido_manual_safra_escolha"] = safras_opcoes[0]
+                    safra_escolhida = st.selectbox(
+                        "Escolha a safra",
+                        options=safras_opcoes,
+                        key="pedido_manual_safra_escolha",
+                        help="Há mais de uma safra cadastrada para este vinho e litragem.",
+                    )
+                else:
+                    safra_escolhida = safras_opcoes[0] if safras_opcoes else "N/A"
+
+                vinho_manual = next(
+                    (
+                        _v for _v in candidatos_litragem
+                        if (str(_v.get("safra", "") or "").strip() or "N/A")
+                        == safra_escolhida
+                    ),
+                    candidatos_litragem[0] if candidatos_litragem else candidatos_nome[0],
+                )
+
+                unidades_manual = unidades_por_caixa(vinho_manual)
+                litragem_manual = normalizar_litragem_pedido(
+                    vinho_manual.get("litragem", "")
+                ) or "N/A"
+                safra_manual = str(vinho_manual.get("safra", "") or "").strip() or "N/A"
+
+                # Mostra os dados técnicos sem repetir o nome do vinho em vários campos.
+                st.markdown(
+                    f"""
+                    <div style="background:#FFFFFF;border:1px solid #E3DAD4;border-left:4px solid #71172F;
+                                border-radius:13px;padding:13px 16px;margin:8px 0 12px 0;">
+                        <div style="color:#756A6D;font-size:.90rem;">
+                            Safra: <b style="color:#4A1021;">{html.escape(safra_manual)}</b>
+                            &nbsp;•&nbsp; Litragem: <b style="color:#4A1021;">{html.escape(litragem_manual)}</b>
+                            &nbsp;•&nbsp; Caixa: <b style="color:#4A1021;">{unidades_manual if unidades_manual > 0 else 'Não definida'} garrafa(s)</b>
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+                qtd_caixas_manual = st.number_input(
+                    "Quantidade de caixas",
+                    min_value=1,
+                    value=1,
+                    step=1,
+                    key="pedido_manual_qtd_caixas",
+                )
+
+                total_manual = int(qtd_caixas_manual) * int(unidades_manual or 0)
+                if unidades_manual > 0:
+                    st.info(
+                        f"📦 {int(qtd_caixas_manual)} caixa(s) × {unidades_manual} garrafa(s) "
+                        f"= **{total_manual} garrafas** no total."
+                    )
+                else:
+                    st.error(
+                        "Este vinho não tem uma embalagem válida no cadastro. "
+                        "Edite o vinho e informe quantas garrafas vêm na caixa."
+                    )
+
+                if st.button(
+                    "➕ Adicionar à lista",
+                    use_container_width=True,
+                    key="btn_adicionar_manual_pedido_v124",
+                    disabled=unidades_manual <= 0,
+                ):
+                    novo_item = item_pedido_com_caixas(vinho_manual, qtd_caixas_manual)
+                    lista_manual = st.session_state.setdefault("itens_pedido_scanner", [])
+
+                    existente = next(
+                        (
+                            x for x in lista_manual
+                            if normalizar_nome_vinho(x.get("nome", ""))
+                                == normalizar_nome_vinho(novo_item.get("nome", ""))
+                            and str(x.get("safra", "")).strip()
+                                == str(novo_item.get("safra", "")).strip()
+                            and normalizar_litragem_pedido(x.get("litragem", ""))
+                                == normalizar_litragem_pedido(novo_item.get("litragem", ""))
+                        ),
+                        None,
+                    )
+
+                    if existente:
+                        existente["quantidade"] = (
+                            int(existente.get("quantidade", 0))
+                            + int(qtd_caixas_manual)
+                        )
+                        existente["qtd_caixas"] = existente["quantidade"]
+                        existente["unidades_caixa"] = unidades_manual
+                        existente["total_garrafas"] = (
+                            existente["quantidade"] * unidades_manual
+                        )
+                        existente["unidade_operacional"] = "caixa"
+                    else:
+                        lista_manual.append(novo_item)
+
+                    st.session_state["mensagem_adicao_pedido"] = (
+                        True,
+                        f"{vinho_manual.get('nome','')} {litragem_manual} adicionado: "
+                        f"{int(qtd_caixas_manual)} caixa(s) de {unidades_manual} garrafa(s).",
+                    )
+                    st.session_state["pedido_manual_limpar_campos"] = True
+                    st.rerun()
+
+            mensagem_pedido = st.session_state.pop("mensagem_adicao_pedido", None)
+            if mensagem_pedido:
+                sucesso_msg, texto_msg = mensagem_pedido
+                if sucesso_msg:
+                    st.success(texto_msg)
+                else:
+                    st.error(texto_msg)
+
+            lista_manual = st.session_state.itens_pedido_scanner
+            st.markdown("#### 🛒 Lista do pedido")
+            if not lista_manual:
+                st.info("A lista ainda está vazia. Adicione o primeiro vinho.")
+            else:
+                for idx, item in enumerate(list(lista_manual)):
+                    item = sincronizar_campos_caixas_item(item)
+                    lista_manual[idx] = item
+                    c_info, c_del = st.columns([6, 1])
+                    with c_info:
+                        _un = int(item.get("unidades_caixa", 0) or 0)
+                        _qcx = int(item.get("quantidade", 0) or 0)
+                        _tot = _qcx * _un if _un > 0 else 0
+                        st.markdown(
+                            f"**{idx + 1}. {item.get('nome','')}** — "
+                            f"Safra {item.get('safra','N/A')} — "
+                            f"{item.get('litragem','N/A') or 'N/A'} — "
+                            f"**{_qcx} caixa(s)** × {_un} un. — "
+                            f"Total: **{_tot} garrafas**"
+                        )
+                    with c_del:
+                        if st.button("🗑️", key=f"del_item_manual_{idx}"):
+                            lista_manual.pop(idx)
+                            st.rerun()
+
+                c_limpar, c_salvar = st.columns(2)
+                with c_limpar:
+                    if st.button("🧹 Limpar lista", key="limpar_lista_manual", use_container_width=True):
+                        st.session_state.itens_pedido_scanner = []
+                        st.rerun()
+                with c_salvar:
+                    if st.button("💾 Salvar Pedido da Lista", key="salvar_lista_manual", use_container_width=True):
+                        itens_novos = [dict(item) for item in lista_manual]
+
+        else:
+            st.success(
+                "📷 Modo corredor: primeiro leia/bipe o código. Depois informe a quantidade de caixas e adicione à lista."
+            )
+
+            codigo_lido_pedido = str(
+                st.session_state.get("codigo_manual_lista_pedido", "") or ""
+            ).strip()
+
+            # No celular, a câmera fica aberta somente enquanto ainda não há um código lido.
+            if not codigo_lido_pedido:
+                componente_leitor_codigo_barras(
+                    "pedido_scanner",
+                    tela_retorno="PedidosMatriz",
+                )
+            else:
+                vinho_lido_pedido = next(
+                    (
+                        v for v in st.session_state.get("estoque", [])
+                        if str(v.get("codigo_barras", "") or "").strip() == codigo_lido_pedido
+                    ),
+                    None,
+                )
+                if vinho_lido_pedido:
+                    st.success(
+                        "✅ Vinho identificado: "
+                        f"{vinho_lido_pedido.get('nome','')} • "
+                        f"{vinho_lido_pedido.get('safra','')} • "
+                        f"{normalizar_litragem_pedido(vinho_lido_pedido.get('litragem',''))}"
+                    )
+                else:
+                    st.warning("Código lido, mas este código ainda não está vinculado a um vinho cadastrado.")
+
+                if st.button(
+                    "📷 Ler outro código com a câmera",
+                    key="pedido_scanner_ler_outro",
+                    use_container_width=True,
+                ):
+                    st.session_state["codigo_manual_lista_pedido"] = ""
+                    st.session_state["codigo_bipado_pedido"] = ""
+                    st.session_state["pedido_scanner_codigo_lido"] = False
+                    st.rerun()
+
+            col_cod, col_qtd = st.columns([2, 1])
+            with col_cod:
+                codigo_manual_scanner = st.text_input(
+                    "Código lido / bipe o código",
+                    key="codigo_manual_lista_pedido",
+                    help="No computador use a pistola USB. No celular use a câmera acima. Primeiro identifique o vinho e depois informe as caixas.",
+                )
+            with col_qtd:
+                qtd_scanner = st.number_input(
+                    "Quantidade de caixas",
+                    min_value=1,
+                    value=1,
+                    step=1,
+                    key="qtd_lista_pedido",
+                )
+
+            st.button(
+                "➕ Adicionar à lista",
+                use_container_width=True,
+                key="btn_adicionar_codigo_pedido",
+                on_click=callback_adicionar_codigo_pedido,
+                disabled=not bool(str(st.session_state.get("codigo_manual_lista_pedido", "") or "").strip()),
+            )
+
+            mensagem_pedido = st.session_state.pop("mensagem_adicao_pedido", None)
+            if mensagem_pedido:
+                sucesso_msg, texto_msg = mensagem_pedido
+                if sucesso_msg:
+                    st.success(texto_msg)
+                else:
+                    st.error(texto_msg)
+
+            lista_scanner = st.session_state.itens_pedido_scanner
+            st.markdown("#### 🛒 Lista montada pelo leitor")
+
+            if not lista_scanner:
+                st.info("A lista ainda está vazia. Leia o primeiro vinho.")
+            else:
+                for idx, item in enumerate(list(lista_scanner)):
+                    c_info, c_del = st.columns([6, 1])
+                    with c_info:
+                        st.markdown(
+                            f"**{idx + 1}. {item.get('nome','')}** — "
+                            f"Safra {item.get('safra','N/A')} — "
+                            f"Litragem {item.get('litragem','N/A') or 'N/A'} — "
+                            f"Caixas: **{item.get('quantidade',1)}** — "
+                            f"{unidades_por_caixa(item)} un./caixa — "
+                            f"Total: **{int(item.get('quantidade',1)) * unidades_por_caixa(item)} garrafas**"
+                        )
+                    with c_del:
+                        if st.button("🗑️", key=f"del_item_scanner_{idx}"):
+                            lista_scanner.pop(idx)
+                            st.rerun()
+
+                c_limpar, c_salvar = st.columns(2)
+                with c_limpar:
+                    if st.button("🧹 Limpar lista", use_container_width=True):
+                        st.session_state.itens_pedido_scanner = []
+                        st.rerun()
+                with c_salvar:
+                    if st.button("💾 Salvar Pedido da Lista", use_container_width=True):
+                        itens_novos = [dict(item) for item in lista_scanner]
+
+        if itens_novos is not None:
+            id_pedido_limpo = str(id_pedido).strip()
+            pedido_id_existente = next(
+                (p for p in st.session_state.pedidos if str(p.get("id", "")).strip() == id_pedido_limpo),
+                None,
+            )
+            if not id_pedido_limpo:
+                st.error("Informe a identificação do pedido.")
+            elif pedido_id_existente is not None:
+                st.error(
+                    f"Já existe um pedido com o número {id_pedido_limpo}. "
+                    "Para evitar duplicidade, o sistema não permite salvar outro pedido com o mesmo número."
+                )
+            elif not itens_novos:
+                st.error("Nenhum item foi adicionado ao pedido.")
+            else:
+                itens_validados, nao_cadastrados = validar_itens_pedido_no_estoque(
+                    itens_novos
+                )
+
+                if nao_cadastrados:
+                    # Preserva o pedido em andamento antes de abrir o cadastro do vinho.
+                    # Isso evita perder a lista digitada/importada ou montada pelo leitor.
+                    st.session_state.rascunho_pedido_pendente = {
+                        "id": str(id_pedido).strip(),
+                        "modo": modo_novo_pedido,
+                        "itens": [dict(item) for item in itens_novos],
+                    }
+
+                    st.error(
+                        "❌ O pedido não pode ser salvo porque existem vinhos que "
+                        "não estão cadastrados no galpão."
+                    )
+                    st.warning(
+                        "Clique no nome do vinho para abrir o cadastro. O pedido ficará "
+                        "guardado e, depois de cadastrar, você voltará para esta tela."
+                    )
+
+                    for indice_faltante, faltante in enumerate(nao_cadastrados):
+                        nome_faltante = str(
+                            faltante.get("nome", "Vinho sem nome")
+                        ).strip()
+                        safra_faltante = str(faltante.get("safra", "")).strip()
+                        litragem_faltante = normalizar_litragem_pedido(faltante.get("litragem", ""))
+                        texto_botao = f"➕ Cadastrar {nome_faltante}"
+                        if litragem_faltante:
+                            texto_botao += f" — {litragem_faltante}"
+                        if safra_faltante:
+                            texto_botao += f" — Safra {safra_faltante}"
+
+                        st.button(
+                            texto_botao,
+                            key=f"cadastrar_faltante_{indice_faltante}_{nome_faltante}_{litragem_faltante}",
+                            use_container_width=True,
+                            on_click=abrir_cadastro_vinho_faltante,
+                            args=(nome_faltante, safra_faltante, litragem_faltante),
+                        )
+                else:
+                    novo_registro_pedido = {
+                        "id": str(id_pedido).strip(),
+                        "data": obter_horario_brasilia().strftime("%d/%m/%Y %H:%M"),
+                        "itens": itens_validados,
+                        "status": "Pendente",
+                    }
+                    st.session_state.pedidos.append(novo_registro_pedido)
+                    salvar_pedidos(st.session_state.pedidos)
+
+                    sincronizar_estoque_com_pedidos(
+                        st.session_state.pedidos,
+                        st.session_state.estoque,
+                    )
+                    registrar_log(
+                        st.session_state.usuario_logado["nome"],
+                        "Cadastrou Pedido",
+                        str(id_pedido).strip(),
+                    )
+                    # Limpa completamente a montagem do pedido para impedir
+                    # clique duplo/reenvio acidental do mesmo arquivo ou lista.
+                    st.session_state.itens_pedido_scanner = []
+                    st.session_state.arquivo_pedido_versao = int(
+                        st.session_state.get("arquivo_pedido_versao", 0)
+                    ) + 1
+                    st.session_state["_limpar_pedido_apos_salvar"] = True
+                    st.session_state.pop("rascunho_pedido_pendente", None)
+                    st.session_state["mensagem_pedido_salvo"] = f"Pedido {id_pedido_limpo} salvo no sistema!"
+                    st.rerun()
+
+        st.markdown("---")
+        st.markdown("### 🗑️ Excluir pedidos cadastrados")
+
+        if st.session_state.pedidos:
+            lista_ids_pedidos = [p["id"] for p in st.session_state.pedidos]
+            mapas_para_excluir = st.multiselect(
+                "Selecione os pedidos",
+                lista_ids_pedidos,
+                key="pedidos_para_excluir",
+            )
+            if st.button("🗑️ Excluir Pedidos Selecionados"):
+                st.session_state.pedidos = [
+                    p for p in st.session_state.pedidos
+                    if p["id"] not in mapas_para_excluir
+                ]
+                salvar_pedidos(st.session_state.pedidos)
+                registrar_log(
+                    st.session_state.usuario_logado["nome"],
+                    "Exclusão de Pedidos Antigos",
+                    str(mapas_para_excluir),
+                )
+                st.success("Pedidos excluídos!")
+                st.rerun()
+        else:
+            st.info("Nenhum pedido cadastrado.")
+
+    else:
+
+        if not st.session_state.pedidos:
+
+            st.warning(
+                "Nenhum pedido cadastrado."
+            )
+
+        else:
+
+            # No checkout exibimos somente pedidos que ainda precisam de conferência.
+            # Assim que um pedido é finalizado, ele desaparece desta tela automaticamente.
+            pedidos_pendentes_checkout = [
+                p
+                for p in st.session_state.pedidos
+                if not normalizar_nome_vinho(str(p.get("status", "Pendente"))).startswith("concluido")
+            ]
+
+            mapas_disponiveis = [p["id"] for p in pedidos_pendentes_checkout]
+
+            if not mapas_disponiveis:
+                st.success("✅ Não há pedidos pendentes para conferência.")
+                st.info("Quando um novo pedido for cadastrado, ele aparecerá aqui automaticamente.")
+                st.stop()
+
+            mapa_selecionado_id = (
+                st.selectbox(
+                    "Código de Barras Mapa",
+                    mapas_disponiveis
+                )
+            )
+
+            pedido_ativo = next(
+                (
+                    p
+                    for p
+                    in st.session_state.pedidos
+                    if p["id"]
+                    == mapa_selecionado_id
+                ),
+                None
+            )
+
+            if pedido_ativo:
+
+                # Cada nova conferência começa limpa.
+                if st.session_state.pop("checkout_reset_campos", False):
+                    for _campo_checkout in [
+                        "input_qtd_checkout",
+                        "select_vinho_checkout",
+                        "input_bipagem_checkout",
+                    ]:
+                        st.session_state.pop(_campo_checkout, None)
+                    st.session_state["checkout_codigo_pendente"] = ""
+                    st.session_state["checkout_codigo_lido"] = False
+                    st.session_state["checkout_auto_conferir"] = False
+
+                status_atual = (
+                    pedido_ativo.get(
+                        "status",
+                        "Pendente"
+                    )
+                )
+
+                status_norm_atual = normalizar_nome_vinho(status_atual)
+                if status_norm_atual == normalizar_nome_vinho("Concluído / Expedido"):
+                    cor_status = "#2E7D32"
+                elif status_norm_atual == normalizar_nome_vinho("Concluído com Divergência"):
+                    cor_status = "#C58A18"
+                else:
+                    cor_status = "#7A1C2E"
+
+                st.markdown(
+                    f"""
+                    <div style="
+                        background:#FFFFFF;
+                        padding:18px 20px;
+                        border-radius:14px;
+                        border:1px solid #DDD3D5;
+                        box-shadow:0 4px 14px rgba(35,15,20,.08);
+                        margin-bottom:15px;
+                        color:#24181B;
+                    ">
+                        <div style="font-size:12px;font-weight:800;letter-spacing:.08em;color:#8B5E13;margin-bottom:7px;">CONFERÊNCIA DO MAPA</div>
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+                            <div style="font-size:19px;font-weight:800;color:#24181B;">Pedido {html.escape(str(pedido_ativo["id"]))}</div>
+                            <div style="font-size:14px;color:#5E5053;">Status: <span style="font-weight:800;color:{cor_status};">{html.escape(status_atual)}</span></div>
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
+
+                with st.expander("➕ Adicionar vinho extra / fora da lista", expanded=False):
+                    col_extra1, col_extra2, col_extra3 = st.columns([2, 1, 1])
+                    with col_extra1:
+                        extra_busca = st.text_input(
+                            "Nome ou código de barras do vinho extra",
+                            key=f"extra_busca_{pedido_ativo['id']}",
+                            placeholder="Digite o nome ou bipe o código",
+                        ).strip()
+                    with col_extra2:
+                        extra_qtd = st.number_input(
+                            "Quantidade de caixas extra", min_value=1, value=1, step=1,
+                            key=f"extra_qtd_{pedido_ativo['id']}"
+                        )
+                    with col_extra3:
+                        st.write("")
+                        st.write("")
+                        adicionar_extra = st.button(
+                            "Adicionar extra",
+                            key=f"btn_extra_{pedido_ativo['id']}",
+                            use_container_width=True,
+                        )
+
+                    if adicionar_extra:
+                        if not extra_busca:
+                            st.error("Informe o nome ou o código de barras do vinho.")
+                        else:
+                            busca_norm = normalizar_nome_vinho(extra_busca)
+                            vinho_extra = next(
+                                (
+                                    v for v in st.session_state.estoque
+                                    if str(v.get("codigo_barras", "")).strip() == extra_busca
+                                    or busca_norm == normalizar_nome_vinho(v.get("nome", ""))
+                                ),
+                                None,
+                            )
+                            if vinho_extra is None:
+                                st.error("Este vinho não está cadastrado no estoque.")
+                            else:
+                                ja_no_pedido = next(
+                                    (i for i in pedido_ativo.get("itens", [])
+                                     if normalizar_nome_vinho(i.get("nome", "")) == normalizar_nome_vinho(vinho_extra.get("nome", ""))),
+                                    None,
+                                )
+                                if ja_no_pedido is not None:
+                                    st.warning(
+                                        "Este vinho já faz parte do pedido. Se vier quantidade maior, "
+                                        "faça a conferência com a quantidade real; o sistema registrará a divergência excedente."
+                                    )
+                                else:
+                                    _item_extra = item_pedido_com_caixas(vinho_extra, int(extra_qtd))
+                                    _item_extra.update({
+                                        "fora_lista": True,
+                                        "origem": "Extra solicitado durante checkout",
+                                    })
+                                    pedido_ativo.setdefault("itens", []).append(_item_extra)
+                                    salvar_pedidos(st.session_state.pedidos)
+                                    registrar_log(
+                                        st.session_state.usuario_logado["nome"],
+                                        "Adicionou item extra ao pedido",
+                                        f"Pedido {pedido_ativo['id']} | {vinho_extra.get('nome','')} | {int(extra_qtd)} caixa(s)",
+                                    )
+                                    st.success("Vinho extra acrescentado ao mesmo pedido.")
+                                    st.rerun()
+
+                modo_leitura = st.radio(
+                    "Forma de Leitura:",
+                    [
+                        "⌨️ Seleção / Pistola USB",
+                        "📷 Câmera do Celular"
+                    ],
+                    horizontal=True,
+                    key="checkout_modo_leitura",
+                )
+
+                # ========================================================
+                # ETAPA 1 — IDENTIFICAR O VINHO
+                # ========================================================
+                st.markdown("#### 1️⃣ Identifique o vinho")
+
+                def _checkout_selecao_alterada():
+                    valor = str(st.session_state.get("select_vinho_checkout", "") or "").strip()
+                    if valor and valor != "SELECIONE OU DIGITE":
+                        st.session_state["checkout_codigo_pendente"] = valor
+                        st.session_state["checkout_codigo_lido"] = True
+                        st.session_state.pop("input_qtd_checkout", None)
+                    else:
+                        st.session_state["checkout_codigo_pendente"] = ""
+                        st.session_state["checkout_codigo_lido"] = False
+
+                def _checkout_codigo_digitado():
+                    valor = str(st.session_state.get("input_bipagem_checkout", "") or "").strip()
+                    if valor:
+                        st.session_state["checkout_codigo_pendente"] = valor
+                        st.session_state["checkout_codigo_lido"] = True
+                        st.session_state["checkout_auto_conferir"] = False
+                        st.session_state["input_bipagem_checkout"] = ""
+                        st.session_state.pop("input_qtd_checkout", None)
+
+                itens_pendentes_lista = [
+                    rotulo_item_pedido(i)
+                    for i in pedido_ativo["itens"]
+                    if not i.get("separado", False)
+                ]
+
+                codigo_pendente_checkout = str(
+                    st.session_state.get("checkout_codigo_pendente", "") or ""
+                ).strip()
+
+                if modo_leitura == "📷 Câmera do Celular":
+                    # Não reinicia a câmera depois que já leu um código; primeiro o usuário informa a quantidade.
+                    if not codigo_pendente_checkout:
+                        componente_leitor_codigo_barras(
+                            "checkout_camera",
+                            tela_retorno="PedidosMatriz",
+                        )
+                    else:
+                        if st.button(
+                            "📷 Ler outro vinho",
+                            key="checkout_camera_ler_outro",
+                            use_container_width=True,
+                        ):
+                            st.session_state["checkout_codigo_pendente"] = ""
+                            st.session_state["checkout_codigo_lido"] = False
+                            st.session_state["codigo_bipado_checkout"] = ""
+                            st.session_state.pop("input_qtd_checkout", None)
+                            st.rerun()
+
+                else:
+                    if itens_pendentes_lista:
+                        st.selectbox(
+                            "*Selecione o Vinho",
+                            ["SELECIONE OU DIGITE"] + itens_pendentes_lista,
+                            index=0,
+                            key="select_vinho_checkout",
+                            help="Use as setas ↑ e ↓ do teclado e Enter. A quantidade aparece somente depois de identificar o vinho.",
+                            on_change=_checkout_selecao_alterada,
+                        )
+
+                    st.text_input(
+                        "*Ou digite/bipe o Código",
+                        key="input_bipagem_checkout",
+                        on_change=_checkout_codigo_digitado,
+                        help="Bipe o código e pressione Enter/Tab. Depois o sistema mostrará o campo de quantidade.",
+                    )
+                    autofoco_campo_checkout()
+
+                codigo_para_conferir = str(
+                    st.session_state.get("checkout_codigo_pendente", "") or ""
+                ).strip()
+
+                item_identificado = None
+                vinho_identificado = None
+                if codigo_para_conferir:
+                    item_identificado, vinho_identificado = localizar_item_checkout(
+                        pedido_ativo,
+                        codigo_para_conferir,
+                    )
+
+                    if item_identificado is None:
+                        st.error("Produto não encontrado neste mapa. Leia/bipe outro vinho.")
+                        if st.button(
+                            "🧹 Limpar leitura",
+                            key="checkout_limpar_leitura_invalida",
+                            use_container_width=True,
+                        ):
+                            st.session_state["checkout_codigo_pendente"] = ""
+                            st.session_state["checkout_codigo_lido"] = False
+                            st.session_state["codigo_bipado_checkout"] = ""
+                            st.session_state.pop("input_qtd_checkout", None)
+                            st.rerun()
+                    else:
+                        qtd_pedida_preview = int(item_identificado.get("quantidade", 0) or 0)
+                        un_caixa_preview = int(item_identificado.get("unidades_caixa", 0) or 0)
+                        lit_preview = normalizar_litragem_pedido(item_identificado.get("litragem", ""))
+                        st.success(
+                            "✅ Vinho identificado: "
+                            f"{item_identificado.get('nome','')} • "
+                            f"{lit_preview or 'litragem não informada'} • "
+                            f"Pedido: {qtd_pedida_preview} caixa(s)"
+                            + (f" • {un_caixa_preview} garrafa(s)/caixa" if un_caixa_preview else "")
+                        )
+
+                # ========================================================
+                # ETAPA 2 — QUANTIDADE, SOMENTE APÓS IDENTIFICAR O VINHO
+                # ========================================================
+                if item_identificado is not None:
+                    st.markdown("#### 2️⃣ Informe a quantidade carregada")
+                    col_qtd_checkout, col_btn_checkout = st.columns([2, 1])
+                    with col_qtd_checkout:
+                        qtd_input = st.number_input(
+                            "*Qtd de caixas realmente conferida",
+                            min_value=0,
+                            value=1,
+                            step=1,
+                            key="input_qtd_checkout",
+                            help="Use 0 quando nenhuma caixa desse vinho for carregada. Divergência exige senha.",
+                        )
+                    with col_btn_checkout:
+                        st.write("")
+                        st.write("")
+                        btn_conferir = st.button(
+                            "Conferir",
+                            use_container_width=True,
+                            key="checkout_btn_conferir",
+                        )
+
+                    st.caption(
+                        "Primeiro o vinho é identificado. Só depois você informa as caixas carregadas. "
+                        "Quantidade diferente do pedido fica bloqueada até senha de divergência ou correção."
+                    )
+
+                    if btn_conferir:
+                        qtd_real_informada = int(qtd_input)
+                        qtd_pedida = int(item_identificado.get("quantidade", 0) or 0)
+                        divergencia_calculada = qtd_real_informada - qtd_pedida
+
+                        item_identificado["qtd_separada"] = qtd_real_informada
+                        item_identificado["divergencia"] = divergencia_calculada
+
+                        if divergencia_calculada == 0:
+                            item_identificado["autorizado_divergencia"] = True
+                            item_identificado["separado"] = True
+                            st.session_state.pop("checkout_mensagem_divergencia", None)
+                        else:
+                            item_identificado["autorizado_divergencia"] = False
+                            item_identificado["separado"] = False
+                            st.session_state["checkout_forcar_aba"] = True
+                            st.session_state["checkout_mensagem_divergencia"] = (
+                                f"Quantidade divergente em {item_identificado.get('nome','')}: "
+                                f"pedido {qtd_pedida} caixa(s), conferido {qtd_real_informada}. "
+                                "Este item não foi aceito automaticamente. Informe a senha para liberar a divergência ou corrija para a quantidade pedida."
+                            )
+
+                        st.session_state["checkout_codigo_pendente"] = ""
+                        st.session_state["checkout_codigo_lido"] = False
+                        st.session_state["checkout_auto_conferir"] = False
+                        st.session_state["checkout_reset_campos"] = True
+                        st.session_state["checkout_aba_persistente"] = aba_checkout_opcoes[1]
+                        st.query_params["checkout_area"] = "conferencia"
+                        st.session_state["codigo_bipado_checkout"] = ""
+                        salvar_pedidos(st.session_state.pedidos)
+                        st.rerun()
+                else:
+                    if not codigo_para_conferir:
+                        st.info("👆 Primeiro selecione, bipe ou leia o código do vinho. A quantidade aparecerá depois.")
+
+                _msg_div_checkout = st.session_state.pop("checkout_mensagem_divergencia", None)
+                if _msg_div_checkout:
+                    st.error(f"🔒 {_msg_div_checkout}")
+
+                itens_com_divergencia = [
+                    i
+                    for i
+                    in pedido_ativo["itens"]
+                    if
+                    i.get(
+                        "divergencia",
+                        0
+                    ) != 0
+                    and
+                    not i.get(
+                        "autorizado_divergencia",
+                        False
+                    )
+                ]
+
+                if itens_com_divergencia:
+
+                    st.markdown("---")
+
+                    st.error(
+                        "🔒 Existem itens divergentes aguardando correção ou liberação. "
+                        "Enquanto isso, eles não entram como conferidos."
+                    )
+
+                    for _idx_div, it_div in enumerate(
+                        itens_com_divergencia
+                    ):
+
+                        _lit_div = normalizar_litragem_pedido(it_div.get("litragem", ""))
+                        _chave_div = re.sub(r"[^a-zA-Z0-9_-]+", "_", f"{it_div.get('nome','')}_{_lit_div}_{_idx_div}")
+
+                        with st.form(
+                            f"form_senha_item_{_chave_div}"
+                        ):
+
+                            st.markdown(
+                                f"""
+                                **Item:**
+                                {it_div["nome"]}
+                                {f" • {_lit_div}" if _lit_div else ""}
+                                |
+                                Pedido:
+                                {it_div["quantidade"]} caixa(s)
+                                |
+                                Conferido:
+                                {it_div["qtd_separada"]} caixa(s)
+                                |
+                                Divergência:
+                                {it_div["divergencia"]:+d} caixa(s)
+                                """
+                            )
+
+                            senha_item = (
+                                st.text_input(
+                                    "Senha de liberação",
+                                    type="password",
+                                    key=f"pass_{_chave_div}"
+                                )
+                            )
+
+                            # IMPORTANTE: este é o primeiro submit do formulário.
+                            # Assim, pressionar ENTER no campo da senha executa
+                            # "Autorizar com Divergência", e nunca corrige a quantidade.
+                            autorizar = st.form_submit_button(
+                                "🔓 Autorizar Com Divergência",
+                                use_container_width=True
+                            )
+
+                            corrigir = st.form_submit_button(
+                                "🔄 Corrigir para Caixas Pedidas",
+                                use_container_width=True
+                            )
+
+                            if autorizar:
+
+                                if senha_item == SENHA_DIVERGENCIA:
+
+                                    it_div[
+                                        "autorizado_divergencia"
+                                    ] = True
+
+                                    it_div[
+                                        "separado"
+                                    ] = True
+
+                                    salvar_pedidos(
+                                        st.session_state.pedidos
+                                    )
+                                    st.session_state["checkout_aba_persistente"] = aba_checkout_opcoes[1]
+                                    st.query_params["checkout_area"] = "conferencia"
+
+                                    registrar_log(
+                                        st.session_state.usuario_logado[
+                                            "nome"
+                                        ],
+                                        "Liberou Divergência Item",
+                                        (
+                                            f"{it_div['nome']} | "
+                                            f"Pedido: {it_div['quantidade']} | "
+                                            f"Conferido: {it_div['qtd_separada']} | "
+                                            f"Divergência: {it_div['divergencia']:+d}"
+                                        )
+                                    )
+
+                                    st.rerun()
+
+                                else:
+
+                                    st.error(
+                                        "Senha incorreta."
+                                    )
+
+                            if corrigir:
+
+                                it_div[
+                                    "qtd_separada"
+                                ] = it_div[
+                                    "quantidade"
+                                ]
+
+                                it_div[
+                                    "divergencia"
+                                ] = 0
+
+                                it_div[
+                                    "autorizado_divergencia"
+                                ] = True
+
+                                it_div[
+                                    "separado"
+                                ] = True
+
+                                salvar_pedidos(
+                                    st.session_state.pedidos
+                                )
+                                st.session_state["checkout_reset_campos"] = True
+                                st.session_state["checkout_aba_persistente"] = aba_checkout_opcoes[1]
+                                st.query_params["checkout_area"] = "conferencia"
+
+                                registrar_log(
+                                    st.session_state.usuario_logado[
+                                        "nome"
+                                    ],
+                                    "Corrigiu Divergência para Qtd Pedida",
+                                    it_div["nome"]
+                                )
+
+                                st.rerun()
+
+                st.markdown("---")
+
+                col_esq, col_dir = st.columns(2)
+
+                with col_esq:
+
+                    st.markdown(
+                        "<h4 style='color:#D6AE63;'>PRODUTOS A CONFERIR</h4>",
+                        unsafe_allow_html=True
+                    )
+
+                    pendentes = [
+                        i
+                        for i
+                        in pedido_ativo["itens"]
+                        if not i.get(
+                            "separado",
+                            False
+                        )
+                    ]
+
+                    if not pendentes:
+
+                        st.success(
+                            "🎉 Todos conferidos!"
+                        )
+
+                    for item in pendentes:
+
+                        st.markdown(
+                            f"""
+                            <div class="wine-card">
+
+                            <b>
+                            {html.escape(
+                                item["nome"]
+                            )}
+                            </b>
+
+                            <br>
+
+                            Safra:
+                            {html.escape(
+                                item.get(
+                                    "safra",
+                                    "N/A"
+                                )
+                            )}
+
+                            <br>
+
+                            Litragem:
+                            {html.escape(str(item.get("litragem", "N/A") or "N/A"))}
+
+                            <br>
+
+                            Caixas Pedidas:
+                            <b>{item["quantidade"]}</b>
+
+                            <br>
+
+                            Embalagem:
+                            <b>{unidades_por_caixa(item)} garrafa(s) / caixa</b>
+
+                            <br>
+
+                            Total:
+                            <b>{int(item.get("quantidade", 0) or 0) * unidades_por_caixa(item)} garrafa(s)</b>
+
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+
+                with col_dir:
+
+                    st.markdown(
+                        "<h4 style='color:#2E7D32;'>PRODUTOS JÁ CONFERIDOS</h4>",
+                        unsafe_allow_html=True
+                    )
+
+                    conferidos = [
+                        i
+                        for i
+                        in pedido_ativo["itens"]
+                        if i.get(
+                            "separado",
+                            False
+                        )
+                    ]
+
+                    if not conferidos:
+
+                        st.info(
+                            "Nenhum produto conferido."
+                        )
+
+                    for item in conferidos:
+
+                        st.markdown(
+                            f"""
+                            <div class="wine-card">
+
+                            <b>
+                            {html.escape(
+                                item["nome"]
+                            )}
+                            </b>
+
+                            <br>
+
+                            Safra:
+                            {html.escape(
+                                item.get(
+                                    "safra",
+                                    "N/A"
+                                )
+                            )}
+
+                            <br>
+
+                            Litragem:
+                            {html.escape(str(item.get("litragem", "N/A") or "N/A"))}
+
+                            <br>
+
+                            Caixas Conferidas:
+                            <b>{item.get("qtd_separada", 0)}</b>
+
+                            <br>
+
+                            Embalagem:
+                            <b>{unidades_por_caixa(item)} garrafa(s) / caixa</b>
+
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+
+                st.markdown("---")
+
+                todos_conferidos = all(
+                    i.get(
+                        "separado",
+                        False
+                    )
+                    for i
+                    in pedido_ativo["itens"]
+                )
+
+                todas_divergencias_ok = all(
+                    i.get(
+                        "autorizado_divergencia",
+                        False
+                    )
+                    for i
+                    in pedido_ativo["itens"]
+                    if i.get(
+                        "divergencia",
+                        0
+                    ) != 0
+                )
+
+                if (
+                    todos_conferidos
+                    and
+                    todas_divergencias_ok
+                ):
+
+                    if st.button(
+                        "🚀 Concluir e Finalizar Expedição",
+                        use_container_width=True
+                    ):
+
+                        possui_divergencia_final = any(
+                            int(i.get("divergencia", 0) or 0) != 0
+                            for i in pedido_ativo.get("itens", [])
+                        )
+                        pedido_ativo["status"] = (
+                            "Concluído com Divergência"
+                            if possui_divergencia_final
+                            else "Concluído / Expedido"
+                        )
+
+                        salvar_pedidos(
+                            st.session_state.pedidos
+                        )
+
+                        registrar_log(
+                            st.session_state.usuario_logado[
+                                "nome"
+                            ],
+                            "Finalizou Expedição Mapa",
+                            pedido_ativo["id"]
+                        )
+
+                        if possui_divergencia_final:
+                            st.success("✅ Expedição concluída com divergência registrada.")
+                        else:
+                            st.success("🎉 Expedição concluída!")
+
+                        st.rerun()
+
+                else:
+
+                    st.warning(
+                        "⚠️ Todos os itens precisam "
+                        "ser conferidos."
+                    )
+
+
+# ============================================================
+# FILTROS
+# ============================================================
+
+elif st.session_state.menu_atual in ["Filtros", "Estoque"]:
+
+    render_page_header("🍷", "Estoque e Busca", "Consulte o estoque completo ou encontre um vinho rapidamente.", "Estoque • Consulta")
+
+    col_f1, col_f2 = st.columns([2, 1])
+    with col_f1:
+        termo = st.text_input(
+            "Pesquisar por nome, tipo, safra, localização ou código de barras",
+            value=st.session_state.get("termo_busca", ""),
+            key="estoque_busca_termo",
+        )
+    with col_f2:
+        tipo_filtro = st.selectbox(
+            "Tipo",
+            ["Todos", "Tinto", "Branco", "Rosé", "Espumante", "Fortificado"],
+            key="estoque_busca_tipo",
+        )
+
+    termo_norm = normalizar_nome_vinho(termo)
+    resultados = []
+    for v in st.session_state.estoque:
+        campos = " ".join([
+            str(v.get("nome", "")),
+            str(v.get("tipo", "")),
+            str(v.get("safra", "")),
+            str(v.get("localizacao", "")),
+            str(v.get("lado", "")),
+            str(v.get("codigo_barras", "")),
+        ])
+        match_termo = not termo_norm or termo_norm in normalizar_nome_vinho(campos)
+        match_tipo = tipo_filtro == "Todos" or v.get("tipo") == tipo_filtro
+        if match_termo and match_tipo:
+            resultados.append(v)
+
+    st.markdown(f"**{len(resultados)} vinho(s) encontrado(s)**")
+
+    if not resultados:
+        st.info("Nenhum vinho encontrado.")
+    else:
+        df_estoque = pd.DataFrame([
+            {
+                "Nome": v.get("nome", ""),
+                "Tipo": v.get("tipo", ""),
+                "Safra": v.get("safra", ""),
+                "Localização": v.get("localizacao", ""),
+                "Lado": v.get("lado", ""),
+                "Caixa": v.get("caixa", ""),
+                "Litragem": v.get("litragem", ""),
+                "Cód. Barras": v.get("codigo_barras", ""),
+            }
+            for v in resultados
+        ])
+        st.dataframe(df_estoque, use_container_width=True, hide_index=True)
+
+# ============================================================
+# CADASTRAR VINHO
+# ============================================================
+
+elif st.session_state.menu_atual == "Cadastrar":
+
+    render_page_header("➕", "Cadastrar Novo Vinho", "Cadastre nome, safra, tipo, localização, caixa, código de barras e foto do vinho.", "Cadastro • Novo item")
+
+    cadastro_prefill = st.session_state.get("cadastro_vinho_prefill", {})
+    veio_de_pedido = st.session_state.get("retornar_apos_cadastro") == "PedidosMatriz"
+
+    if veio_de_pedido:
+        st.info(
+            "📋 Você veio de um pedido em andamento. Ao salvar este vinho, "
+            "o sistema voltará automaticamente para o pedido."
+        )
+
+    with st.form("form_cadastrar_vinho", clear_on_submit=True):
+        nome = st.text_input(
+            "*Nome do Vinho",
+            value=str(cadastro_prefill.get("nome", "")),
+        ).strip().title()
+        tipo = st.selectbox(
+            "Tipo de Vinho",
+            ["Tinto", "Branco", "Rosé", "Espumante", "Fortificado"],
+        )
+        safra = st.text_input(
+            "Safra (Ex: 2023)",
+            value=str(cadastro_prefill.get("safra", "")),
+        ).strip()
+
+        col_l1, col_l2, col_l3, col_l4 = st.columns(4)
+        with col_l1:
+            corredor = st.selectbox("Corredor", LISTA_CORREDORES)
+        with col_l2:
+            local_tipo = st.selectbox("Tipo Local", LISTA_LOCAIS_TIPO)
+        with col_l3:
+            num_local = st.selectbox("Número Item", LISTA_NUMEROS_LOCAL)
+        with col_l4:
+            lado = st.selectbox("Lado", LISTA_LADOS)
+
+        col_cx1, col_cx2 = st.columns(2)
+        with col_cx1:
+            caixa = st.selectbox("Embalagem / Caixa", OPCOES_CAIXA, help="Este valor é usado automaticamente nos pedidos para saber quantas garrafas há em cada caixa.")
+        with col_cx2:
+            _lit_prefill = normalizar_litragem_pedido(cadastro_prefill.get("litragem", ""))
+            _lit_index = LISTA_LITRAGENS.index(_lit_prefill) if _lit_prefill in LISTA_LITRAGENS else 2
+            litragem = st.selectbox("Litragem da Garrafa", LISTA_LITRAGENS, index=_lit_index)
+        codigo_barras = st.text_input(
+            "Código de Barras (Opcional)",
+            help="Pode digitar ou bipar com a pistola USB.",
+        ).strip()
+        foto_upload = st.file_uploader(
+            "📷 Imagem do vinho (opcional)",
+            type=["jpg", "jpeg", "png", "webp"],
+            key="foto_cadastro_vinho",
+        )
+
+        if st.form_submit_button("💾 Salvar Novo Vinho"):
+            if not nome:
+                st.error("Informe o nome do vinho.")
+            else:
+                duplicado_nome = next(
+                    (
+                        v for v in st.session_state.estoque
+                        if normalizar_nome_vinho(v.get("nome", "")) == normalizar_nome_vinho(nome)
+                        and str(v.get("safra", "")).strip() == str(safra).strip()
+                        and normalizar_litragem_pedido(v.get("litragem", ""))
+                            == normalizar_litragem_pedido(litragem)
+                    ),
+                    None,
+                )
+                duplicado_codigo = (
+                    next(
+                        (
+                            v for v in st.session_state.estoque
+                            if codigo_barras and str(v.get("codigo_barras", "")).strip() == codigo_barras
+                        ),
+                        None,
+                    )
+                    if codigo_barras else None
+                )
+                if duplicado_nome:
+                    st.error("Este vinho com a mesma safra e litragem já está cadastrado.")
+                    st.stop()
+                if duplicado_codigo:
+                    st.error("Este código de barras já pertence a outro vinho cadastrado.")
+                    st.stop()
+
+                foto_path = salvar_foto_vinho(foto_upload, nome)
+                localizacao_completa = localizacao_por_campos(
+                    corredor, local_tipo, num_local
+                )
+                novo_vinho = {
+                    "nome": nome,
+                    "tipo": tipo,
+                    "safra": safra,
+                    "localizacao": localizacao_completa,
+                    "lado": lado,
+                    "caixa": caixa,
+                    "litragem": litragem,
+                    "codigo_barras": codigo_barras,
+                    "foto": foto_path,
+                }
+                st.session_state.estoque.append(novo_vinho)
+                salvar_dados(st.session_state.estoque)
+
+                if local_tipo == "Pallet":
+                    sincronizar_vinho_com_pallet(
+                        novo_vinho,
+                        corredor,
+                        nome_pallet_por_item(num_local),
+                        lado,
+                    )
+
+                registrar_log(
+                    st.session_state.usuario_logado["nome"],
+                    "Cadastrou Vinho",
+                    nome,
+                )
+                st.success(f"Vinho '{nome}' cadastrado!")
+
+                destino_retorno = st.session_state.pop(
+                    "retornar_apos_cadastro", None
+                )
+                st.session_state.pop("cadastro_vinho_prefill", None)
+
+                if destino_retorno == "PedidosMatriz":
+                    # Retoma automaticamente a lista/pedido que estava em andamento.
+                    rascunho = st.session_state.get("rascunho_pedido_pendente")
+                    if rascunho:
+                        st.session_state.id_novo_pedido = rascunho.get("id", "")
+                        st.session_state.modo_novo_pedido = rascunho.get(
+                            "modo", "📄 Enviar arquivo"
+                        )
+                        st.session_state.itens_pedido_retomados = [
+                            dict(item) for item in rascunho.get("itens", [])
+                        ]
+                    st.session_state.menu_atual = "PedidosMatriz"
+
+                st.rerun()
+
+
+# ============================================================
+# EDITAR VINHO
+# ============================================================
+
+elif st.session_state.menu_atual == "Editar":
+
+    render_page_header("✏️", "Editar ou Remover Vinho", "Atualize informações, altere a localização física ou remova um vinho do estoque com segurança.", "Cadastro • Manutenção")
+    st.caption("Agora você pode editar também corredor, pallet/prateleira, lado e imagem.")
+
+    if not st.session_state.estoque:
+        st.info("Nenhum vinho para editar.")
+    else:
+        indices = list(range(len(st.session_state.estoque)))
+        indice_escolhido = st.selectbox(
+            "Selecione o Vinho:",
+            indices,
+            format_func=lambda i: (
+                f"{st.session_state.estoque[i].get('nome','')} — "
+                f"Safra {st.session_state.estoque[i].get('safra','N/A')} — "
+                f"{st.session_state.estoque[i].get('litragem','N/A') or 'N/A'}"
+            ),
+        )
+        vinho_obj = st.session_state.estoque[indice_escolhido]
+        nome_original = vinho_obj.get("nome", "")
+
+        foto_atual = vinho_obj.get("foto", "")
+        if foto_atual and os.path.exists(foto_atual):
+            st.image(foto_atual, width=180, caption="Imagem atual")
+
+        corredor_atual, tipo_local_atual, item_atual, lado_atual = (
+            decompor_localizacao_vinho(vinho_obj)
+        )
+
+        with st.form("form_editar_vinho"):
+            novo_nome = st.text_input(
+                "Nome do Vinho", value=vinho_obj.get("nome", "")
+            ).strip().title()
+
+            tipos_op = ["Tinto", "Branco", "Rosé", "Espumante", "Fortificado"]
+            tipo_atual = vinho_obj.get("tipo", "Tinto")
+            novo_tipo = st.selectbox(
+                "Tipo de Vinho",
+                tipos_op,
+                index=tipos_op.index(tipo_atual) if tipo_atual in tipos_op else 0,
+            )
+            nova_safra = st.text_input(
+                "Safra", value=str(vinho_obj.get("safra", ""))
+            ).strip()
+
+            st.markdown("#### 📍 Localização")
+            loc1, loc2, loc3, loc4 = st.columns(4)
+            with loc1:
+                novo_corredor = st.selectbox(
+                    "Corredor",
+                    LISTA_CORREDORES,
+                    index=LISTA_CORREDORES.index(corredor_atual),
+                )
+            with loc2:
+                novo_local_tipo = st.selectbox(
+                    "Tipo Local",
+                    LISTA_LOCAIS_TIPO,
+                    index=LISTA_LOCAIS_TIPO.index(tipo_local_atual),
+                )
+            with loc3:
+                novo_num_local = st.selectbox(
+                    "Número Item",
+                    LISTA_NUMEROS_LOCAL,
+                    index=(
+                        LISTA_NUMEROS_LOCAL.index(item_atual)
+                        if item_atual in LISTA_NUMEROS_LOCAL else 0
+                    ),
+                )
+            with loc4:
+                novo_lado = st.selectbox(
+                    "Lado",
+                    LISTA_LADOS,
+                    index=LISTA_LADOS.index(lado_atual) if lado_atual in LISTA_LADOS else 0,
+                )
+
+            caixa_atual = vinho_obj.get("caixa", OPCOES_CAIXA[0])
+            litragem_atual = vinho_obj.get("litragem", LISTA_LITRAGENS[2])
+            col_ec1, col_ec2 = st.columns(2)
+            with col_ec1:
+                nova_caixa = st.selectbox(
+                    "Embalagem / Caixa",
+                    OPCOES_CAIXA,
+                    index=OPCOES_CAIXA.index(caixa_atual) if caixa_atual in OPCOES_CAIXA else 0,
+                )
+            with col_ec2:
+                nova_litragem = st.selectbox(
+                    "Litragem da Garrafa",
+                    LISTA_LITRAGENS,
+                    index=LISTA_LITRAGENS.index(litragem_atual) if litragem_atual in LISTA_LITRAGENS else 2,
+                )
+            novo_cb = st.text_input(
+                "Código de Barras", value=str(vinho_obj.get("codigo_barras", ""))
+            ).strip()
+            nova_foto_upload = st.file_uploader(
+                "📷 Trocar / inserir imagem do vinho",
+                type=["jpg", "jpeg", "png", "webp"],
+                key=f"foto_editar_{indice_escolhido}",
+            )
+
+            senha_exclusao = st.text_input(
+                "Senha para excluir este vinho",
+                type="password",
+                help="Use a mesma senha do usuário que está logado.",
+            )
+
+            col_e1, col_e2 = st.columns(2)
+            with col_e1:
+                btn_salvar_edicao = st.form_submit_button("💾 Salvar Alterações")
+            with col_e2:
+                btn_excluir_vinho = st.form_submit_button("🗑️ Excluir Vinho")
+
+            if btn_salvar_edicao:
+                vinho_obj["nome"] = novo_nome
+                vinho_obj["tipo"] = novo_tipo
+                vinho_obj["safra"] = nova_safra
+                vinho_obj["caixa"] = nova_caixa
+                vinho_obj["litragem"] = nova_litragem
+                vinho_obj["codigo_barras"] = novo_cb
+                vinho_obj["foto"] = salvar_foto_vinho(
+                    nova_foto_upload,
+                    novo_nome,
+                    foto_atual,
+                )
+                vinho_obj["localizacao"] = localizacao_por_campos(
+                    novo_corredor,
+                    novo_local_tipo,
+                    novo_num_local,
+                )
+                vinho_obj["lado"] = novo_lado
+
+                salvar_dados(st.session_state.estoque)
+
+                remover_vinho_de_todos_pallets(nome_original)
+                if novo_local_tipo == "Pallet":
+                    sincronizar_vinho_com_pallet(
+                        vinho_obj,
+                        novo_corredor,
+                        nome_pallet_por_item(novo_num_local),
+                        novo_lado,
+                        nome_antigo=nome_original,
+                    )
+
+                registrar_log(
+                    st.session_state.usuario_logado["nome"],
+                    "Editou Vinho",
+                    novo_nome,
+                )
+                st.success("Alterações salvas e localização sincronizada!")
+                st.rerun()
+
+            if btn_excluir_vinho:
+                nome_usuario_atual = st.session_state.usuario_logado.get("nome", "")
+                cargo_usuario_atual = st.session_state.usuario_logado.get("cargo", "Operador")
+
+                if cargo_usuario_atual == "Desenvolvedor":
+                    senha_correta_exclusao = SENHA_DEV
+                else:
+                    usuario_atual = next(
+                        (
+                            u for u in st.session_state.usuarios
+                            if str(u.get("nome", "")).lower() == str(nome_usuario_atual).lower()
+                        ),
+                        None,
+                    )
+                    senha_correta_exclusao = (
+                        str(usuario_atual.get("senha", ""))
+                        if usuario_atual else ""
+                    )
+
+                if not senha_exclusao:
+                    st.error("Digite sua senha para confirmar a exclusão.")
+                elif senha_exclusao != senha_correta_exclusao:
+                    st.error("Senha incorreta. O vinho não foi excluído.")
+                else:
+                    remover_vinho_de_todos_pallets(nome_original)
+                    st.session_state.estoque.pop(indice_escolhido)
+                    salvar_dados(st.session_state.estoque)
+                    registrar_log(
+                        st.session_state.usuario_logado["nome"],
+                        "Excluiu Vinho",
+                        nome_original,
+                    )
+                    st.success("Vinho excluído!")
+                    st.rerun()
+
+
+# ============================================================
+# HISTÓRICO
+# ============================================================
+
+elif st.session_state.menu_atual == "Historico":
+    cargo_logado = st.session_state.usuario_logado.get("cargo", "Operador")
+
+    if cargo_logado not in ["Administrador Principal", "Desenvolvedor"]:
+        st.error("Acesso restrito ao Administrador Principal e ao DEV.")
+    else:
+        render_page_header("📋", "Histórico de Auditoria", "Consulte as ações registradas no sistema por usuário e período.", "Administração • Auditoria")
+        logs = carregar_logs()
+
+        if not logs:
+            st.info("Nenhum registro de log encontrado.")
+        else:
+            st.markdown("### 🔎 Filtros")
+            usuarios_log = sorted({
+                str(log.get("usuario", "")).strip()
+                for log in logs
+                if str(log.get("usuario", "")).strip()
+            })
+
+            c_f1, c_f2 = st.columns(2)
+            with c_f1:
+                filtro_usuario = st.selectbox(
+                    "Usuário",
+                    ["Todos"] + usuarios_log,
+                    key="hist_usuario"
+                )
+
+            datas_validas = []
+            for log in logs:
+                try:
+                    datas_validas.append(
+                        datetime.strptime(
+                            str(log.get("data_hora", ""))[:10],
+                            "%d/%m/%Y"
+                        ).date()
+                    )
+                except Exception:
+                    pass
+
+            with c_f2:
+                opcoes_data = ["Todas"] + [
+                    d.strftime("%d/%m/%Y")
+                    for d in sorted(set(datas_validas), reverse=True)
+                ]
+                filtro_data = st.selectbox(
+                    "Data",
+                    opcoes_data,
+                    key="hist_data"
+                )
+
+            logs_filtrados = []
+            for log in logs:
+                if (
+                    filtro_usuario != "Todos"
+                    and log.get("usuario") != filtro_usuario
+                ):
+                    continue
+                if (
+                    filtro_data != "Todas"
+                    and not str(log.get("data_hora", "")).startswith(filtro_data)
+                ):
+                    continue
+                logs_filtrados.append(log)
+
+            st.caption(f"{len(logs_filtrados)} registro(s) encontrado(s).")
+            if logs_filtrados:
+                df_logs = pd.DataFrame(logs_filtrados)
+                ordem = [
+                    c for c in ["data_hora", "usuario", "acao", "detalhes"]
+                    if c in df_logs.columns
+                ]
+                df_logs = df_logs[ordem]
+                df_logs = df_logs.rename(columns={
+                    "data_hora": "Data / Hora",
+                    "usuario": "Usuário",
+                    "acao": "Ação",
+                    "detalhes": "Detalhes"
+                })
+                st.dataframe(df_logs, use_container_width=True, hide_index=True)
+            else:
+                st.info("Nenhum registro encontrado com esses filtros.")
+
+
+# ============================================================
+# USUÁRIOS E AUTORIZAÇÕES
+# ============================================================
+
+elif st.session_state.menu_atual == "GerenciarUsuarios":
+    cargo_logado = st.session_state.usuario_logado.get("cargo", "Operador")
+    nome_logado = st.session_state.usuario_logado.get("nome", "")
+
+    if cargo_logado not in ["Administrador Principal", "Desenvolvedor"]:
+        st.error("Acesso restrito ao Administrador Principal e ao DEV.")
+    else:
+        render_page_header("⚙️", "Gerenciamento de Usuários", "Aprove solicitações, controle permissões e acompanhe os usuários autorizados do sistema.", "Administração • Acessos")
+
+        def atualizar_status_usuario(nome_usuario, novo_status, aprovador):
+            for usuario in st.session_state.usuarios:
+                if usuario.get("nome") == nome_usuario:
+                    usuario["status"] = novo_status
+                    usuario["aprovado_por"] = aprovador
+                    usuario["data_aprovacao"] = obter_horario_brasilia().strftime(
+                        "%d/%m/%Y %H:%M:%S"
+                    )
+                    break
+            salvar_usuarios(st.session_state.usuarios)
+            registrar_log(
+                aprovador,
+                f"{novo_status} Cadastro",
+                nome_usuario
+            )
+
+        if cargo_logado == "Desenvolvedor":
+            aba_admins, aba_todos = st.tabs([
+                "🛡️ Autorizar Administradores Principais",
+                "👥 Todos os Usuários"
+            ])
+
+            with aba_admins:
+                pendentes_admin = [
+                    u for u in st.session_state.usuarios
+                    if u.get("cargo") == "Administrador Principal"
+                    and u.get("status") == "Pendente"
+                ]
+
+                if not pendentes_admin:
+                    st.success("Nenhum Administrador Principal aguardando aprovação.")
+                else:
+                    for i, usuario in enumerate(pendentes_admin):
+                        with st.container(border=True):
+                            st.markdown(
+                                f"**{html.escape(usuario.get('nome',''))}**  \n"
+                                f"Solicitado em: {html.escape(usuario.get('data_solicitacao',''))}"
+                            )
+                            ca, cr = st.columns(2)
+                            with ca:
+                                if st.button(
+                                    "✅ Aprovar Administrador",
+                                    key=f"aprovar_admin_{i}",
+                                    use_container_width=True
+                                ):
+                                    atualizar_status_usuario(
+                                        usuario.get("nome"),
+                                        "Aprovado",
+                                        "Dev"
+                                    )
+                                    st.rerun()
+                            with cr:
+                                if st.button(
+                                    "❌ Rejeitar",
+                                    key=f"rejeitar_admin_{i}",
+                                    use_container_width=True
+                                ):
+                                    atualizar_status_usuario(
+                                        usuario.get("nome"),
+                                        "Rejeitado",
+                                        "Dev"
+                                    )
+                                    st.rerun()
+
+            with aba_todos:
+                dados_usuarios = [
+                    {
+                        "Nome": u.get("nome", ""),
+                        "Cargo": u.get("cargo", "Operador"),
+                        "Status": u.get("status", "Aprovado"),
+                        "Aprovado por": u.get("aprovado_por", "")
+                    }
+                    for u in st.session_state.usuarios
+                ]
+                if dados_usuarios:
+                    st.dataframe(
+                        pd.DataFrame(dados_usuarios),
+                        use_container_width=True,
+                        hide_index=True
+                    )
+
+        else:
+            st.markdown("### 👤 Autorizar Usuários Comuns")
+            pendentes_operador = [
+                u for u in st.session_state.usuarios
+                if u.get("cargo") == "Operador"
+                and u.get("status") == "Pendente"
+            ]
+
+            if not pendentes_operador:
+                st.success("Nenhum usuário comum aguardando aprovação.")
+            else:
+                for i, usuario in enumerate(pendentes_operador):
+                    with st.container(border=True):
+                        st.markdown(
+                            f"**{html.escape(usuario.get('nome',''))}**  \n"
+                            f"Solicitado em: {html.escape(usuario.get('data_solicitacao',''))}"
+                        )
+                        ca, cr = st.columns(2)
+                        with ca:
+                            if st.button(
+                                "✅ Aprovar Usuário",
+                                key=f"aprovar_op_{i}",
+                                use_container_width=True
+                            ):
+                                atualizar_status_usuario(
+                                    usuario.get("nome"),
+                                    "Aprovado",
+                                    nome_logado
+                                )
+                                st.rerun()
+                        with cr:
+                            if st.button(
+                                "❌ Rejeitar",
+                                key=f"rejeitar_op_{i}",
+                                use_container_width=True
+                            ):
+                                atualizar_status_usuario(
+                                    usuario.get("nome"),
+                                    "Rejeitado",
+                                    nome_logado
+                                )
+                                st.rerun()
+
+            st.markdown("---")
+            st.markdown("### 👥 Usuários Comuns")
+            operadores = [
+                {
+                    "Nome": u.get("nome", ""),
+                    "Status": u.get("status", "Aprovado"),
+                    "Aprovado por": u.get("aprovado_por", "")
+                }
+                for u in st.session_state.usuarios
+                if u.get("cargo") == "Operador"
+            ]
+            if operadores:
+                st.dataframe(
+                    pd.DataFrame(operadores),
+                    use_container_width=True,
+                    hide_index=True
+                )
+            else:
+                st.info("Nenhum usuário comum cadastrado.")
+
+
+# ============================================================
+# TEMA CLARO PREMIUM WINES - CORREÇÃO FINAL
+# ============================================================
+st.markdown("""
+<style>
+html, body, .stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"],
+section.main {
+    background: #F7F3EF !important;
+    color: #2B2525 !important;
+}
+
+[data-testid="stMainBlockContainer"],
+.block-container {
+    background: transparent !important;
+    color: #2B2525 !important;
+}
+
+.main p, .main span, .main label,
+.main div, .main li,
+[data-testid="stMain"] p,
+[data-testid="stMain"] span,
+[data-testid="stMain"] label {
+    color: #2B2525;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    color: #6E1730 !important;
+}
+
+/* Sidebar permanece Premium bordô */
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg,#541225 0%,#351018 100%) !important;
+}
+[data-testid="stSidebar"] *,
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] span,
+[data-testid="stSidebar"] label {
+    color: #FFF8F3 !important;
+}
+
+/* Cards, expanders e áreas de conteúdo */
+.wine-card, .wine-item, .qr-card,
+[data-testid="stExpander"],
+[data-testid="stMetric"],
+[data-testid="stAlert"],
+[data-testid="stFileUploaderDropzone"],
+[data-testid="stCameraInput"],
+div[data-testid="stVerticalBlockBorderWrapper"] > div {
+    background: #FFFFFF !important;
+    color: #2B2525 !important;
+    border-color: #DDD2CA !important;
+}
+
+.wine-card *, .wine-item *, .qr-card *,
+[data-testid="stExpander"] *,
+[data-testid="stMetric"] * {
+    color: #2B2525 !important;
+}
+
+.wine-title,
+[data-testid="stMetricValue"] {
+    color: #6E1730 !important;
+}
+
+/* Campos */
+input, textarea,
+.stTextInput input,
+.stNumberInput input,
+.stTextArea textarea,
+[data-baseweb="input"] > div,
+[data-baseweb="textarea"] > div,
+[data-baseweb="select"] > div {
+    background: #FFFFFF !important;
+    color: #2B2525 !important;
+    border-color: #CFC4BC !important;
+}
+
+[data-baseweb="select"] span,
+[data-baseweb="select"] input {
+    color: #2B2525 !important;
+}
+
+[role="listbox"],
+[data-baseweb="popover"] > div {
+    background: #FFFFFF !important;
+}
+[role="option"], [role="option"] * {
+    color: #2B2525 !important;
+}
+[role="option"]:hover {
+    background: #F1E7E5 !important;
+}
+
+/* Tabelas */
+[data-testid="stDataFrame"],
+[data-testid="stTable"] {
+    background: #FFFFFF !important;
+    color: #2B2525 !important;
+}
+
+/* Botões */
+.stButton > button,
+.stDownloadButton > button,
+.stFormSubmitButton > button {
+    background: linear-gradient(135deg,#751A35,#581326) !important;
+    color: #FFFFFF !important;
+    border: 1px solid #8D3450 !important;
+}
+.stButton > button *,
+.stDownloadButton > button *,
+.stFormSubmitButton > button * {
+    color: #FFFFFF !important;
+}
+
+/* Divisórias e textos auxiliares */
+hr { border-color: #D9CEC7 !important; }
+small, .stCaption, [data-testid="stCaptionContainer"] {
+    color: #6F6662 !important;
+}
+
+/* Cabeçalhos dourados usados no painel */
+.section-title, .gold-title {
+    color: #9A6B22 !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
+# ============================================================
+# PREMIUM WINES - TEMA CLARO V4 / CONTRASTE E LEGIBILIDADE
+# ============================================================
+st.markdown("""
+<style>
+/* Base */
+html, body, .stApp, [data-testid="stAppViewContainer"],
+[data-testid="stMain"], section.main {
+    background: #F6F2EE !important;
+    color: #2A2224 !important;
+}
+[data-testid="stMainBlockContainer"], .block-container {
+    background: transparent !important;
+}
+
+/* Texto comum na área principal */
+[data-testid="stMain"] p,
+[data-testid="stMain"] label,
+[data-testid="stMain"] li,
+[data-testid="stMain"] small,
+[data-testid="stMain"] .stMarkdown,
+[data-testid="stMain"] [data-testid="stCaptionContainer"] {
+    color: #403538 !important;
+}
+[data-testid="stMain"] h1,
+[data-testid="stMain"] h2,
+[data-testid="stMain"] h3,
+[data-testid="stMain"] h4 {
+    color: #251D20 !important;
+}
+
+/* HERO/CABEÇALHOS ESCUROS: texto sempre claro */
+.hero, .hero-card, .page-hero, .top-card, .premium-header,
+div[class*="hero"], div[class*="header-card"] {
+    color: #FFF8F3 !important;
+}
+.hero *, .hero-card *, .page-hero *, .top-card *, .premium-header *,
+div[class*="hero"] *, div[class*="header-card"] * {
+    color: #FFF8F3 !important;
+}
+
+/* Cards escuros que permaneceram no layout */
+div[style*="background:#151"],
+div[style*="background: #151"],
+div[style*="background:#171"],
+div[style*="background: #171"],
+div[style*="background:#1"],
+div[style*="background: #1"],
+div[style*="linear-gradient"][style*="#1"] {
+    color: #FFF8F3 !important;
+}
+div[style*="background:#151"] *,
+div[style*="background: #151"] *,
+div[style*="background:#171"] *,
+div[style*="background: #171"] *,
+div[style*="background:#1"] *,
+div[style*="background: #1"] *,
+div[style*="linear-gradient"][style*="#1"] * {
+    color: #FFF8F3 !important;
+}
+
+/* Cards de conteúdo claros */
+.wine-card, .wine-item, .qr-card, .result-card,
+.card-light, .content-card,
+[data-testid="stMetric"],
+[data-testid="stAlert"] {
+    background: #FFFFFF !important;
+    border: 1px solid #D9CEC7 !important;
+    color: #2A2224 !important;
+}
+.wine-card *, .wine-item *, .qr-card *, .result-card *,
+.card-light *, .content-card *,
+[data-testid="stMetric"] * {
+    color: #2A2224 !important;
+}
+
+/* Expanders: claro, exceto os que fazem parte de uma área escura */
+[data-testid="stExpander"] {
+    background: #FFFFFF !important;
+    border: 1px solid #D9CEC7 !important;
+}
+[data-testid="stExpander"] summary,
+[data-testid="stExpander"] summary *,
+[data-testid="stExpander"] [data-testid="stExpanderDetails"],
+[data-testid="stExpander"] [data-testid="stExpanderDetails"] * {
+    color: #2A2224 !important;
+}
+
+/* Inputs */
+.stTextInput input, .stNumberInput input, .stTextArea textarea,
+[data-baseweb="input"] input,
+[data-baseweb="textarea"] textarea {
+    background: #FFFFFF !important;
+    color: #211A1C !important;
+    -webkit-text-fill-color: #211A1C !important;
+    border-color: #CFC3BC !important;
+}
+input::placeholder, textarea::placeholder {
+    color: #8A7D78 !important;
+    opacity: 1 !important;
+}
+
+/* Selects */
+[data-baseweb="select"] > div {
+    background: #FFFFFF !important;
+    border-color: #CFC3BC !important;
+}
+[data-baseweb="select"] span,
+[data-baseweb="select"] input {
+    color: #211A1C !important;
+    -webkit-text-fill-color: #211A1C !important;
+}
+[role="listbox"], [data-baseweb="popover"] > div {
+    background: #FFFFFF !important;
+}
+[role="option"], [role="option"] * {
+    color: #211A1C !important;
+}
+[role="option"]:hover {
+    background: #F0E4E5 !important;
+}
+
+/* Radio/checkbox - fundo claro, texto escuro */
+[data-testid="stRadio"] > div,
+[data-testid="stCheckbox"] > label {
+    color: #2A2224 !important;
+}
+[data-testid="stRadio"] label,
+[data-testid="stRadio"] label *,
+[data-testid="stCheckbox"] label,
+[data-testid="stCheckbox"] label * {
+    color: #2A2224 !important;
+}
+
+/* Botões bordô */
+.stButton > button,
+.stDownloadButton > button,
+.stFormSubmitButton > button {
+    background: #7B1735 !important;
+    color: #FFFFFF !important;
+    border: 1px solid #8E2947 !important;
+}
+.stButton > button *,
+.stDownloadButton > button *,
+.stFormSubmitButton > button * {
+    color: #FFFFFF !important;
+}
+
+/* Tabelas */
+[data-testid="stDataFrame"],
+[data-testid="stTable"] {
+    background: #FFFFFF !important;
+    color: #2A2224 !important;
+}
+
+/* Alertas: força contraste */
+[data-testid="stAlert"] p,
+[data-testid="stAlert"] div,
+[data-testid="stAlert"] span {
+    color: #44383A !important;
+}
+
+/* Tabs */
+[data-baseweb="tab-list"] {
+    border-bottom-color: #D8CDC6 !important;
+}
+[data-baseweb="tab"] {
+    color: #675B5E !important;
+}
+[data-baseweb="tab"][aria-selected="true"],
+[data-baseweb="tab"][aria-selected="true"] * {
+    color: #7B1735 !important;
+    font-weight: 700 !important;
+}
+
+/* Sidebar */
+[data-testid="stSidebar"] {
+    background: linear-gradient(180deg,#4C1121 0%,#301017 100%) !important;
+}
+[data-testid="stSidebar"] *,
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] span,
+[data-testid="stSidebar"] label {
+    color: #FFF8F3 !important;
+}
+
+/* Cards HTML de vinho/pallet que usam estilos inline claros */
+div[style*="background: white"],
+div[style*="background:white"],
+div[style*="background: #fff"],
+div[style*="background:#fff"],
+div[style*="background: #FFF"],
+div[style*="background:#FFF"] {
+    color: #2A2224 !important;
+}
+div[style*="background: white"] *,
+div[style*="background:white"] *,
+div[style*="background: #fff"] *,
+div[style*="background:#fff"] *,
+div[style*="background: #FFF"] *,
+div[style*="background:#FFF"] * {
+    color: #2A2224 !important;
+}
+
+/* Linha/divisórias */
+hr { border-color: #D7CBC4 !important; }
+
+/* Não deixa texto desabilitado quase invisível */
+:disabled, [aria-disabled="true"] {
+    opacity: .72 !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
+# ===== IDENTIDADE VISUAL PREMIUM WINES V5 =====
+
+st.markdown("""
+<style>
+/* ===== PREMIUM WINES V5 ===== */
+:root {
+  --pw-bg:#F7F3EF;
+  --pw-card:#FFFFFF;
+  --pw-ink:#2B2225;
+  --pw-muted:#75686B;
+  --pw-wine:#71172F;
+  --pw-wine2:#4C1021;
+  --pw-gold:#B68534;
+  --pw-line:#DED3CC;
+  --pw-dark:#211A1E;
+}
+
+/* Sidebar: respeita o comportamento nativo do Streamlit.
+   No desktop mantém largura premium; no celular pode abrir/fechar normalmente. */
+[data-testid="stSidebar"] {
+    background:linear-gradient(180deg,var(--pw-wine2),#2D0D17) !important;
+}
+[data-testid="stSidebar"] * { color:#FFF8F2 !important; }
+
+@media (min-width: 901px) {
+    [data-testid="stSidebar"] {
+        width:270px !important;
+        min-width:270px !important;
+    }
+}
+
+/* No celular NÃO forçar display/transform.
+   Isso libera a seta de fechar e os cliques do menu. */
+@media (max-width: 900px) {
+    [data-testid="stSidebar"] {
+        width:min(82vw, 330px) !important;
+        min-width:0 !important;
+        max-width:330px !important;
+    }
+    [data-testid="stSidebar"] .stButton > button {
+        min-height:48px !important;
+        padding:.72rem .85rem !important;
+        font-size:.95rem !important;
+        touch-action:manipulation !important;
+    }
+}
+
+/* Fundo e textos */
+.stApp,[data-testid="stAppViewContainer"],[data-testid="stMain"] {
+    background:var(--pw-bg) !important;
+}
+[data-testid="stMain"] p,
+[data-testid="stMain"] label,
+[data-testid="stMain"] li,
+[data-testid="stMain"] small,
+[data-testid="stMain"] .stMarkdown {
+    color:var(--pw-ink) !important;
+}
+
+/* Nunca depender da seleção azul do navegador para ler */
+::selection { background:#D7B36A !important; color:#211A1E !important; }
+::-moz-selection { background:#D7B36A !important; color:#211A1E !important; }
+
+/* Radio e checkbox: corrige textos quase invisíveis */
+[data-testid="stRadio"] label,
+[data-testid="stRadio"] label *,
+[data-testid="stCheckbox"] label,
+[data-testid="stCheckbox"] label * {
+    color:var(--pw-ink) !important;
+    opacity:1 !important;
+}
+[data-testid="stRadio"] > div {
+    background:#FFFFFF !important;
+    border:1px solid var(--pw-line) !important;
+    border-radius:12px !important;
+    padding:8px 12px !important;
+}
+
+/* Campos claros e legíveis */
+.stTextInput input,.stNumberInput input,.stTextArea textarea,
+[data-baseweb="input"] input,[data-baseweb="textarea"] textarea,
+[data-baseweb="select"] > div {
+    background:#FFFFFF !important;
+    color:#211A1E !important;
+    -webkit-text-fill-color:#211A1E !important;
+    opacity:1 !important;
+}
+[data-baseweb="select"] span,[data-baseweb="select"] input {
+    color:#211A1E !important;
+    -webkit-text-fill-color:#211A1E !important;
+    opacity:1 !important;
+}
+input::placeholder,textarea::placeholder {
+    color:#887B7D !important;
+    -webkit-text-fill-color:#887B7D !important;
+    opacity:1 !important;
+}
+
+/* Upload */
+[data-testid="stFileUploaderDropzone"] {
+    background:#FFFFFF !important;
+    border:1px dashed #B9A69E !important;
+}
+[data-testid="stFileUploaderDropzone"] *,
+[data-testid="stFileUploader"] * {
+    color:var(--pw-ink) !important;
+}
+
+/* Cards claros */
+[data-testid="stMetric"],[data-testid="stAlert"],
+.wine-card,.wine-item,.qr-card,.content-card {
+    background:#FFFFFF !important;
+    color:var(--pw-ink) !important;
+    border:1px solid var(--pw-line) !important;
+}
+[data-testid="stMetric"] *,[data-testid="stAlert"] *,
+.wine-card *,.wine-item *,.qr-card *,.content-card * {
+    color:var(--pw-ink) !important;
+    opacity:1 !important;
+}
+
+/* Cards escuros e cabeçalhos: tudo branco/dourado */
+.hero,.hero-card,.page-hero,.premium-header,.top-card,
+div[class*="hero"],div[class*="header-card"] {
+    background:linear-gradient(135deg,#2A171D,#160D11) !important;
+    color:#FFF8F2 !important;
+}
+.hero *,.hero-card *,.page-hero *,.premium-header *,.top-card *,
+div[class*="hero"] *,div[class*="header-card"] * {
+    color:#FFF8F2 !important;
+    opacity:1 !important;
+}
+
+/* Cards HTML escuros do dashboard */
+div[style*="background:#2"], div[style*="background: #2"],
+div[style*="background:#1"], div[style*="background: #1"] {
+    color:#FFF8F2 !important;
+}
+div[style*="background:#2"] *, div[style*="background: #2"] *,
+div[style*="background:#1"] *, div[style*="background: #1"] * {
+    color:#FFF8F2 !important;
+    opacity:1 !important;
+}
+
+/* Expanders claros */
+[data-testid="stExpander"] {
+    background:#FFFFFF !important;
+    border:1px solid var(--pw-line) !important;
+}
+[data-testid="stExpander"] summary *,
+[data-testid="stExpanderDetails"] * {
+    color:var(--pw-ink) !important;
+    opacity:1 !important;
+}
+
+/* Botões */
+.stButton>button,.stDownloadButton>button,.stFormSubmitButton>button {
+    background:linear-gradient(135deg,#851A3A,#67142D) !important;
+    color:#FFFFFF !important;
+    border:0 !important;
+    border-radius:10px !important;
+    min-height:42px !important;
+    box-shadow:0 5px 14px rgba(91,20,43,.15) !important;
+}
+.stButton>button *,.stDownloadButton>button *,.stFormSubmitButton>button * {
+    color:#FFFFFF !important;
+}
+
+/* Elementos desabilitados continuam legíveis */
+:disabled,[aria-disabled="true"] {
+    opacity:.68 !important;
+}
+
+/* Logo Premium na lateral */
+.pw-logo-box {
+    background:#FFFFFF;
+    border-radius:18px;
+    padding:10px;
+    margin:4px 0 18px 0;
+    box-shadow:0 8px 22px rgba(0,0,0,.18);
+}
+.pw-logo-box img {
+    width:100%;
+    display:block;
+    border-radius:12px;
+}
+.pw-logo-title {
+    text-align:center;
+    font-weight:800;
+    letter-spacing:1.5px;
+    color:#F3D49A !important;
+    margin-top:8px;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
+try:
+    st.sidebar.markdown(
+        f"""
+        <div class="pw-logo-box">
+            <img src="{PREMIUM_LOGO_DATA_URI}" alt="Premium Wines">
+        </div>
+        <div class="pw-logo-title">PREMIUM WINES</div>
+        """,
+        unsafe_allow_html=True,
+    )
+except Exception:
+    pass
+
+
+# ===== CORRECOES V6 =====
+
+st.markdown("""
+<style>
+/* ===== PREMIUM WINES V6: LEGIBILIDADE TOTAL ===== */
+.pw-login-logo{
+    width:150px;
+    height:150px;
+    margin:0 auto 16px auto;
+    background:#fff;
+    border-radius:30px;
+    padding:7px;
+    box-shadow:0 12px 35px rgba(0,0,0,.28);
+    overflow:hidden;
+}
+.pw-login-logo img{
+    width:100%; height:100%; object-fit:cover; border-radius:24px;
+}
+
+/* LOGIN: quando ainda existir o quadrado da taça, troca visualmente pela logo */
+.login-icon,.auth-icon,.brand-icon {
+    width:150px !important; height:150px !important;
+    background-image:url(""" + PREMIUM_LOGO_DATA_URI + """) !important;
+    background-size:cover !important;
+    background-position:center !important;
+    border-radius:30px !important;
+    font-size:0 !important;
+    color:transparent !important;
+}
+
+/* FORMULÁRIOS ESCUROS: labels e títulos SEM fundo amarelo/seleção */
+[data-testid="stForm"] label,
+[data-testid="stForm"] label *,
+[data-testid="stForm"] p,
+[data-testid="stForm"] h1,
+[data-testid="stForm"] h2,
+[data-testid="stForm"] h3,
+[data-testid="stForm"] h4,
+[data-testid="stForm"] h5,
+[data-testid="stForm"] h6 {
+    color:#FFF8F2 !important;
+    -webkit-text-fill-color:#FFF8F2 !important;
+    background:transparent !important;
+    opacity:1 !important;
+}
+
+/* Labels de widgets fora de stForm também precisam ser visíveis sobre cards escuros */
+div[data-testid="stVerticalBlock"] label[data-testid="stWidgetLabel"] p,
+div[data-testid="stVerticalBlock"] label[data-testid="stWidgetLabel"] span,
+[data-testid="stWidgetLabel"] p,
+[data-testid="stWidgetLabel"] span {
+    color:inherit !important;
+    opacity:1 !important;
+}
+
+/* Dentro de containers escuros usados no cadastro/edição */
+.premium-form label,.premium-form label *,
+.dark-card label,.dark-card label *,
+.form-card label,.form-card label *,
+.edit-card label,.edit-card label *,
+.cadastro-card label,.cadastro-card label * {
+    color:#FFF8F2 !important;
+    -webkit-text-fill-color:#FFF8F2 !important;
+    background:transparent !important;
+    opacity:1 !important;
+}
+
+/* Inputs SEMPRE brancos, texto preto. */
+input, textarea,
+.stTextInput input,.stNumberInput input,.stTextArea textarea,
+[data-baseweb="input"] input,[data-baseweb="textarea"] textarea {
+    background:#FFFFFF !important;
+    color:#241B1E !important;
+    -webkit-text-fill-color:#241B1E !important;
+    caret-color:#71172F !important;
+    opacity:1 !important;
+}
+input::placeholder,textarea::placeholder{
+    color:#75686B !important;
+    -webkit-text-fill-color:#75686B !important;
+    opacity:1 !important;
+}
+
+/* SELECT: área preta = texto branco; seta clara separada */
+[data-baseweb="select"] > div {
+    background:#191A1F !important;
+    border-color:#E9E1DC !important;
+}
+[data-baseweb="select"] span,
+[data-baseweb="select"] input,
+[data-baseweb="select"] div[role="combobox"] {
+    color:#FFFFFF !important;
+    -webkit-text-fill-color:#FFFFFF !important;
+    opacity:1 !important;
+}
+[data-baseweb="select"] svg { fill:#B68534 !important; }
+
+/* Menus abertos */
+[role="listbox"],[role="option"] {
+    background:#FFFFFF !important;
+    color:#241B1E !important;
+}
+[role="option"] * {
+    color:#241B1E !important;
+    -webkit-text-fill-color:#241B1E !important;
+}
+
+/* Radio */
+[data-testid="stRadio"] label,
+[data-testid="stRadio"] label * {
+    color:#241B1E !important;
+    -webkit-text-fill-color:#241B1E !important;
+    background:transparent !important;
+}
+
+/* Upload */
+[data-testid="stFileUploaderDropzone"] {
+    background:#17181D !important;
+    border:1px dashed #B68534 !important;
+}
+[data-testid="stFileUploaderDropzone"] *,
+[data-testid="stFileUploader"] section * {
+    color:#FFF8F2 !important;
+    -webkit-text-fill-color:#FFF8F2 !important;
+    background-color:transparent !important;
+}
+[data-testid="stFileUploaderDropzone"] button {
+    background:#851A3A !important;
+    color:#FFFFFF !important;
+}
+
+/* Evita qualquer label parecendo seleção amarela */
+[data-testid="stMain"] label,
+[data-testid="stMain"] label *,
+[data-testid="stMain"] [data-testid="stWidgetLabel"],
+[data-testid="stMain"] [data-testid="stWidgetLabel"] * {
+    text-shadow:none !important;
+}
+
+/* Seleção do mouse não é necessária para leitura */
+::selection { background:#C89A4A !important; color:#171217 !important; }
+</style>
+""", unsafe_allow_html=True)
+
+
+try:
+    components.html(
+        f"""
+        <script>
+        (function() {{
+          const doc = window.parent.document;
+          function applyLogo() {{
+            const imgs = doc.querySelectorAll('img');
+            let hasPremiumLogo = false;
+            imgs.forEach(i => {{
+              if ((i.alt || '').toLowerCase().includes('premium wines')) hasPremiumLogo = true;
+            }});
+            const candidates = Array.from(doc.querySelectorAll('div')).filter(el => {{
+              const t=(el.innerText||'').trim();
+              const r=el.getBoundingClientRect();
+              return (t==='🍷' || t==='🍸' || t==='🏆' || t==='🍷') &&
+                     r.width>35 && r.width<120 && r.height>35 && r.height<120;
+            }});
+            if (candidates.length && !hasPremiumLogo) {{
+              const el=candidates[0];
+              el.innerHTML='<img alt="Premium Wines" src="{PREMIUM_LOGO_DATA_URI}" style="width:138px;height:138px;object-fit:cover;border-radius:26px;display:block;">';
+              el.style.width='150px'; el.style.height='150px';
+              el.style.padding='6px'; el.style.background='#fff';
+              el.style.borderRadius='30px'; el.style.overflow='hidden';
+            }}
+          }}
+          applyLogo();
+          setTimeout(applyLogo,400);
+          setTimeout(applyLogo,1200);
+        }})();
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
+except Exception:
+    pass
+
+
+# ============================================================
+# CORREÇÃO FINAL DE CONTRASTE — CARDS / EXPANDERS / ALERTAS
+# ============================================================
+st.markdown(r"""
+<style>
+/* Expanders/cards interativos: sempre legíveis, sem depender de seleção do mouse */
+div[data-testid="stExpander"] {
+    background:#FFFFFF !important;
+    border:1px solid #D9CEC7 !important;
+    border-radius:13px !important;
+    overflow:hidden !important;
+    box-shadow:0 6px 18px rgba(42,34,36,.08) !important;
+}
+div[data-testid="stExpander"] details,
+div[data-testid="stExpander"] details[open] {
+    background:#FFFFFF !important;
+}
+div[data-testid="stExpander"] summary,
+div[data-testid="stExpander"] details[open] > summary {
+    background:#F4EEE9 !important;
+    color:#2A2224 !important;
+    border:0 !important;
+    border-radius:0 !important;
+}
+div[data-testid="stExpander"] summary:hover {
+    background:#EADFD7 !important;
+}
+div[data-testid="stExpander"] summary *,
+div[data-testid="stExpander"] summary p,
+div[data-testid="stExpander"] summary span,
+div[data-testid="stExpander"] summary svg,
+div[data-testid="stExpander"] [data-testid="stExpanderDetails"],
+div[data-testid="stExpander"] [data-testid="stExpanderDetails"] * {
+    color:#2A2224 !important;
+    -webkit-text-fill-color:#2A2224 !important;
+    opacity:1 !important;
+}
+
+/* Cards, métricas e mensagens claras */
+div[data-testid="stMetric"],
+div[data-testid="stAlert"],
+.wine-card,.wine-item,.qr-card,.result-card,.card-light,.content-card {
+    background:#FFFFFF !important;
+    color:#2A2224 !important;
+    border-color:#D9CEC7 !important;
+}
+div[data-testid="stMetric"] *,
+div[data-testid="stAlert"] *,
+.wine-card *,.wine-item *,.qr-card *,.result-card *,.card-light *,.content-card * {
+    color:#2A2224 !important;
+    -webkit-text-fill-color:#2A2224 !important;
+    opacity:1 !important;
+}
+
+/* Labels e textos de formulário nunca somem */
+label, label *, [data-testid="stWidgetLabel"], [data-testid="stWidgetLabel"] *,
+.stCaptionContainer, .stCaptionContainer * {
+    opacity:1 !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ============================================================
+# CORREÇÃO DEFINITIVA — ABAS DO LOGIN SEMPRE VISÍVEIS
+# ============================================================
+st.markdown(r"""
+<style>
+/* Força a cor das três abas do login em todos os estados.
+   O seletor usa a estrutura real das tabs do Streamlit/BaseWeb. */
+div[data-baseweb="tab-list"] {
+    background: transparent !important;
+    min-height: 46px !important;
+}
+div[data-baseweb="tab-list"] button[data-baseweb="tab"] {
+    opacity: 1 !important;
+    background: transparent !important;
+}
+div[data-baseweb="tab-list"] button[data-baseweb="tab"] p,
+div[data-baseweb="tab-list"] button[data-baseweb="tab"] span,
+div[data-baseweb="tab-list"] button[data-baseweb="tab"] div {
+    color: #4B2630 !important;
+    -webkit-text-fill-color: #4B2630 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+    font-weight: 650 !important;
+    text-shadow: none !important;
+}
+div[data-baseweb="tab-list"] button[data-baseweb="tab"]:hover p,
+div[data-baseweb="tab-list"] button[data-baseweb="tab"]:hover span,
+div[data-baseweb="tab-list"] button[data-baseweb="tab"]:hover div {
+    color: #7A1733 !important;
+    -webkit-text-fill-color: #7A1733 !important;
+}
+div[data-baseweb="tab-list"] button[data-baseweb="tab"][aria-selected="true"] p,
+div[data-baseweb="tab-list"] button[data-baseweb="tab"][aria-selected="true"] span,
+div[data-baseweb="tab-list"] button[data-baseweb="tab"][aria-selected="true"] div {
+    color: #7A1733 !important;
+    -webkit-text-fill-color: #7A1733 !important;
+    opacity: 1 !important;
+    font-weight: 800 !important;
+}
+/* Mantém a barrinha da aba ativa em bordô. */
+div[data-baseweb="tab-highlight"] {
+    background-color: #8B1738 !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
+# ============================================================
+# PREMIUM WINES V8 — VISUAL ELEGANTE, CLARO E FUNCIONAL
+# ============================================================
+st.markdown(f"""
+<style>
+:root {{
+    --pw-bg:#F6F3EF;
+    --pw-surface:#FFFFFF;
+    --pw-surface-soft:#FBF8F5;
+    --pw-wine:#71172F;
+    --pw-wine-dark:#4A1021;
+    --pw-wine-soft:#F5E9EC;
+    --pw-gold:#B78635;
+    --pw-gold-soft:#F5E9CF;
+    --pw-text:#2E2528;
+    --pw-muted:#756A6D;
+    --pw-line:#E3DAD4;
+    --pw-shadow:0 12px 34px rgba(67,42,49,.10);
+}}
+
+/* Página */
+.stApp,
+[data-testid="stAppViewContainer"],
+[data-testid="stMain"],
+section.main {{
+    background:
+        radial-gradient(circle at 88% 4%, rgba(183,134,53,.07), transparent 24%),
+        linear-gradient(180deg,#FAF8F5 0%,var(--pw-bg) 100%) !important;
+    color:var(--pw-text) !important;
+}}
+.block-container {{
+    max-width:1480px !important;
+    padding-top:1.15rem !important;
+    padding-bottom:3rem !important;
+}}
+[data-testid="stMain"] p,
+[data-testid="stMain"] li,
+[data-testid="stMain"] label,
+[data-testid="stMain"] .stMarkdown {{
+    color:var(--pw-text);
+}}
+
+/* Sidebar premium */
+[data-testid="stSidebar"] {{
+    background:
+        radial-gradient(circle at 50% 0%, rgba(183,134,53,.13), transparent 24%),
+        linear-gradient(180deg,#65152D 0%,#4A1021 52%,#35101A 100%) !important;
+    border-right:1px solid rgba(255,255,255,.08) !important;
+    box-shadow:10px 0 34px rgba(50,14,27,.12) !important;
+}}
+[data-testid="stSidebar"] .sidebar-brand {{
+    margin:0 7px 14px !important;
+    padding:14px 8px 20px !important;
+    border-bottom:1px solid rgba(255,255,255,.12) !important;
+}}
+[data-testid="stSidebar"] .sidebar-brand img {{
+    width:78px !important;
+    height:78px !important;
+    border-radius:18px !important;
+    box-shadow:0 10px 28px rgba(0,0,0,.20) !important;
+}}
+[data-testid="stSidebar"] .brand-title {{
+    color:#FFF9F5 !important;
+    font-size:1rem !important;
+    letter-spacing:.11em !important;
+}}
+[data-testid="stSidebar"] .brand-sub {{
+    color:#E8C47F !important;
+}}
+[data-testid="stSidebar"] .sidebar-section {{
+    color:#E5BE73 !important;
+    opacity:.9 !important;
+    margin-top:20px !important;
+}}
+[data-testid="stSidebar"] .stButton > button {{
+    background:transparent !important;
+    color:#FFF9F5 !important;
+    border:1px solid transparent !important;
+    border-radius:12px !important;
+    min-height:42px !important;
+    transition:.18s ease !important;
+}}
+[data-testid="stSidebar"] .stButton > button:hover {{
+    background:rgba(255,255,255,.10) !important;
+    border-color:rgba(232,196,127,.24) !important;
+    transform:translateX(3px) !important;
+}}
+
+/* Topbar */
+.premium-topbar-v8 {{
+    background:rgba(255,255,255,.94) !important;
+    border:1px solid var(--pw-line) !important;
+    border-radius:18px !important;
+    padding:10px 14px !important;
+    box-shadow:var(--pw-shadow) !important;
+    min-height:72px !important;
+}}
+.topbar-left-v8,.topbar-right-v8 {{
+    display:flex; align-items:center; gap:12px;
+}}
+.topbar-logo-v8 {{
+    width:48px; height:48px; object-fit:cover;
+    border-radius:13px; padding:2px; background:#fff;
+    border:1px solid #E4D8D0;
+}}
+.topbar-brand {{
+    color:var(--pw-wine-dark) !important;
+    font-weight:900 !important;
+    letter-spacing:.08em !important;
+}}
+.topbar-brand span {{ color:var(--pw-gold) !important; }}
+.topbar-sub-v8 {{
+    color:var(--pw-muted); font-size:.72rem; margin-top:2px;
+}}
+.topbar-right-v8 {{
+    margin-left:auto;
+}}
+.db-chip-v8 {{
+    display:flex; align-items:center; gap:7px;
+    padding:7px 10px; border-radius:999px;
+    font-size:.72rem; font-weight:750;
+    background:#F2F5F1; color:#4E5A50;
+    border:1px solid #DCE5DB;
+}}
+.db-chip-v8 span {{
+    width:8px;height:8px;border-radius:50%;background:#45A565;
+    box-shadow:0 0 0 3px rgba(69,165,101,.13);
+}}
+.db-chip-v8.offline {{ background:#FFF0F0; color:#93464C; border-color:#F0D0D2; }}
+.db-chip-v8.offline span {{ background:#C65760; box-shadow:0 0 0 3px rgba(198,87,96,.12); }}
+.user-chip-v8 {{
+    min-width:130px;
+    padding:7px 11px;
+    border-radius:12px;
+    background:var(--pw-surface-soft);
+    border:1px solid var(--pw-line);
+    text-align:right;
+}}
+.user-chip-v8 strong {{ display:block; color:var(--pw-text); font-size:.78rem; }}
+.user-chip-v8 small {{ display:block; color:var(--pw-muted); font-size:.68rem; }}
+
+/* Hero da home */
+.hero-wine {{
+    background:
+        linear-gradient(110deg,rgba(74,16,33,.97),rgba(113,23,47,.94)),
+        url("{PREMIUM_LOGO_DATA_URI}") center right/auto 130% no-repeat !important;
+    border:1px solid rgba(183,134,53,.42) !important;
+    border-radius:22px !important;
+    box-shadow:0 18px 46px rgba(74,16,33,.18) !important;
+    min-height:176px !important;
+    padding:30px 34px !important;
+}}
+.hero-wine:after {{ display:none !important; }}
+.hero-kicker {{ color:#E7C37B !important; }}
+.hero-title {{ color:#FFFFFF !important; font-size:2rem !important; }}
+.hero-sub {{ color:#F1E8E4 !important; max-width:680px !important; }}
+
+/* Cabeçalhos internos */
+.page-hero {{
+    background:
+        linear-gradient(110deg,#FFFFFF 0%,#FCF8F5 72%,#F5E7EA 100%) !important;
+    border:1px solid var(--pw-line) !important;
+    border-left:5px solid var(--pw-wine) !important;
+    border-radius:18px !important;
+    box-shadow:var(--pw-shadow) !important;
+    padding:20px 22px !important;
+}}
+.page-hero:after {{
+    content:"" !important;
+    display:block !important;
+    width:82px;height:82px;
+    position:absolute;right:20px;top:8px;
+    background:url("{PREMIUM_LOGO_DATA_URI}") center/cover no-repeat;
+    border-radius:18px;
+    opacity:.10 !important;
+}}
+.page-kicker {{ color:var(--pw-gold) !important; }}
+.page-title {{ color:var(--pw-wine-dark) !important; }}
+.page-desc {{ color:var(--pw-muted) !important; }}
+
+/* Métricas */
+[data-testid="stMetric"] {{
+    background:linear-gradient(180deg,#FFFFFF,#FCFAF8) !important;
+    border:1px solid var(--pw-line) !important;
+    border-radius:16px !important;
+    padding:15px 17px !important;
+    box-shadow:0 8px 24px rgba(67,42,49,.07) !important;
+}}
+[data-testid="stMetric"]:hover {{
+    transform:translateY(-2px);
+    box-shadow:0 12px 28px rgba(67,42,49,.11) !important;
+}}
+[data-testid="stMetricValue"] {{
+    color:var(--pw-wine-dark) !important;
+    font-weight:900 !important;
+}}
+[data-testid="stMetricLabel"] {{
+    color:var(--pw-muted) !important;
+}}
+
+/* Cards da home */
+.action-card {{
+    background:linear-gradient(180deg,#FFFFFF,#FBF8F5) !important;
+    border:1px solid var(--pw-line) !important;
+    border-top:3px solid var(--pw-wine) !important;
+    border-radius:16px !important;
+    box-shadow:0 8px 24px rgba(67,42,49,.07) !important;
+    min-height:112px !important;
+    transition:.18s ease !important;
+}}
+.action-card:hover {{
+    transform:translateY(-3px);
+    box-shadow:0 15px 32px rgba(67,42,49,.12) !important;
+}}
+.action-icon {{ font-size:1.65rem !important; }}
+.action-title {{ color:var(--pw-wine-dark) !important; }}
+.action-desc {{ color:var(--pw-muted) !important; }}
+.section-title {{
+    color:var(--pw-gold) !important;
+    font-weight:900 !important;
+    letter-spacing:.16em !important;
+}}
+
+/* Formulários internos */
+[data-testid="stForm"] {{
+    background:#FFFFFF !important;
+    border:1px solid var(--pw-line) !important;
+    border-radius:18px !important;
+    box-shadow:0 10px 28px rgba(67,42,49,.08) !important;
+    padding:18px !important;
+}}
+[data-testid="stForm"] label,
+[data-testid="stForm"] label *,
+[data-testid="stForm"] p,
+[data-testid="stForm"] h1,
+[data-testid="stForm"] h2,
+[data-testid="stForm"] h3,
+[data-testid="stForm"] h4 {{
+    color:var(--pw-text) !important;
+    -webkit-text-fill-color:var(--pw-text) !important;
+}}
+input,textarea,
+.stTextInput input,.stNumberInput input,.stTextArea textarea,
+[data-baseweb="input"] input,[data-baseweb="textarea"] textarea {{
+    background:#FFFFFF !important;
+    color:var(--pw-text) !important;
+    -webkit-text-fill-color:var(--pw-text) !important;
+    border:1px solid #D9CEC7 !important;
+    border-radius:11px !important;
+}}
+input:focus,textarea:focus {{
+    border-color:var(--pw-wine) !important;
+    box-shadow:0 0 0 3px rgba(113,23,47,.08) !important;
+}}
+
+/* Selects */
+[data-baseweb="select"] > div {{
+    background:#FFFFFF !important;
+    color:var(--pw-text) !important;
+    border:1px solid #D9CEC7 !important;
+    border-radius:11px !important;
+}}
+[data-baseweb="select"] span,
+[data-baseweb="select"] input,
+[data-baseweb="select"] div[role="combobox"] {{
+    color:var(--pw-text) !important;
+    -webkit-text-fill-color:var(--pw-text) !important;
+}}
+[data-baseweb="select"] svg {{ fill:var(--pw-gold) !important; }}
+[role="listbox"],[data-baseweb="popover"] > div {{
+    background:#FFFFFF !important;
+    border:1px solid var(--pw-line) !important;
+    box-shadow:0 14px 32px rgba(67,42,49,.13) !important;
+}}
+[role="option"],[role="option"] * {{
+    color:var(--pw-text) !important;
+    -webkit-text-fill-color:var(--pw-text) !important;
+}}
+[role="option"]:hover {{ background:var(--pw-wine-soft) !important; }}
+
+/* Botões */
+.stButton > button,
+.stDownloadButton > button,
+.stFormSubmitButton > button {{
+    background:linear-gradient(135deg,#811B39,#64142D) !important;
+    color:#FFFFFF !important;
+    border:1px solid #8E2947 !important;
+    border-radius:11px !important;
+    min-height:42px !important;
+    font-weight:800 !important;
+    box-shadow:0 7px 18px rgba(113,23,47,.15) !important;
+    transition:.18s ease !important;
+}}
+.stButton > button:hover,
+.stDownloadButton > button:hover,
+.stFormSubmitButton > button:hover {{
+    transform:translateY(-1px) !important;
+    box-shadow:0 11px 24px rgba(113,23,47,.22) !important;
+    border-color:#B78635 !important;
+}}
+
+/* Expanders e cards gerais */
+div[data-testid="stExpander"] {{
+    background:#FFFFFF !important;
+    border:1px solid var(--pw-line) !important;
+    border-radius:14px !important;
+    box-shadow:0 7px 20px rgba(67,42,49,.06) !important;
+    overflow:hidden !important;
+}}
+div[data-testid="stExpander"] summary {{
+    background:#FBF7F4 !important;
+    color:var(--pw-text) !important;
+    min-height:48px !important;
+}}
+div[data-testid="stExpander"] summary:hover {{
+    background:#F6ECEE !important;
+}}
+div[data-testid="stExpander"] summary *,
+div[data-testid="stExpander"] [data-testid="stExpanderDetails"] * {{
+    color:var(--pw-text) !important;
+    -webkit-text-fill-color:var(--pw-text) !important;
+    opacity:1 !important;
+}}
+
+/* Cards HTML escuros antigos viram cards claros */
+.wine-card,.wine-item,.qr-card,.result-card,.content-card,.premium-panel {{
+    background:#FFFFFF !important;
+    color:var(--pw-text) !important;
+    border:1px solid var(--pw-line) !important;
+    box-shadow:0 8px 24px rgba(67,42,49,.07) !important;
+}}
+.wine-card *,.wine-item *,.qr-card *,.result-card *,.content-card *,.premium-panel * {{
+    color:var(--pw-text) !important;
+    -webkit-text-fill-color:var(--pw-text) !important;
+}}
+.pallet-header {{
+    background:linear-gradient(135deg,#741833,#541125) !important;
+    border:1px solid #8E2947 !important;
+    box-shadow:0 12px 28px rgba(74,16,33,.18) !important;
+}}
+.pallet-header * {{
+    color:#FFFFFF !important;
+    -webkit-text-fill-color:#FFFFFF !important;
+}}
+
+/* Card antigo de conferência com inline background escuro */
+div[style*="background:#17171b"],
+div[style*="background: #17171b"],
+div[style*="background:#19191d"],
+div[style*="background: #19191d"] {{
+    background:#FFFFFF !important;
+    color:var(--pw-text) !important;
+    border-color:var(--pw-line) !important;
+    box-shadow:0 8px 24px rgba(67,42,49,.07) !important;
+}}
+div[style*="background:#17171b"] *,
+div[style*="background: #17171b"] *,
+div[style*="background:#19191d"] *,
+div[style*="background: #19191d"] * {{
+    color:var(--pw-text) !important;
+    -webkit-text-fill-color:var(--pw-text) !important;
+}}
+
+/* Upload e câmera */
+[data-testid="stFileUploaderDropzone"],
+[data-testid="stFileUploader"] section {{
+    background:#FBF8F5 !important;
+    border:1px dashed #C8B7AC !important;
+    border-radius:14px !important;
+}}
+[data-testid="stFileUploaderDropzone"] *,
+[data-testid="stFileUploader"] section * {{
+    color:var(--pw-text) !important;
+    -webkit-text-fill-color:var(--pw-text) !important;
+}}
+[data-testid="stCameraInput"] {{
+    background:#FFFFFF !important;
+    border:1px solid var(--pw-line) !important;
+    border-radius:14px !important;
+}}
+
+/* Alertas */
+[data-testid="stAlert"] {{
+    border-radius:13px !important;
+    border:1px solid var(--pw-line) !important;
+    box-shadow:0 5px 16px rgba(67,42,49,.05) !important;
+}}
+[data-testid="stAlert"] *,
+[data-testid="stAlert"] p,
+[data-testid="stAlert"] span {{
+    color:var(--pw-text) !important;
+    -webkit-text-fill-color:var(--pw-text) !important;
+}}
+
+/* Tabelas */
+[data-testid="stDataFrame"],
+[data-testid="stDataEditor"],
+[data-testid="stTable"] {{
+    background:#FFFFFF !important;
+    border:1px solid var(--pw-line) !important;
+    border-radius:14px !important;
+    overflow:hidden !important;
+    box-shadow:0 8px 24px rgba(67,42,49,.06) !important;
+}}
+
+/* Tabs internas */
+div[data-baseweb="tab-list"] {{
+    background:#F3EDE8 !important;
+    border:1px solid var(--pw-line) !important;
+    border-radius:12px !important;
+    padding:4px !important;
+}}
+button[data-baseweb="tab"] {{
+    border-radius:9px !important;
+    color:#69575C !important;
+}}
+button[data-baseweb="tab"] *,
+button[data-baseweb="tab"] p,
+button[data-baseweb="tab"] span {{
+    color:#69575C !important;
+    -webkit-text-fill-color:#69575C !important;
+    opacity:1 !important;
+}}
+button[data-baseweb="tab"][aria-selected="true"] {{
+    background:#FFFFFF !important;
+    box-shadow:0 4px 12px rgba(67,42,49,.08) !important;
+}}
+button[data-baseweb="tab"][aria-selected="true"] *,
+button[data-baseweb="tab"][aria-selected="true"] p {{
+    color:var(--pw-wine) !important;
+    -webkit-text-fill-color:var(--pw-wine) !important;
+    font-weight:800 !important;
+}}
+
+/* Responsivo */
+@media(max-width:900px) {{
+    .topbar-right-v8 .db-chip-v8 {{ display:none; }}
+    .user-chip-v8 {{ min-width:auto; }}
+    .page-hero:after {{ width:58px;height:58px; }}
+    .hero-title {{ font-size:1.55rem !important; }}
+}}
+@media(max-width:640px) {{
+    .topbar-sub-v8,.user-chip-v8 {{ display:none; }}
+    .premium-topbar-v8 {{ min-height:60px !important; }}
+    .hero-wine {{ padding:24px 20px !important; min-height:150px !important; }}
+    .block-container {{ padding-left:.8rem !important;padding-right:.8rem !important; }}
+}}
+</style>
+""", unsafe_allow_html=True)
+
+# ============================================================
+# V11 — SIDEBAR RESPONSIVA
+# Desktop: fixa. Celular: comportamento nativo deslizante do Streamlit.
+# ============================================================
+st.markdown("""
+<style>
+@media (min-width: 901px) {
+    header[data-testid="stHeader"], [data-testid="stHeader"] {
+        display:none !important; visibility:hidden !important; height:0 !important; min-height:0 !important;
+    }
+    [data-testid="stSidebar"] {
+        display:flex !important; visibility:visible !important; opacity:1 !important;
+        transform:none !important; margin-left:0 !important; width:270px !important; min-width:270px !important;
+        pointer-events:auto !important;
+    }
+    [data-testid="stSidebarCollapseButton"],
+    [data-testid="stSidebarCollapsedControl"],
+    [data-testid="collapsedControl"] { display:none !important; }
+}
+
+@media (max-width: 900px) {
+    /* Restaura o cabeçalho nativo: é nele que o Streamlit coloca o botão do menu. */
+    header[data-testid="stHeader"], [data-testid="stHeader"] {
+        display:flex !important; visibility:visible !important; opacity:1 !important;
+        height:52px !important; min-height:52px !important;
+        background:rgba(250,248,245,.96) !important; border-bottom:1px solid #E3DAD4 !important;
+        box-shadow:none !important; z-index:99990 !important;
+    }
+    [data-testid="stToolbar"], [data-testid="stDecoration"], [data-testid="stMainMenu"],
+    .stAppToolbar, .stDeployButton { display:none !important; visibility:hidden !important; }
+
+    /* Não definimos transform/aria-expanded: o próprio Streamlit controla o slide. */
+    [data-testid="stSidebar"] {
+        width:min(84vw,330px) !important; min-width:0 !important; max-width:330px !important;
+        box-shadow:18px 0 38px rgba(31,7,16,.28) !important; z-index:99999 !important;
+    }
+    [data-testid="stSidebar"] .stButton > button {
+        min-height:48px !important; touch-action:manipulation !important;
+    }
+    [data-testid="stSidebarCollapsedControl"], [data-testid="collapsedControl"],
+    [data-testid="stSidebarCollapseButton"] {
+        visibility:visible !important; opacity:1 !important; pointer-events:auto !important; z-index:100002 !important;
+    }
+}
+</style>
+""", unsafe_allow_html=True)
+
+
+# ============================================================
+# V11.2 — CORREÇÕES VISUAIS PONTUAIS
+# Somente aparência/legibilidade. Não altera regras do sistema.
+# ============================================================
+st.markdown(r"""
+<style>
+/* 1) Logo do cabeçalho: nunca pode crescer além do tamanho padrão. */
+.premium-topbar-v8 .topbar-logo-v8,
+.topbar.premium-topbar-v8 img.topbar-logo-v8 {
+    width:48px !important;
+    height:48px !important;
+    min-width:48px !important;
+    min-height:48px !important;
+    max-width:48px !important;
+    max-height:48px !important;
+    object-fit:cover !important;
+    display:block !important;
+    flex:0 0 48px !important;
+    padding:2px !important;
+    margin:0 !important;
+    border-radius:13px !important;
+}
+.premium-topbar-v8 .topbar-left-v8 {
+    display:flex !important;
+    align-items:center !important;
+    min-width:0 !important;
+}
+.premium-topbar-v8 {
+    overflow:hidden !important;
+}
+
+/* 2) Texto dos botões bordô sempre branco, inclusive em reruns e divergências. */
+.stButton > button,
+.stDownloadButton > button,
+.stFormSubmitButton > button {
+    color:#FFFFFF !important;
+    -webkit-text-fill-color:#FFFFFF !important;
+}
+.stButton > button *,
+.stDownloadButton > button *,
+.stFormSubmitButton > button * {
+    color:#FFFFFF !important;
+    -webkit-text-fill-color:#FFFFFF !important;
+    opacity:1 !important;
+}
+.stButton > button:disabled *,
+.stDownloadButton > button:disabled *,
+.stFormSubmitButton > button:disabled * {
+    color:#FFFFFF !important;
+    -webkit-text-fill-color:#FFFFFF !important;
+    opacity:.88 !important;
+}
+
+/* 3) Card de resumo do pedido no Painel da Matriz. */
+.pedido-resumo-card {
+    background:linear-gradient(180deg,#FFFFFF,#FBF8F5) !important;
+    border:1px solid #E3DAD4 !important;
+    border-left:4px solid #71172F !important;
+    border-radius:13px !important;
+    padding:14px 16px !important;
+    margin:2px 0 12px 0 !important;
+    box-shadow:0 7px 20px rgba(67,42,49,.06) !important;
+}
+.pedido-resumo-titulo {
+    color:#4A1021 !important;
+    -webkit-text-fill-color:#4A1021 !important;
+    font-size:1rem !important;
+    font-weight:850 !important;
+}
+.pedido-resumo-meta {
+    margin-top:7px !important;
+    color:#756A6D !important;
+    -webkit-text-fill-color:#756A6D !important;
+    font-size:.88rem !important;
+}
+.pedido-resumo-meta b {
+    -webkit-text-fill-color:currentColor !important;
+}
+
+/* 4) Cards e métricas claros: garante contraste sem afetar o hero bordô. */
+.action-card .action-title,
+.action-card .action-desc,
+[data-testid="stMetric"] [data-testid="stMetricLabel"],
+[data-testid="stMetric"] [data-testid="stMetricValue"] {
+    opacity:1 !important;
+}
+.action-card .action-title {
+    color:#4A1021 !important;
+    -webkit-text-fill-color:#4A1021 !important;
+}
+.action-card .action-desc {
+    color:#756A6D !important;
+    -webkit-text-fill-color:#756A6D !important;
+}
+
+/* 5) Expanders do Painel: conteúdo sempre legível. */
+div[data-testid="stExpander"] [data-testid="stExpanderDetails"] p,
+div[data-testid="stExpander"] [data-testid="stExpanderDetails"] span,
+div[data-testid="stExpander"] [data-testid="stExpanderDetails"] div:not([data-baseweb]) {
+    opacity:1 !important;
+}
+
+/* 6) No celular mantém a logo proporcional ao restante do cabeçalho. */
+@media (max-width:640px) {
+    .premium-topbar-v8 .topbar-logo-v8,
+    .topbar.premium-topbar-v8 img.topbar-logo-v8 {
+        width:42px !important;
+        height:42px !important;
+        min-width:42px !important;
+        min-height:42px !important;
+        max-width:42px !important;
+        max-height:42px !important;
+        flex-basis:42px !important;
+    }
+}
+</style>
+""", unsafe_allow_html=True)
+
+
+# ============================================================
+# V11.3 — SIDEBAR MOBILE CONFIÁVEL + AÇÕES DO PAINEL NO CELULAR
+# ============================================================
+st.markdown(r"""
+<style>
+/* Desktop: sidebar fixa e sem controles de recolher. */
+@media (min-width: 901px) {
+    html [data-testid="stSidebar"] {
+        display:flex !important;
+        visibility:visible !important;
+        opacity:1 !important;
+        transform:none !important;
+        margin-left:0 !important;
+        width:270px !important;
+        min-width:270px !important;
+        pointer-events:auto !important;
+    }
+    #pw-mobile-sidebar-open,
+    #pw-mobile-sidebar-overlay,
+    #pw-mobile-sidebar-close {
+        display:none !important;
+    }
+}
+
+/* Celular: usamos a própria sidebar, mas o abrir/recolher é controlado por um
+   botão simples e pelo gesto. Assim não dependemos do botão interno do Streamlit. */
+@media (max-width: 900px) {
+    header[data-testid="stHeader"],
+    [data-testid="stHeader"] {
+        display:none !important;
+        visibility:hidden !important;
+        height:0 !important;
+        min-height:0 !important;
+    }
+
+    html [data-testid="stSidebar"] {
+        display:flex !important;
+        visibility:visible !important;
+        opacity:1 !important;
+        position:fixed !important;
+        top:0 !important;
+        left:0 !important;
+        bottom:0 !important;
+        width:min(86vw, 330px) !important;
+        min-width:0 !important;
+        max-width:330px !important;
+        height:100dvh !important;
+        transform:translateX(-105%) !important;
+        transition:transform .24s ease !important;
+        pointer-events:none !important;
+        z-index:100001 !important;
+        box-shadow:18px 0 42px rgba(31,7,16,.34) !important;
+    }
+    html.pw-mobile-sidebar-open [data-testid="stSidebar"] {
+        transform:translateX(0) !important;
+        pointer-events:auto !important;
+    }
+    html [data-testid="stSidebar"] > div:first-child {
+        padding-top:56px !important;
+    }
+
+    /* O menu lateral continua inteiro e clicável. */
+    html [data-testid="stSidebar"] .stButton > button {
+        min-height:48px !important;
+        touch-action:manipulation !important;
+    }
+
+    /* Botão pequeno para abrir a sidebar. Não é um segundo menu. */
+    #pw-mobile-sidebar-open {
+        display:flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+        position:fixed !important;
+        top:12px !important;
+        left:12px !important;
+        width:46px !important;
+        height:46px !important;
+        border:1px solid rgba(255,255,255,.20) !important;
+        border-radius:12px !important;
+        background:#65152D !important;
+        color:#FFFFFF !important;
+        font-size:22px !important;
+        font-weight:800 !important;
+        box-shadow:0 8px 24px rgba(55,12,26,.24) !important;
+        z-index:100003 !important;
+        cursor:pointer !important;
+    }
+    html.pw-mobile-sidebar-open #pw-mobile-sidebar-open {
+        display:none !important;
+    }
+
+    #pw-mobile-sidebar-close {
+        display:flex !important;
+        align-items:center !important;
+        justify-content:center !important;
+        position:absolute !important;
+        top:10px !important;
+        right:12px !important;
+        width:40px !important;
+        height:40px !important;
+        border:1px solid rgba(255,255,255,.24) !important;
+        border-radius:11px !important;
+        background:rgba(255,255,255,.10) !important;
+        color:#FFFFFF !important;
+        font-size:25px !important;
+        line-height:1 !important;
+        z-index:100004 !important;
+        cursor:pointer !important;
+    }
+
+    #pw-mobile-sidebar-overlay {
+        display:none !important;
+        position:fixed !important;
+        inset:0 !important;
+        background:rgba(23,12,17,.40) !important;
+        z-index:100000 !important;
+    }
+    html.pw-mobile-sidebar-open #pw-mobile-sidebar-overlay {
+        display:block !important;
+    }
+
+    /* Painel da Matriz: salvar e imprimir sempre cabem na tela do celular. */
+    [class*="st-key-painel_acoes_pedidos_mobile"] [data-testid="stHorizontalBlock"] {
+        flex-direction:column !important;
+        gap:.55rem !important;
+    }
+    [class*="st-key-painel_acoes_pedidos_mobile"] [data-testid="column"] {
+        width:100% !important;
+        flex:1 1 100% !important;
+        min-width:100% !important;
+    }
+    [class*="st-key-painel_acoes_pedidos_mobile"] .stButton > button,
+    [class*="st-key-painel_acoes_pedidos_mobile"] .stDownloadButton > button,
+    [class*="st-key-painel_acoes_pedidos_mobile"] iframe {
+        width:100% !important;
+        min-width:100% !important;
+    }
+}
+</style>
+""", unsafe_allow_html=True)
+
+try:
+    components.html(
+        r"""
+        <script>
+        (() => {
+            const w = window.parent;
+            const d = w.document;
+            const root = d.documentElement;
+
+            if (w.__premiumSidebarV113Installed) return;
+            w.__premiumSidebarV113Installed = true;
+
+            function mobile() {
+                return w.matchMedia && w.matchMedia('(max-width: 900px)').matches;
+            }
+            function openSidebar() {
+                if (!mobile()) return;
+                root.classList.add('pw-mobile-sidebar-open');
+            }
+            function closeSidebar() {
+                root.classList.remove('pw-mobile-sidebar-open');
+            }
+            function ensureControls() {
+                let openBtn = d.getElementById('pw-mobile-sidebar-open');
+                if (!openBtn) {
+                    openBtn = d.createElement('button');
+                    openBtn.id = 'pw-mobile-sidebar-open';
+                    openBtn.type = 'button';
+                    openBtn.setAttribute('aria-label', 'Abrir menu lateral');
+                    openBtn.innerHTML = '&#9776;';
+                    openBtn.addEventListener('click', openSidebar);
+                    d.body.appendChild(openBtn);
+                }
+
+                let overlay = d.getElementById('pw-mobile-sidebar-overlay');
+                if (!overlay) {
+                    overlay = d.createElement('div');
+                    overlay.id = 'pw-mobile-sidebar-overlay';
+                    overlay.addEventListener('click', closeSidebar);
+                    d.body.appendChild(overlay);
+                }
+
+                const sidebar = d.querySelector('[data-testid="stSidebar"]');
+                if (sidebar && !sidebar.querySelector('#pw-mobile-sidebar-close')) {
+                    const closeBtn = d.createElement('button');
+                    closeBtn.id = 'pw-mobile-sidebar-close';
+                    closeBtn.type = 'button';
+                    closeBtn.setAttribute('aria-label', 'Recolher menu lateral');
+                    closeBtn.innerHTML = '&lsaquo;';
+                    closeBtn.addEventListener('click', closeSidebar);
+                    sidebar.appendChild(closeBtn);
+                }
+            }
+
+            ensureControls();
+            const observer = new MutationObserver(ensureControls);
+            observer.observe(d.body, { childList: true, subtree: true });
+
+            /* Depois de escolher uma opção do menu no celular, recolhe a sidebar. */
+            d.addEventListener('click', (ev) => {
+                if (!mobile()) return;
+                const sidebar = ev.target.closest && ev.target.closest('[data-testid="stSidebar"]');
+                const button = ev.target.closest && ev.target.closest('button');
+                if (sidebar && button && button.id !== 'pw-mobile-sidebar-close') {
+                    setTimeout(closeSidebar, 120);
+                }
+            }, true);
+
+            /* Gesto: puxar da borda esquerda abre; deslizar para a esquerda recolhe. */
+            let sx = 0, sy = 0, started = false;
+            d.addEventListener('touchstart', (ev) => {
+                if (!mobile() || !ev.touches || ev.touches.length !== 1) return;
+                const t = ev.touches[0];
+                sx = t.clientX;
+                sy = t.clientY;
+                started = true;
+            }, { passive: true });
+
+            d.addEventListener('touchend', (ev) => {
+                if (!started || !mobile() || !ev.changedTouches || ev.changedTouches.length !== 1) return;
+                started = false;
+                const t = ev.changedTouches[0];
+                const dx = t.clientX - sx;
+                const dy = t.clientY - sy;
+                if (Math.abs(dy) > 90) return;
+                const isOpen = root.classList.contains('pw-mobile-sidebar-open');
+                if (!isOpen && sx <= 45 && dx >= 65) openSidebar();
+                if (isOpen && dx <= -65) closeSidebar();
+            }, { passive: true });
+
+            w.addEventListener('resize', () => {
+                if (!mobile()) closeSidebar();
+                ensureControls();
+            });
+        })();
+        </script>
+        """,
+        height=0,
+        width=0,
+    )
+except Exception:
+    pass
+
+
+# ============================================================
+# V11.7 — ALERTAS/CARDS SEMPRE LEGÍVEIS
+# Corrige textos que só apareciam ao selecionar com o mouse.
+# ============================================================
+st.markdown(r"""
+<style>
+/* Alertas nativos do Streamlit: texto sempre escuro e 100% visível. */
+html body [data-testid="stAlert"],
+html body div[data-testid="stAlert"] {
+    color:#2A2224 !important;
+    -webkit-text-fill-color:#2A2224 !important;
+    opacity:1 !important;
+}
+html body [data-testid="stAlert"] *,
+html body [data-testid="stAlert"] p,
+html body [data-testid="stAlert"] span,
+html body [data-testid="stAlert"] div,
+html body [data-testid="stAlert"] strong,
+html body [data-testid="stAlert"] em {
+    color:#2A2224 !important;
+    -webkit-text-fill-color:#2A2224 !important;
+    opacity:1 !important;
+    visibility:visible !important;
+    text-shadow:none !important;
+}
+
+/* Mantém os fundos suaves, mas com contraste suficiente. */
+html body [data-testid="stAlert"]:has([data-testid*="success"]),
+html body .stAlert-success {
+    background:#EAF7EE !important;
+    border-color:#B8DEC3 !important;
+}
+html body [data-testid="stAlert"]:has([data-testid*="info"]),
+html body .stAlert-info {
+    background:#EAF3FF !important;
+    border-color:#B9D4F4 !important;
+}
+html body [data-testid="stAlert"]:has([data-testid*="warning"]),
+html body .stAlert-warning {
+    background:#FFF5DB !important;
+    border-color:#E9D08D !important;
+}
+html body [data-testid="stAlert"]:has([data-testid*="error"]),
+html body .stAlert-error {
+    background:#FCEBEC !important;
+    border-color:#E7B9BE !important;
+}
+
+/* Alguns releases do Streamlit usam classes BaseWeb internas. */
+html body [role="alert"],
+html body [role="alert"] * {
+    color:#2A2224 !important;
+    -webkit-text-fill-color:#2A2224 !important;
+    opacity:1 !important;
+    visibility:visible !important;
+    text-shadow:none !important;
+}
+
+/* Evita que estilos antigos deixem textos de caption/markdown transparentes. */
+html body [data-testid="stMain"] [data-testid="stAlert"] .stMarkdown,
+html body [data-testid="stMain"] [data-testid="stAlert"] .stMarkdown * {
+    color:#2A2224 !important;
+    -webkit-text-fill-color:#2A2224 !important;
+    opacity:1 !important;
+}
+
+/* Selecionar o texto continua possível, mas não é mais necessário para ler. */
+html body [data-testid="stAlert"] ::selection {
+    background:#C89A4A !important;
+    color:#171217 !important;
+    -webkit-text-fill-color:#171217 !important;
+}
+</style>
+""", unsafe_allow_html=True)
