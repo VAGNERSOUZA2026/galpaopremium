@@ -3126,7 +3126,7 @@ def validar_itens_pedido_no_estoque(itens):
 
 
 # ============================================================
-# QR CODE
+# QR CODE — V12.7: QR abre a consulta pública do pallet
 # ============================================================
 
 def url_publica_pallet(pallet_id):
@@ -3169,10 +3169,13 @@ def montar_conteudo_qr_pallet(pallet_id, estoque=None):
 def gerar_qr_pallet(pallet_id, pallet=None, estoque=None):
     """Gera um QR FIXO por posição física do galpão.
 
-    O conteúdo do QR é somente o identificador da posição (ex.: C01-P01-D).
-    Assim, o QR de uma mesma posição será sempre o mesmo, independentemente
-    dos vinhos que entrarem ou saírem do pallet. Os vinhos são consultados
-    pelo aplicativo no momento da leitura.
+    O QR contém a URL pública do Premium Wines com o identificador da posição
+    (ex.: ?p=C01-P01-D). Ao escanear com a câmera do celular, o usuário pode
+    abrir diretamente a consulta pública do pallet no aplicativo.
+
+    A URL continua fixa para aquela posição física. Os nomes, safras e demais
+    dados dos vinhos NÃO ficam gravados no QR; são consultados no estoque atual
+    sempre que a página é aberta.
     """
     if not QRCODE_DISPONIVEL:
         return None
@@ -3182,9 +3185,10 @@ def gerar_qr_pallet(pallet_id, pallet=None, estoque=None):
     if dados:
         pallet_id = dados["id"]
 
-    # IMPORTANTE: não incluir nomes, safras ou quantidade de vinhos aqui.
-    # Isso garante que a mesma posição gere exatamente o mesmo QR para sempre.
-    conteudo_qr = pallet_id
+    # IMPORTANTE: o QR leva apenas à consulta pública desta POSIÇÃO.
+    # Não gravamos nomes, safras ou quantidades no QR. Assim ele continua
+    # válido mesmo quando os vinhos armazenados no pallet mudarem.
+    conteudo_qr = url_publica_pallet(pallet_id)
 
     caminho = os.path.join(PASTA_QR, f"{pallet_id}.png")
 
