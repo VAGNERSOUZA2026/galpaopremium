@@ -4,3 +4,4 @@ pytz
 openpyxl
 qrcode[pil]
 psycopg2-binary
+opencv-python-headless
