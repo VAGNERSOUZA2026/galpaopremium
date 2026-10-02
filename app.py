@@ -3184,7 +3184,7 @@ def gerar_qr_pallet(pallet_id, pallet=None, estoque=None):
 
     # IMPORTANTE: não incluir nomes, safras ou quantidade de vinhos aqui.
     # Isso garante que a mesma posição gere exatamente o mesmo QR para sempre.
-    conteudo_qr = pallet_id
+    conteudo_qr = url_publica_pallet(pallet_id)
 
     caminho = os.path.join(PASTA_QR, f"{pallet_id}.png")
 
